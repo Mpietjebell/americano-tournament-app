@@ -1,0 +1,120 @@
+{% liquid
+  assign art = block.settings.hero_image | default: 'https://americano-tournament-app-production.up.railway.app/hero-court.png'
+  assign organise_url = block.settings.organise_url | default: 'https://americano-tournament-app-production.up.railway.app/app/play/tournament/new'
+  assign join_url = block.settings.join_url | default: 'https://americano-tournament-app-production.up.railway.app/app/play/join'
+%}
+
+{{ 'nopa-launcher.css' | asset_url | stylesheet_tag }}
+
+<div class="nopa-launcher" {{ block.shopify_attributes }}>
+  <div class="nopa-launcher__wash"></div>
+  <div class="nopa-launcher__grain"></div>
+
+  <div class="nopa-launcher__inner">
+    <span class="nopa-launcher__eyebrow">{{ block.settings.eyebrow }}</span>
+
+    <div class="nopa-launcher__grid">
+      <div class="nopa-launcher__copy">
+        <h2 class="nopa-launcher__title">{{ block.settings.heading }}</h2>
+        <p class="nopa-launcher__text">{{ block.settings.body }}</p>
+
+        <div class="nopa-launcher__actions">
+          <a class="nopa-launcher__button nopa-launcher__button--primary" href="{{ join_url }}">
+            {{ block.settings.join_label }}
+          </a>
+          <a class="nopa-launcher__button nopa-launcher__button--secondary" href="{{ organise_url }}">
+            {{ block.settings.organise_label }}
+          </a>
+        </div>
+      </div>
+
+      <div class="nopa-launcher__panel">
+        <div class="nopa-launcher__art">
+          <img src="{{ art }}" alt="{{ block.settings.heading | escape }}" loading="lazy" width="1200" height="1200">
+          <div class="nopa-launcher__badge">
+            <div>
+              <span class="nopa-launcher__badge-title">NOPA Live</span>
+              <span class="nopa-launcher__badge-copy">Fixtures, join codes, live standings</span>
+            </div>
+            <div>
+              <span class="nopa-launcher__badge-copy">Launch from your store page</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nopa-launcher__metrics">
+          <div class="nopa-launcher__metric">
+            <span class="nopa-launcher__metric-label">Use Case</span>
+            <span class="nopa-launcher__metric-value">Clubs & events</span>
+          </div>
+          <div class="nopa-launcher__metric">
+            <span class="nopa-launcher__metric-label">Experience</span>
+            <span class="nopa-launcher__metric-value">Join or organise</span>
+          </div>
+          <div class="nopa-launcher__metric">
+            <span class="nopa-launcher__metric-label">Powered By</span>
+            <span class="nopa-launcher__metric-value">NOPA Padel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "NOPA tournament launcher",
+  "target": "section",
+  "enabled_on": {
+    "templates": ["page"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "NOPA Tournament Hub"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Join or organise your next padel event"
+    },
+    {
+      "type": "textarea",
+      "id": "body",
+      "label": "Body copy",
+      "default": "Give players one clean entry point from your store. Let them join with a code, organise a new Americano, and move straight into the live NOPA experience."
+    },
+    {
+      "type": "url",
+      "id": "join_url",
+      "label": "Join tournament URL"
+    },
+    {
+      "type": "text",
+      "id": "join_label",
+      "label": "Join button label",
+      "default": "Join Tournament"
+    },
+    {
+      "type": "url",
+      "id": "organise_url",
+      "label": "Organise tournament URL"
+    },
+    {
+      "type": "text",
+      "id": "organise_label",
+      "label": "Organise button label",
+      "default": "Organise Tournament"
+    },
+    {
+      "type": "text",
+      "id": "hero_image",
+      "label": "Hero image URL",
+      "default": "https://americano-tournament-app-production.up.railway.app/hero-court.png"
+    }
+  ]
+}
+{% endschema %}

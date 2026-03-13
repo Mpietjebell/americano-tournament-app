@@ -1,0 +1,275 @@
+.nopa-launcher {
+  --nopa-green: #1c4f35;
+  --nopa-green-deep: #143628;
+  --nopa-cream: #f2ede4;
+  --nopa-card: #fbf8f2;
+  --nopa-text: #163525;
+  --nopa-subtle: rgba(22, 53, 37, 0.68);
+  --nopa-line: rgba(28, 79, 53, 0.12);
+  --nopa-shadow: 0 26px 60px rgba(20, 54, 40, 0.12);
+  position: relative;
+  overflow: hidden;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.34), rgba(255,255,255,0) 28%),
+    linear-gradient(145deg, rgba(28, 79, 53, 0.06), rgba(28, 79, 53, 0) 34%),
+    var(--nopa-card);
+  border: 1px solid var(--nopa-line);
+  box-shadow: var(--nopa-shadow);
+  padding: 28px;
+}
+
+.nopa-launcher__grain,
+.nopa-launcher__wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.nopa-launcher__wash {
+  background:
+    linear-gradient(125deg, rgba(28, 79, 53, 0.1) 0%, rgba(28, 79, 53, 0.02) 36%, rgba(28, 79, 53, 0) 60%),
+    radial-gradient(circle at 82% 18%, rgba(255,255,255,0.42), rgba(255,255,255,0) 22%);
+}
+
+.nopa-launcher__grain {
+  opacity: 0.18;
+  background-image: radial-gradient(rgba(20, 54, 40, 0.26) 0.7px, transparent 0.7px);
+  background-size: 12px 12px;
+  mix-blend-mode: multiply;
+}
+
+.nopa-launcher__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 24px;
+}
+
+.nopa-launcher__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--nopa-subtle);
+  font-weight: 700;
+}
+
+.nopa-launcher__eyebrow::before {
+  content: "";
+  width: 34px;
+  height: 1px;
+  background: rgba(28, 79, 53, 0.28);
+}
+
+.nopa-launcher__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(270px, 0.85fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.nopa-launcher__copy {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.nopa-launcher__title {
+  margin: 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  color: var(--nopa-text);
+  font-size: clamp(38px, 7vw, 68px);
+  max-width: 11ch;
+}
+
+.nopa-launcher__text {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--nopa-subtle);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.nopa-launcher__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.nopa-launcher__button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.nopa-launcher__button:hover {
+  transform: translateY(-1px);
+}
+
+.nopa-launcher__button--primary {
+  background: linear-gradient(180deg, var(--nopa-green), var(--nopa-green-deep));
+  color: #f7f2ea;
+  box-shadow: 0 18px 32px rgba(28, 79, 53, 0.24);
+}
+
+.nopa-launcher__button--secondary {
+  background: rgba(28, 79, 53, 0.08);
+  color: var(--nopa-text);
+  border: 1px solid rgba(28, 79, 53, 0.12);
+}
+
+.nopa-launcher__button--secondary:hover {
+  background: rgba(28, 79, 53, 0.11);
+}
+
+.nopa-launcher__panel {
+  display: grid;
+  gap: 16px;
+  border-radius: 28px;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.74), rgba(255,255,255,0.38)),
+    rgba(28, 79, 53, 0.06);
+  border: 1px solid rgba(28, 79, 53, 0.08);
+}
+
+.nopa-launcher__art {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1.02;
+  border-radius: 22px;
+  background:
+    linear-gradient(to bottom, rgba(28,79,53,0.18), rgba(21,61,41,0.7)),
+    var(--nopa-green);
+  min-height: 260px;
+}
+
+.nopa-launcher__art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2), transparent 25%, transparent 60%, rgba(0,0,0,0.12));
+}
+
+.nopa-launcher__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.nopa-launcher__badge {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(8, 25, 18, 0.6);
+  color: #f5efe7;
+  backdrop-filter: blur(8px);
+}
+
+.nopa-launcher__badge-title,
+.nopa-launcher__badge-copy {
+  display: block;
+}
+
+.nopa-launcher__badge-title {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.nopa-launcher__badge-copy {
+  font-size: 12px;
+  color: rgba(245, 239, 231, 0.8);
+}
+
+.nopa-launcher__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.nopa-launcher__metric {
+  border-radius: 18px;
+  background: rgba(255,255,255,0.66);
+  border: 1px solid rgba(28, 79, 53, 0.08);
+  padding: 14px;
+}
+
+.nopa-launcher__metric-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nopa-subtle);
+  margin-bottom: 6px;
+}
+
+.nopa-launcher__metric-value {
+  display: block;
+  color: var(--nopa-text);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+@media screen and (max-width: 989px) {
+  .nopa-launcher {
+    padding: 22px;
+    border-radius: 28px;
+  }
+
+  .nopa-launcher__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nopa-launcher__title {
+    max-width: 12ch;
+  }
+}
+
+@media screen and (max-width: 749px) {
+  .nopa-launcher {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .nopa-launcher__actions {
+    flex-direction: column;
+  }
+
+  .nopa-launcher__button {
+    width: 100%;
+  }
+
+  .nopa-launcher__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .nopa-launcher__art {
+    min-height: 220px;
+  }
+}
