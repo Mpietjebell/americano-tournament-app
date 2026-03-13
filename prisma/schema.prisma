@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model TournamentUser {
+  id          String       @id @default(uuid())
+  email       String       @unique
+  username    String
+  createdAt   DateTime     @default(now())
+  tournaments Tournament[]
+}
+
+model Tournament {
+  id              String                  @id @default(uuid())
+  name            String
+  type            String
+  pointsPerMatch  Int                     @default(24)
+  courtsAvailable Int                     @default(2)
+  currentRound    Int                     @default(0)
+  status          String                  @default("setup")
+  isGuest         Boolean                 @default(true)
+  createdById     String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  location        String?
+  country         String?
+  logoUrl         String?
+  isPublic        Boolean                 @default(true)
+  joinCode        String?                 @unique
+  hostToken       String                  @default(uuid())
+  deuceMethod     String                  @default("deuce")
+  courtNames      String?
+  kingQueueState  String?
+  scoresLocked    Boolean                 @default(false)
+  players         Player[]
+  rounds          Round[]
+  createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])
+  participants    TournamentParticipant[]
+}
+
+model TournamentParticipant {
+  id           String     @id @default(uuid())
+  email        String
+  tournamentId String
+  playerId     String?
+  createdAt    DateTime   @default(now())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model Player {
+  id            String     @id @default(uuid())
+  name          String
+  gender        String     @default("unspecified")
+  totalPoints   Int        @default(0)
+  matchesPlayed Int        @default(0)
+  matchesWon    Int        @default(0)
+  matchesDrawn  Int        @default(0)
+  tournamentId  String
+  teamId        String?
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model Round {
+  id           String     @id @default(uuid())
+  roundNumber  Int
+  status       String     @default("pending")
+  tournamentId String
+  matches      Match[]
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model Match {
+  id       String @id @default(uuid())
+  court    Int
+  teamAIds String
+  teamBIds String
+  scoreA   Int?
+  scoreB   Int?
+  status   String @default("pending")
+  roundId  String
+  round    Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+}

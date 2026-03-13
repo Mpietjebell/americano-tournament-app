@@ -1,0 +1,42 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="28" y1="20" x2="220" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B8790"/>
+      <stop offset="0.38" stop-color="#39444D"/>
+      <stop offset="1" stop-color="#0B1722"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="56" y1="32" x2="210" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="5" orient="auto">
+      <path d="M1 1L9 5L1 9" fill="none" stroke="#F8F7F3" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="40" fill="url(#bg)"/>
+  <rect x="22" y="22" width="212" height="212" rx="36" stroke="#1F2B35" stroke-width="6"/>
+  <path d="M37 43C79 30 166 31 219 63V28H37V43Z" fill="url(#shine)" opacity="0.65"/>
+  <circle cx="204" cy="50" r="10" fill="white" fill-opacity="0.12"/>
+  <circle cx="218" cy="66" r="6" fill="white" fill-opacity="0.09"/>
+  <circle cx="196" cy="71" r="5" fill="white" fill-opacity="0.08"/>
+  <g stroke="#F8F7F3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M74 63C110 44 146 44 179 60" marker-end="url(#arrow)"/>
+    <path d="M188 77C203 104 205 131 194 159" marker-end="url(#arrow)"/>
+    <path d="M175 189C141 206 105 205 74 189" marker-end="url(#arrow)"/>
+    <path d="M61 164C50 137 51 105 67 79" marker-end="url(#arrow)"/>
+  </g>
+  <g fill="#F8F7F3">
+    <path d="M91 94C107 94 121 108 121 125C121 145 105 160 91 178C88 182 82 182 79 178C65 160 49 145 49 125C49 108 63 94 79 94H91Z"/>
+    <rect x="82" y="174" width="8.5" height="31" rx="4.25" transform="rotate(22 82 174)"/>
+    <path d="M176 94C192 94 206 108 206 125C206 145 190 160 176 178C173 182 167 182 164 178C150 160 134 145 134 125C134 108 148 94 164 94H176Z"/>
+    <rect x="167" y="174" width="8.5" height="31" rx="4.25" transform="rotate(22 167 174)"/>
+  </g>
+  <g fill="#39444D">
+    <circle cx="77" cy="117" r="3.2"/><circle cx="89" cy="117" r="3.2"/><circle cx="101" cy="117" r="3.2"/>
+    <circle cx="71" cy="129" r="3.2"/><circle cx="83" cy="129" r="3.2"/><circle cx="95" cy="129" r="3.2"/><circle cx="107" cy="129" r="3.2"/>
+    <circle cx="77" cy="141" r="3.2"/><circle cx="89" cy="141" r="3.2"/><circle cx="101" cy="141" r="3.2"/>
+    <circle cx="162" cy="117" r="3.2"/><circle cx="174" cy="117" r="3.2"/><circle cx="186" cy="117" r="3.2"/>
+    <circle cx="156" cy="129" r="3.2"/><circle cx="168" cy="129" r="3.2"/><circle cx="180" cy="129" r="3.2"/><circle cx="192" cy="129" r="3.2"/>
+    <circle cx="162" cy="141" r="3.2"/><circle cx="174" cy="141" r="3.2"/><circle cx="186" cy="141" r="3.2"/>
+  </g>
+</svg>

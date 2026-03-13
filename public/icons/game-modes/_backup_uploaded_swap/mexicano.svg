@@ -1,0 +1,37 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="28" y1="20" x2="220" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B8790"/>
+      <stop offset="0.38" stop-color="#39444D"/>
+      <stop offset="1" stop-color="#0B1722"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="56" y1="32" x2="210" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="40" fill="url(#bg)"/>
+  <rect x="22" y="22" width="212" height="212" rx="36" stroke="#1F2B35" stroke-width="6"/>
+  <path d="M37 43C79 30 166 31 219 63V28H37V43Z" fill="url(#shine)" opacity="0.65"/>
+  <circle cx="204" cy="50" r="10" fill="white" fill-opacity="0.12"/>
+  <circle cx="218" cy="66" r="6" fill="white" fill-opacity="0.09"/>
+  <circle cx="196" cy="71" r="5" fill="white" fill-opacity="0.08"/>
+  <g fill="#F8F7F3">
+    <path d="M128 58C148 58 166 75 166 97C166 123 146 141 129 163C125 168 118 168 114 163C96 141 77 123 77 97C77 75 95 58 115 58H128Z"/>
+    <rect x="121" y="157" width="10" height="39" rx="5" transform="rotate(18 121 157)"/>
+  </g>
+  <g fill="#39444D">
+    <circle cx="109" cy="81" r="3.4"/><circle cx="121" cy="81" r="3.4"/><circle cx="133" cy="81" r="3.4"/><circle cx="145" cy="81" r="3.4"/>
+    <circle cx="103" cy="93" r="3.4"/><circle cx="115" cy="93" r="3.4"/><circle cx="127" cy="93" r="3.4"/><circle cx="139" cy="93" r="3.4"/><circle cx="151" cy="93" r="3.4"/>
+    <circle cx="109" cy="105" r="3.4"/><circle cx="121" cy="105" r="3.4"/><circle cx="133" cy="105" r="3.4"/><circle cx="145" cy="105" r="3.4"/>
+    <circle cx="115" cy="117" r="3.4"/><circle cx="127" cy="117" r="3.4"/><circle cx="139" cy="117" r="3.4"/>
+  </g>
+  <g stroke="#F8F7F3" stroke-width="4" stroke-linejoin="round">
+    <path d="M58 167H198L183 183H73L58 167Z"/>
+    <path d="M73 183V197H183V183"/>
+    <path d="M58 167L42 179V191L58 183"/>
+    <path d="M198 167L214 179V191L198 183"/>
+    <rect x="101" y="167" width="54" height="30" rx="3"/>
+  </g>
+  <text x="128" y="187" fill="#F8F7F3" font-size="10" font-family="Inter, Arial, sans-serif" font-weight="700" text-anchor="middle" letter-spacing="1.2">MEXICANO</text>
+</svg>

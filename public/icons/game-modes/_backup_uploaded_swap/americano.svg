@@ -1,0 +1,42 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="28" y1="20" x2="220" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B8790"/>
+      <stop offset="0.38" stop-color="#39444D"/>
+      <stop offset="1" stop-color="#0B1722"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="56" y1="32" x2="210" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="5" orient="auto">
+      <path d="M1 1L9 5L1 9" fill="none" stroke="#F8F7F3" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="40" fill="url(#bg)"/>
+  <rect x="22" y="22" width="212" height="212" rx="36" stroke="#1F2B35" stroke-width="6"/>
+  <path d="M37 43C79 30 166 31 219 63V28H37V43Z" fill="url(#shine)" opacity="0.65"/>
+  <circle cx="204" cy="50" r="10" fill="white" fill-opacity="0.12"/>
+  <circle cx="218" cy="66" r="6" fill="white" fill-opacity="0.09"/>
+  <circle cx="196" cy="71" r="5" fill="white" fill-opacity="0.08"/>
+  <g stroke="#F8F7F3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M81 60C119 39 164 41 193 66" marker-end="url(#arrow)"/>
+    <path d="M205 91C214 130 206 171 181 198" marker-end="url(#arrow)"/>
+    <path d="M158 207C119 217 80 206 56 177" marker-end="url(#arrow)"/>
+    <path d="M49 151C41 116 48 85 72 62" marker-end="url(#arrow)"/>
+  </g>
+  <g fill="#F8F7F3">
+    <path d="M128 86C147 86 164 102 164 122C164 145 146 161 129 180C125 185 118 185 114 180C97 161 78 145 78 122C78 102 95 86 114 86H128Z"/>
+    <rect x="121" y="175" width="10" height="34" rx="5" transform="rotate(22 121 175)"/>
+    <circle cx="119" cy="108" r="3.6" fill="#39444D"/>
+    <circle cx="131" cy="108" r="3.6" fill="#39444D"/>
+    <circle cx="143" cy="108" r="3.6" fill="#39444D"/>
+    <circle cx="113" cy="119" r="3.6" fill="#39444D"/>
+    <circle cx="125" cy="119" r="3.6" fill="#39444D"/>
+    <circle cx="137" cy="119" r="3.6" fill="#39444D"/>
+    <circle cx="149" cy="119" r="3.6" fill="#39444D"/>
+    <circle cx="119" cy="130" r="3.6" fill="#39444D"/>
+    <circle cx="131" cy="130" r="3.6" fill="#39444D"/>
+    <circle cx="143" cy="130" r="3.6" fill="#39444D"/>
+  </g>
+</svg>

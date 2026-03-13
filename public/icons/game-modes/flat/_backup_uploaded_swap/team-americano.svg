@@ -1,0 +1,5 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1L7 4L1 7" stroke="#1C4F35" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <g stroke="#1C4F35" stroke-width="4" stroke-linecap="round"><path d="M30 30C47 19 63 18 79 24" marker-end="url(#a)"/><path d="M92 37C102 53 104 72 97 89" marker-end="url(#a)"/><path d="M81 102C66 109 48 109 32 100" marker-end="url(#a)"/><path d="M23 86C16 69 18 50 29 35" marker-end="url(#a)"/></g>
+  <g fill="#1C4F35"><path d="M45 46C54 46 61 54 61 63C61 74 53 82 45 92C43 94 40 94 38 92C30 82 23 74 23 63C23 54 30 46 39 46H45Z"/><rect x="40" y="89" width="5" height="16" rx="2.5" transform="rotate(22 40 89)"/><path d="M89 46C98 46 105 54 105 63C105 74 97 82 89 92C87 94 84 94 82 92C74 82 67 74 67 63C67 54 74 46 83 46H89Z"/><rect x="84" y="89" width="5" height="16" rx="2.5" transform="rotate(22 84 89)"/></g>
+</svg>

@@ -1,0 +1,13 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#1C4F35" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 23L91 40V82L64 100L37 82V40L64 23Z"/>
+    <path d="M64 23V100"/>
+    <path d="M37 40L64 57L91 40"/>
+    <path d="M37 82L64 66L91 82"/>
+    <path d="M47 33H81" stroke-dasharray="5 5" opacity="0.6"/>
+    <path d="M47 90H81" stroke-dasharray="5 5" opacity="0.6"/>
+  </g>
+  <text x="44" y="71" fill="#1C4F35" font-size="24" font-family="Inter, Arial, sans-serif" font-weight="800" text-anchor="middle">B</text>
+  <text x="64" y="71" fill="#C5A55A" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="700" text-anchor="middle">VS</text>
+  <text x="84" y="71" fill="#1C4F35" font-size="24" font-family="Inter, Arial, sans-serif" font-weight="800" text-anchor="middle">B</text>
+</svg>

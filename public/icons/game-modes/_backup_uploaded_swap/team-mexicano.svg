@@ -1,0 +1,42 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="28" y1="20" x2="220" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B8790"/>
+      <stop offset="0.38" stop-color="#39444D"/>
+      <stop offset="1" stop-color="#0B1722"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="56" y1="32" x2="210" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="40" fill="url(#bg)"/>
+  <rect x="22" y="22" width="212" height="212" rx="36" stroke="#1F2B35" stroke-width="6"/>
+  <path d="M37 43C79 30 166 31 219 63V28H37V43Z" fill="url(#shine)" opacity="0.65"/>
+  <circle cx="204" cy="50" r="10" fill="white" fill-opacity="0.12"/>
+  <circle cx="218" cy="66" r="6" fill="white" fill-opacity="0.09"/>
+  <circle cx="196" cy="71" r="5" fill="white" fill-opacity="0.08"/>
+  <g fill="#F8F7F3">
+    <path d="M98 74C114 74 128 88 128 105C128 125 112 140 98 158C95 162 89 162 86 158C72 140 56 125 56 105C56 88 70 74 86 74H98Z"/>
+    <rect x="89" y="154" width="8.5" height="31" rx="4.25" transform="rotate(22 89 154)"/>
+    <path d="M170 74C186 74 200 88 200 105C200 125 184 140 170 158C167 162 161 162 158 158C144 140 128 125 128 105C128 88 142 74 158 74H170Z"/>
+    <rect x="161" y="154" width="8.5" height="31" rx="4.25" transform="rotate(22 161 154)"/>
+  </g>
+  <g fill="#39444D">
+    <circle cx="84" cy="97" r="3.2"/><circle cx="96" cy="97" r="3.2"/><circle cx="108" cy="97" r="3.2"/>
+    <circle cx="78" cy="109" r="3.2"/><circle cx="90" cy="109" r="3.2"/><circle cx="102" cy="109" r="3.2"/><circle cx="114" cy="109" r="3.2"/>
+    <circle cx="84" cy="121" r="3.2"/><circle cx="96" cy="121" r="3.2"/><circle cx="108" cy="121" r="3.2"/>
+    <circle cx="156" cy="97" r="3.2"/><circle cx="168" cy="97" r="3.2"/><circle cx="180" cy="97" r="3.2"/>
+    <circle cx="150" cy="109" r="3.2"/><circle cx="162" cy="109" r="3.2"/><circle cx="174" cy="109" r="3.2"/><circle cx="186" cy="109" r="3.2"/>
+    <circle cx="156" cy="121" r="3.2"/><circle cx="168" cy="121" r="3.2"/><circle cx="180" cy="121" r="3.2"/>
+  </g>
+  <g stroke="#F8F7F3" stroke-width="4" stroke-linejoin="round">
+    <path d="M58 168H198L183 184H73L58 168Z"/>
+    <path d="M73 184V204H183V184"/>
+    <path d="M58 168L42 180V192L58 184"/>
+    <path d="M198 168L214 180V192L198 184"/>
+    <rect x="96" y="168" width="64" height="36" rx="3"/>
+  </g>
+  <text x="128" y="182" fill="#F8F7F3" font-size="9" font-family="Inter, Arial, sans-serif" font-weight="700" text-anchor="middle" letter-spacing="1">TEAM</text>
+  <text x="128" y="194" fill="#F8F7F3" font-size="9" font-family="Inter, Arial, sans-serif" font-weight="700" text-anchor="middle" letter-spacing="1">MEXICANO</text>
+</svg>
