@@ -1,6 +1,5 @@
 import { json } from "@remix-run/node";
-import { Link, Outlet, useLoaderData } from "@remix-run/react";
-import { NavMenu } from "@shopify/app-bridge-react";
+import { Outlet, useLoaderData } from "@remix-run/react";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { authenticate } from "../shopify.server";
 
@@ -17,10 +16,6 @@ export default function App() {
 
   return (
     <AppProvider apiKey={apiKey} isEmbeddedApp>
-      <NavMenu>
-        <Link to="/app" rel="home">Tournaments</Link>
-        <Link to="/app/tournament/new">New Tournament</Link>
-      </NavMenu>
       <Outlet />
     </AppProvider>
   );
