@@ -2,7 +2,7 @@
 
 client_id = "d0d2d4a26f6b1d1c4b6afa0607a885a9"
 name = "Organise Americano"
-application_url = "https://example.com"
+application_url = "https://americano-tournament-app-production.up.railway.app"
 embedded = true
 
 [build]
@@ -27,4 +27,8 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ ]
+redirect_urls = [
+  "https://americano-tournament-app-production.up.railway.app/auth/callback",
+  "https://americano-tournament-app-production.up.railway.app/auth/shopify/callback",
+  "https://americano-tournament-app-production.up.railway.app/api/auth/callback"
+]
