@@ -1,5 +1,6 @@
 import { json } from "@remix-run/node";
-import { Outlet, useLoaderData } from "@remix-run/react";
+import { Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { authenticate } from "../shopify.server";
 
@@ -20,3 +21,11 @@ export default function App() {
     </AppProvider>
   );
 }
+
+export function ErrorBoundary() {
+  return boundary.error(useRouteError());
+}
+
+export const headers = (headersArgs) => {
+  return boundary.headers(headersArgs);
+};
