@@ -1,0 +1,128 @@
+import prisma from "../db.server";
+import { corsJson, handleOptions } from "../utils/cors.server";
+
+export async function action({ request, params }) {
+    const early = handleOptions(request);
+    if (early) return early;
+
+    if (request.method !== "POST") {
+        return corsJson(request, { error: "Method not allowed" }, { status: 405 });
+    }
+
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return corsJson(request, { error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const name = (body.name || "").trim();
+    const email = (body.email || "").trim().toLowerCase();
+    const phone = (body.phone || "").trim();
+
+    if (!name || name.length < 2) {
+        return corsJson(request, { error: "Please enter your full name.", code: "invalid_name" }, { status: 400 });
+    }
+    if (!email || !email.includes("@")) {
+        return corsJson(request, { error: "Please enter a valid email address.", code: "invalid_email" }, { status: 400 });
+    }
+    if (!phone || phone.length < 6) {
+        return corsJson(request, { error: "Please enter a valid phone number.", code: "invalid_phone" }, { status: 400 });
+    }
+
+    const banned = await prisma.bannedSignup.findUnique({ where: { email } });
+    if (banned) {
+        return corsJson(
+            request,
+            { error: "This email address has been banned from signing up for NOPA tournaments.", code: "email_banned" },
+            { status: 403 }
+        );
+    }
+
+    const tournament = await prisma.tournament.findUnique({
+        where: { id: params.id },
+        include: {
+            players: { select: { id: true } },
+            participants: { select: { id: true, email: true } },
+        },
+    });
+
+    if (!tournament || !tournament.isPublic) {
+        return corsJson(request, { error: "Tournament not found.", code: "not_found" }, { status: 404 });
+    }
+    if (tournament.status !== "setup") {
+        return corsJson(
+            request,
+            { error: "This tournament has already started.", code: "tournament_started" },
+            { status: 409 }
+        );
+    }
+    if (!tournament.scheduledAt || tournament.scheduledAt <= new Date()) {
+        return corsJson(
+            request,
+            { error: "This tournament is no longer accepting sign-ups.", code: "tournament_started" },
+            { status: 409 }
+        );
+    }
+
+    const alreadySignedUp = tournament.participants.some((p) => p.email === email);
+    if (alreadySignedUp) {
+        return corsJson(
+            request,
+            { error: "This email address is already signed up for this tournament.", code: "already_signed_up" },
+            { status: 409 }
+        );
+    }
+
+    const currentCount = tournament.players.length;
+    if (tournament.maxPlayers != null && currentCount >= tournament.maxPlayers) {
+        return corsJson(
+            request,
+            { error: "This tournament is full.", code: "tournament_full" },
+            { status: 409 }
+        );
+    }
+
+    let player, participant;
+    try {
+        [player, participant] = await prisma.$transaction([
+            prisma.player.create({
+                data: {
+                    name,
+                    gender: "unspecified",
+                    tournamentId: tournament.id,
+                },
+            }),
+            prisma.tournamentParticipant.create({
+                data: {
+                    email,
+                    phone,
+                    name,
+                    tournamentId: tournament.id,
+                },
+            }),
+        ]);
+    } catch {
+        return corsJson(request, { error: "Something went wrong. Please try again." }, { status: 500 });
+    }
+
+    // Link playerId now that we have it
+    await prisma.tournamentParticipant.update({
+        where: { id: participant.id },
+        data: { playerId: player.id },
+    });
+
+    const position = currentCount + 1;
+    return corsJson(request, {
+        ok: true,
+        position,
+        max: tournament.maxPlayers,
+        message: tournament.maxPlayers
+            ? `You're in — spot ${position} of ${tournament.maxPlayers}. See you on the court!`
+            : "You're in — see you on the court!",
+    });
+}
+
+export async function loader({ request }) {
+    return handleOptions(request) ?? corsJson(request, { error: "Method not allowed" }, { status: 405 });
+}

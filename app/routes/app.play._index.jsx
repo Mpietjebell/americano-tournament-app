@@ -31,12 +31,18 @@ export const loader = async ({ request }) => {
         take: 20,
     });
     const activeTournaments = await prisma.tournament.findMany({
-        where: { isPublic: true, status: { in: ["setup", "active"] } },
+        where: { isPublic: true, status: "active" },
         include: { players: true },
         orderBy: { createdAt: "desc" },
         take: 20,
     });
-    return json({ user, myTournaments, communityTournaments, activeTournaments });
+    const scheduledTournaments = await prisma.tournament.findMany({
+        where: { isPublic: true, status: "setup", scheduledAt: { gt: new Date() } },
+        include: { players: true },
+        orderBy: { scheduledAt: "asc" },
+        take: 20,
+    });
+    return json({ user, myTournaments, communityTournaments, activeTournaments, scheduledTournaments });
 };
 
 export const action = async ({ request }) => {
@@ -67,7 +73,8 @@ function TournamentFeedCard({ t }) {
     const winner = t.status === "finished"
         ? [...t.players].sort((a, b) => b.totalPoints - a.totalPoints)[0]
         : null;
-    const isLive = t.status === "active" || t.status === "setup";
+    const isScheduledFuture = t.status === "setup" && t.scheduledAt && new Date(t.scheduledAt) > new Date();
+    const isLive = t.status === "active" || (t.status === "setup" && !isScheduledFuture);
     return (
         <Link
             to={t.status === "finished" ? `/app/play/tournament/${t.id}/final` : `/app/play/tournament/${t.id}`}
@@ -91,9 +98,14 @@ function TournamentFeedCard({ t }) {
                             {t.name}
                         </div>
                         <div style={{ fontSize: "0.72rem", color: "var(--label-3)" }}>
-                            {TYPE_LABELS[t.type] || t.type} · {t.players.length} players
+                            {TYPE_LABELS[t.type] || t.type} · {t.players.length}{t.maxPlayers ? `/${t.maxPlayers}` : ""} players
                             {t.location && ` · ${t.location}`}
                         </div>
+                        {t.scheduledAt && t.status === "setup" && (
+                            <div style={{ fontSize: "0.7rem", color: "var(--green)", fontWeight: 600, marginTop: 3 }}>
+                                {new Date(t.scheduledAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                        )}
                         {winner && (
                             <div style={{ fontSize: "0.7rem", color: "var(--gold)", fontWeight: 600, marginTop: 3 }}>
                                 Winner: {winner.name} · {winner.totalPoints} pts
@@ -117,7 +129,7 @@ function TournamentFeedCard({ t }) {
 }
 
 export default function PlayHome() {
-    const { user, myTournaments, communityTournaments, activeTournaments } = useLoaderData();
+    const { user, myTournaments, communityTournaments, activeTournaments, scheduledTournaments } = useLoaderData();
     const actionData = useActionData();
     const [showLogin, setShowLogin] = useState(false);
     const [email, setEmail] = useState(actionData?.email || "");
@@ -125,11 +137,13 @@ export default function PlayHome() {
 
     const feedList = activeTab === "community" ? communityTournaments
         : activeTab === "mine" ? myTournaments
+        : activeTab === "upcoming" ? scheduledTournaments
         : activeTournaments;
 
     const tabs = [
         { id: "community", label: "Community", count: communityTournaments.length },
         { id: "live", label: "Live", count: activeTournaments.length },
+        ...(scheduledTournaments.length > 0 ? [{ id: "upcoming", label: "Upcoming", count: scheduledTournaments.length }] : []),
         ...(myTournaments.length > 0 ? [{ id: "mine", label: "Mine", count: myTournaments.length }] : []),
     ];
 

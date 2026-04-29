@@ -35,6 +35,25 @@ model TournamentUser {
   tournaments Tournament[]
 }
 
+model Venue {
+  id          String       @id @default(uuid())
+  osmId       String       @unique
+  name        String
+  address     String
+  city        String?
+  country     String?
+  latitude    Float
+  longitude   Float
+  createdAt   DateTime     @default(now())
+  tournaments Tournament[]
+}
+
+model BannedSignup {
+  email    String   @id
+  reason   String?
+  bannedAt DateTime @default(now())
+}
+
 model Tournament {
   id              String                  @id @default(uuid())
   name            String
@@ -57,10 +76,16 @@ model Tournament {
   courtNames      String?
   kingQueueState  String?
   scoresLocked    Boolean                 @default(false)
+  scheduledAt     DateTime?
+  maxPlayers      Int?
+  venueId         String?
+  latitude        Float?
+  longitude       Float?
   players         Player[]
   rounds          Round[]
   createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])
   participants    TournamentParticipant[]
+  venue           Venue?                  @relation(fields: [venueId], references: [id])
 }
 
 model TournamentParticipant {
@@ -68,6 +93,9 @@ model TournamentParticipant {
   email        String
   tournamentId String
   playerId     String?
+  name         String?
+  phone        String?
+  noShow       Boolean    @default(false)
   createdAt    DateTime   @default(now())
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 }

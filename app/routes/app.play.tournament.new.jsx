@@ -33,27 +33,36 @@ export const action = async ({ request }) => {
     const isPublic = formData.get("isPublic") !== "false";
     const courtNamesRaw = formData.get("courtNames");
     const playersRaw = formData.get("players");
+    const venueId = formData.get("venueId") || null;
+    const scheduledAtStr = formData.get("scheduledAt") || null;
+    const maxPlayersRaw = formData.get("maxPlayers");
+    const maxPlayers = maxPlayersRaw ? parseInt(maxPlayersRaw, 10) || null : null;
+    const latitude = formData.get("latitude") ? parseFloat(formData.get("latitude")) : null;
+    const longitude = formData.get("longitude") ? parseFloat(formData.get("longitude")) : null;
+    const isScheduled = !!scheduledAtStr;
 
-    if (!name || !location || !type || !playersRaw) {
-        return json({ error: "Please fill in all required fields and add at least 4 players." }, { status: 400 });
+    if (!name || !location || !type) {
+        return json({ error: "Please fill in all required fields." }, { status: 400 });
     }
 
-    let playerNames;
-    try { playerNames = JSON.parse(playersRaw); } catch { return json({ error: "Invalid player data." }, { status: 400 }); }
-
-    const minPlayers = getMinimumPlayers(type);
-    if (playerNames.length < minPlayers) {
-        return json({ error: `You need at least ${minPlayers} players to start this tournament.` }, { status: 400 });
+    let playerNames = [];
+    if (playersRaw) {
+        try { playerNames = JSON.parse(playersRaw); } catch { return json({ error: "Invalid player data." }, { status: 400 }); }
     }
 
-    if ((type === "team_americano" || type === "team_mexicano") && playerNames.length % 2 !== 0) {
-        return json({ error: "Fixed-team formats need an even number of players." }, { status: 400 });
+    if (!isScheduled) {
+        const minPlayers = getMinimumPlayers(type);
+        if (playerNames.length < minPlayers) {
+            return json({ error: `You need at least ${minPlayers} players to start this tournament.` }, { status: 400 });
+        }
+        if ((type === "team_americano" || type === "team_mexicano") && playerNames.length % 2 !== 0) {
+            return json({ error: "Fixed-team formats need an even number of players." }, { status: 400 });
+        }
     }
 
     let courtNames = null;
     try { if (courtNamesRaw) courtNames = JSON.stringify(JSON.parse(courtNamesRaw)); } catch { /* ignore */ }
 
-    // Generate unique join code
     let joinCode;
     let attempts = 0;
     do {
@@ -78,6 +87,11 @@ export const action = async ({ request }) => {
             courtNames,
             isGuest: !userId,
             createdById: userId || null,
+            scheduledAt: scheduledAtStr ? new Date(scheduledAtStr) : null,
+            maxPlayers: maxPlayers || null,
+            venueId: venueId || null,
+            latitude: latitude || null,
+            longitude: longitude || null,
             players: {
                 create: playerNames.map((p, index) => ({
                     name: p.name,
@@ -362,12 +376,68 @@ export default function NewTournamentPublic() {
     const [country, setCountry] = useState("NL");
     const [logoDataUrl, setLogoDataUrl] = useState("");
 
+    // Venue autocomplete
+    const [venueQuery, setVenueQuery] = useState("");
+    const [venuePredictions, setVenuePredictions] = useState([]);
+    const [selectedVenue, setSelectedVenue] = useState(null);
+    const [venueLoading, setVenueLoading] = useState(false);
+    const venueDebounce = useState(null);
+
+    // Schedule
+    const [isScheduled, setIsScheduled] = useState(false);
+    const [scheduledAt, setScheduledAt] = useState("");
+    const [maxPlayers, setMaxPlayers] = useState(courts * 4);
+
     const handleLogoChange = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => setLogoDataUrl(ev.target.result);
         reader.readAsDataURL(file);
+    };
+
+    const handleVenueInput = (e) => {
+        const q = e.target.value;
+        setVenueQuery(q);
+        setSelectedVenue(null);
+        if (venueDebounce[0]) clearTimeout(venueDebounce[0]);
+        if (q.length < 2) { setVenuePredictions([]); return; }
+        venueDebounce[0] = setTimeout(async () => {
+            setVenueLoading(true);
+            try {
+                const res = await fetch(`/api/venues/search?q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                setVenuePredictions(data.predictions || []);
+            } catch { setVenuePredictions([]); }
+            finally { setVenueLoading(false); }
+        }, 350);
+    };
+
+    const handleVenueSelect = async (prediction) => {
+        setVenueQuery(prediction.mainText || prediction.description);
+        setVenuePredictions([]);
+        setVenueLoading(true);
+        try {
+            const res = await fetch("/api/venues/select", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    osmId: prediction.osmId,
+                    name: prediction.name,
+                    address: prediction.address,
+                    city: prediction.city,
+                    country: prediction.country,
+                    latitude: prediction.latitude,
+                    longitude: prediction.longitude,
+                }),
+            });
+            const data = await res.json();
+            if (data.venue) {
+                setSelectedVenue(data.venue);
+                setCountry(data.venue.country || country);
+            }
+        } catch { /* silent */ }
+        finally { setVenueLoading(false); }
     };
 
     const minPlayers = getMinimumPlayers(selectedType);
@@ -497,18 +567,58 @@ export default function NewTournamentPublic() {
                         <input type="hidden" name="logoUrl" value={logoDataUrl} />
                     </div>
 
-                    {/* ── Event Info ── */}
+                    {/* ── Location / Venue ── */}
                     {sectionLabel("Location")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Venue</div>
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)", position: "relative" }}>
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", position: "relative" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                Venue {selectedVenue && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ saved</span>}
+                            </div>
                             <input
-                                name="location"
-                                placeholder="Club Padel Amsterdam"
-                                required
+                                value={venueQuery}
+                                onChange={handleVenueInput}
+                                placeholder="Search venue name... (e.g. Padel Park Amsterdam)"
+                                autoComplete="off"
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
+                            {/* Autocomplete dropdown */}
+                            {venuePredictions.length > 0 && (
+                                <div style={{
+                                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
+                                    background: "white", borderRadius: "0 0 var(--r-card) var(--r-card)",
+                                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
+                                }}>
+                                    {venuePredictions.map((p) => (
+                                        <button
+                                            key={p.placeId}
+                                            type="button"
+                                            onMouseDown={() => handleVenueSelect(p)}
+                                            style={{
+                                                display: "block", width: "100%", textAlign: "left",
+                                                padding: "12px 16px", border: "none", background: "transparent",
+                                                cursor: "pointer", fontFamily: "inherit", borderBottom: "1px solid var(--sep)",
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "rgba(28,79,53,0.06)"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                        >
+                                            <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--label)" }}>{p.mainText}</div>
+                                            <div style={{ fontSize: "0.74rem", color: "var(--label-3)", marginTop: 2 }}>{p.secondaryText}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {venueLoading && (
+                                <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", fontSize: "0.72rem", color: "var(--label-3)" }}>
+                                    Searching…
+                                </div>
+                            )}
                         </div>
+                        {/* Hidden inputs populated from selected venue or fallback */}
+                        <input type="hidden" name="location" value={selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery} />
+                        <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
+                        <input type="hidden" name="latitude" value={selectedVenue?.latitude ?? ""} />
+                        <input type="hidden" name="longitude" value={selectedVenue?.longitude ?? ""} />
+
                         <div style={{ padding: "14px 16px" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Country</div>
                             <select
@@ -522,6 +632,80 @@ export default function NewTournamentPublic() {
                                 ))}
                             </select>
                         </div>
+                    </div>
+
+                    {/* ── Schedule ── */}
+                    {sectionLabel("Schedule")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        {/* Toggle */}
+                        <div style={{ padding: "14px 16px", borderBottom: isScheduled ? "1px solid var(--sep)" : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div>
+                                <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--label)" }}>Schedule for later</div>
+                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 2 }}>Public sign-ups open until the event is full or it starts</div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsScheduled(!isScheduled)}
+                                style={{
+                                    width: 44, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
+                                    background: isScheduled ? "var(--green)" : "var(--sep-opaque)",
+                                    position: "relative", transition: "background 0.2s", flexShrink: 0,
+                                }}
+                            >
+                                <span style={{
+                                    position: "absolute", top: 3, left: isScheduled ? 21 : 3,
+                                    width: 20, height: 20, borderRadius: "50%", background: "white",
+                                    transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                }} />
+                            </button>
+                        </div>
+
+                        {isScheduled && (
+                            <>
+                                <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Date & Time</div>
+                                    <input
+                                        type="datetime-local"
+                                        value={scheduledAt}
+                                        onChange={(e) => setScheduledAt(e.target.value)}
+                                        required={isScheduled}
+                                        min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
+                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                                    />
+                                </div>
+                                <div style={{ padding: "14px 16px" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Players</div>
+                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                        {[courts * 4, courts * 4 + 4, courts * 4 + 8].map(n => (
+                                            <button key={n} type="button" onClick={() => setMaxPlayers(n)}
+                                                style={{
+                                                    width: 52, height: 40, borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${maxPlayers === n ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: maxPlayers === n ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: maxPlayers === n ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                                                    transition: "all 0.15s", fontFamily: "inherit",
+                                                }}
+                                            >{n}</button>
+                                        ))}
+                                        <input
+                                            type="number" min="4" max="200"
+                                            value={maxPlayers}
+                                            onChange={(e) => setMaxPlayers(parseInt(e.target.value, 10) || courts * 4)}
+                                            style={{
+                                                width: 68, padding: "8px 10px",
+                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                                fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
+                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
+                                            }}
+                                            placeholder="Custom"
+                                        />
+                                    </div>
+                                </div>
+                                <input type="hidden" name="scheduledAt" value={scheduledAt} />
+                                <input type="hidden" name="maxPlayers" value={maxPlayers} />
+                            </>
+                        )}
                     </div>
 
                     {/* ── Visibility ── */}
@@ -816,21 +1000,23 @@ export default function NewTournamentPublic() {
 
                     <button
                         type="submit"
-                        disabled={players.length < minPlayers || isSubmitting}
+                        disabled={(!isScheduled && players.length < minPlayers) || isSubmitting}
                         style={{
                             width: "100%", padding: "16px", borderRadius: "var(--r-card)",
-                            background: players.length >= minPlayers ? "var(--green)" : "var(--sep-opaque)",
+                            background: (isScheduled || players.length >= minPlayers) ? "var(--green)" : "var(--sep-opaque)",
                             color: "white", fontWeight: 600, fontSize: "1rem",
-                            border: "none", cursor: players.length >= minPlayers ? "pointer" : "not-allowed",
+                            border: "none", cursor: (isScheduled || players.length >= minPlayers) ? "pointer" : "not-allowed",
                             fontFamily: "inherit", transition: "background 0.2s",
-                            boxShadow: players.length >= minPlayers ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
+                            boxShadow: (isScheduled || players.length >= minPlayers) ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
                         }}
                     >
                         {isSubmitting
                             ? "Creating..."
-                            : players.length < minPlayers
-                                ? `Need ${minPlayers - players.length} more to start · ${courts * 4} for full setup`
-                                : `Create Tournament · ${players.length} players`}
+                            : isScheduled
+                                ? `Schedule Tournament · open for ${maxPlayers} players`
+                                : players.length < minPlayers
+                                    ? `Need ${minPlayers - players.length} more to start · ${courts * 4} for full setup`
+                                    : `Create Tournament · ${players.length} players`}
                     </button>
                 </Form>
             </div>
