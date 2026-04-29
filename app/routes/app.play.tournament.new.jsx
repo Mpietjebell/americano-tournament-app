@@ -680,33 +680,6 @@ export default function NewTournamentPublic() {
                         </div>
                     </div>
 
-                    {/* ── Entry Price ── */}
-                    {sectionLabel("Entry Price (optional)")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                        <div style={{ padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}>
-                            <select
-                                value={currency}
-                                onChange={(e) => setCurrency(e.target.value)}
-                                name="currency"
-                                style={{ border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label-3)", outline: "none", cursor: "pointer", flexShrink: 0, fontWeight: 600 }}
-                            >
-                                {["EUR","USD","GBP","QAR","AED","SAR","CHF","SEK","NOK","DKK"].map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
-                                name="price"
-                                placeholder="0 = free"
-                                style={{ flex: 1, border: "none", background: "transparent", fontSize: "1.1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", fontWeight: 600 }}
-                            />
-                        </div>
-                    </div>
-
                     {/* ── Schedule ── */}
                     {sectionLabel("Schedule")}
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
@@ -772,6 +745,29 @@ export default function NewTournamentPublic() {
                                                 fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
                                             }}
                                             placeholder="Custom"
+                                        />
+                                    </div>
+                                </div>
+                                <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Entry Price</div>
+                                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                                        <select
+                                            value={currency}
+                                            onChange={(e) => setCurrency(e.target.value)}
+                                            name="currency"
+                                            style={{ border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label-3)", outline: "none", cursor: "pointer", flexShrink: 0, fontWeight: 600 }}
+                                        >
+                                            {["EUR","USD","GBP","QAR","AED","SAR","CHF","SEK","NOK","DKK"].map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="number" min="0" step="0.01"
+                                            value={price}
+                                            onChange={(e) => setPrice(e.target.value)}
+                                            name="price"
+                                            placeholder="0 = free"
+                                            style={{ flex: 1, border: "none", background: "transparent", fontSize: "1.1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", fontWeight: 600 }}
                                         />
                                     </div>
                                 </div>
