@@ -81,6 +81,10 @@ model Tournament {
   venueId         String?
   latitude        Float?
   longitude       Float?
+  googleMapsUrl   String?
+  price           Float?
+  currency        String?   @default("EUR")
+  city            String?
   players         Player[]
   rounds          Round[]
   createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])

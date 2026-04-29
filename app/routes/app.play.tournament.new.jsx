@@ -28,8 +28,12 @@ export const action = async ({ request }) => {
     const logoUrl = formData.get("logoUrl") || null;
     const type = formData.get("type");
     const courts = parseInt(formData.get("courts"), 10) || 2;
-    const pointsPerMatch = parseInt(formData.get("pointsPerMatch"), 10) || 24;
+    const pointsPerMatch = parseInt(formData.get("pointsPerMatch"), 10) || 21;
     const deuceMethod = formData.get("deuceMethod") || "deuce";
+    const googleMapsUrl = formData.get("googleMapsUrl") || null;
+    const price = formData.get("price") ? parseFloat(formData.get("price")) : null;
+    const currency = formData.get("currency") || "EUR";
+    const city = formData.get("city") || null;
     const isPublic = formData.get("isPublic") !== "false";
     const courtNamesRaw = formData.get("courtNames");
     const playersRaw = formData.get("players");
@@ -43,6 +47,9 @@ export const action = async ({ request }) => {
 
     if (!name || !location || !type) {
         return json({ error: "Please fill in all required fields." }, { status: 400 });
+    }
+    if (isPublic && !googleMapsUrl) {
+        return json({ error: "A Google Maps URL is required for public tournaments." }, { status: 400 });
     }
 
     let playerNames = [];
@@ -77,6 +84,7 @@ export const action = async ({ request }) => {
             name,
             location,
             country,
+            city,
             logoUrl,
             type,
             courtsAvailable: courts,
@@ -92,6 +100,9 @@ export const action = async ({ request }) => {
             venueId: venueId || null,
             latitude: latitude || null,
             longitude: longitude || null,
+            googleMapsUrl: googleMapsUrl || null,
+            price: price || null,
+            currency: currency || "EUR",
             players: {
                 create: playerNames.map((p, index) => ({
                     name: p.name,
@@ -110,12 +121,12 @@ export const action = async ({ request }) => {
 };
 
 const PLAY_TYPES = [
-    { id: "americano", name: "Americano", desc: "Rotating partners, individual points" },
-    { id: "mexicano", name: "Mexicano", desc: "Performance-based Swiss System" },
-    { id: "team_americano", name: "Team Americano", desc: "Fixed partners, rotating opponents" },
-    { id: "team_mexicano", name: "Team Mexicano", desc: "Fixed partners, ranking-based courts" },
-    { id: "king_of_the_court", name: "King of the Court", desc: "Winners move up, losers move down" },
-    { id: "beat_the_box", name: "Beat the Box", desc: "King of the Court, winner stays" },
+    { id: "americano", name: "Americano", desc: "Rotating partners, individual points", info: "Each round you rotate partners and opponents. Points are individual — you collect your own score every match regardless of partner. At the end, the player with the most total points wins. Best format for mixed groups where everyone wants to play together." },
+    { id: "mexicano", name: "Mexicano", desc: "Performance-based Swiss System", info: "After each round, players are ranked by total points and matched so the top two play each other, bottom two play each other, etc. Partners also rotate based on ranking. Gets more competitive as the tournament progresses — similar skill levels always face each other." },
+    { id: "team_americano", name: "Team Americano", desc: "Fixed partners, rotating opponents", info: "You keep the same partner throughout the tournament but rotate opponents every round. Points are counted per team. Great when you want to play with a specific friend but still compete against every other pair." },
+    { id: "team_mexicano", name: "Team Mexicano", desc: "Fixed partners, ranking-based courts", info: "Fixed teams like Team Americano, but after each round the top teams move to the feature court and lower teams drop down — similar to a Swiss ladder. Keeps games competitive throughout." },
+    { id: "king_of_the_court", name: "King of the Court", desc: "Winners move up, losers move down", info: "Courts are ranked 1 (best) to N. Winners move up a court, losers move down. The goal is to reach and stay on Court 1. Partners rotate every round. High energy format — great for clubs where players arrive at different skill levels." },
+    { id: "beat_the_box", name: "Beat the Box", desc: "King of the Court, winner stays", info: "A variation of King of the Court where the winning team stays on the court and the losing team rotates out. Challengers queue up to take on the reigning pair. Fast-paced and spectator-friendly." },
 ];
 
 const DEUCE_METHODS = [
@@ -126,12 +137,12 @@ const DEUCE_METHODS = [
 ];
 
 const POINTS_PRESETS = {
-    americano: [12, 24, 32],
-    mexicano: [12, 24, 32],
-    team_americano: [12, 24, 32],
-    team_mexicano: [12, 24, 32],
-    king_of_the_court: [12, 24, 32],
-    beat_the_box: [12, 24, 32],
+    americano: [16, 21, 32],
+    mexicano: [16, 21, 32],
+    team_americano: [16, 21, 32],
+    team_mexicano: [16, 21, 32],
+    king_of_the_court: [16, 21, 32],
+    beat_the_box: [16, 21, 32],
 };
 
 function getFormatCapacityInfo(type, playerCount, courts) {
@@ -368,8 +379,13 @@ export default function NewTournamentPublic() {
     const [players, setPlayers] = useState([]);
     const [playerName, setPlayerName] = useState("");
     const [courts, setCourts] = useState(2);
-    const [pointsPerMatch, setPointsPerMatch] = useState(24);
+    const [pointsPerMatch, setPointsPerMatch] = useState(21);
     const [customPoints, setCustomPoints] = useState(99);
+    const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+    const [price, setPrice] = useState("");
+    const [currency, setCurrency] = useState("EUR");
+    const [city, setCity] = useState("");
+    const [infoModal, setInfoModal] = useState(null);
     const [deuceMethod, setDeuceMethod] = useState("deuce");
     const [isPublic, setIsPublic] = useState(true);
     const [courtNames, setCourtNames] = useState(["Court 1", "Court 2"]);
@@ -461,8 +477,7 @@ export default function NewTournamentPublic() {
 
     const handleTypeChange = (type) => {
         setSelectedType(type);
-        const presets = POINTS_PRESETS[type];
-        setPointsPerMatch(presets[0] || 24);
+        setPointsPerMatch(21);
     };
 
     const addPlayer = () => {
@@ -619,6 +634,37 @@ export default function NewTournamentPublic() {
                         <input type="hidden" name="latitude" value={selectedVenue?.latitude ?? ""} />
                         <input type="hidden" name="longitude" value={selectedVenue?.longitude ?? ""} />
 
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>City / District</div>
+                            <input
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                placeholder="e.g. Doha — Aspire Zone"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            <input type="hidden" name="city" value={city} />
+                        </div>
+
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600 }}>Google Maps URL</div>
+                                <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>Required for public</span>
+                            </div>
+                            <input
+                                value={googleMapsUrl}
+                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                                placeholder="https://maps.app.goo.gl/..."
+                                type="url"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
+                            {googleMapsUrl && (
+                                <a href={googleMapsUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "var(--green)", marginTop: 4, display: "block" }}>
+                                    ↗ Preview on Maps
+                                </a>
+                            )}
+                        </div>
+
                         <div style={{ padding: "14px 16px" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Country</div>
                             <select
@@ -631,6 +677,33 @@ export default function NewTournamentPublic() {
                                     <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
                                 ))}
                             </select>
+                        </div>
+                    </div>
+
+                    {/* ── Entry Price ── */}
+                    {sectionLabel("Entry Price (optional)")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div style={{ padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}>
+                            <select
+                                value={currency}
+                                onChange={(e) => setCurrency(e.target.value)}
+                                name="currency"
+                                style={{ border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label-3)", outline: "none", cursor: "pointer", flexShrink: 0, fontWeight: 600 }}
+                            >
+                                {["EUR","USD","GBP","QAR","AED","SAR","CHF","SEK","NOK","DKK"].map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                name="price"
+                                placeholder="0 = free"
+                                style={{ flex: 1, border: "none", background: "transparent", fontSize: "1.1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", fontWeight: 600 }}
+                            />
                         </div>
                     </div>
 
@@ -738,43 +811,86 @@ export default function NewTournamentPublic() {
 
                     {/* ── Game Type ── */}
                     {sectionLabel("Game Type")}
+
+                    {/* Info modal */}
+                    {infoModal && (
+                        <div
+                            onClick={() => setInfoModal(null)}
+                            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}
+                        >
+                            <div
+                                onClick={e => e.stopPropagation()}
+                                style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}
+                            >
+                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
+                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10 }}>{infoModal.name}</div>
+                                <p style={{ fontSize: "0.88rem", color: "var(--label-2)", lineHeight: 1.6, margin: 0 }}>{infoModal.info}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => setInfoModal(null)}
+                                    style={{ marginTop: 20, width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit" }}
+                                >
+                                    Got it
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 24 }}>
                         {PLAY_TYPES.map((pt) => (
-                            <button
-                                key={pt.id}
-                                type="button"
-                                onClick={() => handleTypeChange(pt.id)}
-                                style={{
-                                    border: selectedType === pt.id ? "1.5px solid var(--green)" : "1px solid var(--sep)",
-                                    borderRadius: "22px",
-                                    background: selectedType === pt.id ? "rgba(28,79,53,0.05)" : "var(--bg-card)",
-                                    boxShadow: selectedType === pt.id ? "0 14px 24px rgba(28,79,53,0.12)" : "0 8px 18px rgba(15,23,42,0.06)",
-                                    padding: "10px 8px 9px",
-                                    cursor: "pointer",
-                                    textAlign: "center",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    gap: 8,
-                                    minHeight: 134,
-                                    fontFamily: "inherit",
-                                }}
-                            >
-                                <img
-                                    src={GAME_MODE_BUTTON_IMAGES[pt.id]}
-                                    alt={pt.name}
+                            <div key={pt.id} style={{ position: "relative" }}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTypeChange(pt.id)}
                                     style={{
-                                        width: "min(100%, 68px)",
-                                        aspectRatio: "1 / 1",
-                                        objectFit: "contain",
-                                        display: "block",
-                                        filter: selectedType === pt.id ? "drop-shadow(0 8px 14px rgba(10,23,18,0.18))" : "drop-shadow(0 5px 9px rgba(10,23,18,0.12))",
+                                        width: "100%",
+                                        border: selectedType === pt.id ? "1.5px solid var(--green)" : "1px solid var(--sep)",
+                                        borderRadius: "22px",
+                                        background: selectedType === pt.id ? "rgba(28,79,53,0.05)" : "var(--bg-card)",
+                                        boxShadow: selectedType === pt.id ? "0 14px 24px rgba(28,79,53,0.12)" : "0 8px 18px rgba(15,23,42,0.06)",
+                                        padding: "10px 8px 9px",
+                                        cursor: "pointer",
+                                        textAlign: "center",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        minHeight: 134,
+                                        fontFamily: "inherit",
                                     }}
-                                />
-                                <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-                                    <div style={{ fontWeight: 600, fontSize: "0.76rem", color: selectedType === pt.id ? "var(--green)" : "var(--label)", lineHeight: 1.15 }}>{pt.name}</div>
-                                </div>
-                            </button>
+                                >
+                                    <img
+                                        src={GAME_MODE_BUTTON_IMAGES[pt.id]}
+                                        alt={pt.name}
+                                        style={{
+                                            width: "min(100%, 68px)",
+                                            aspectRatio: "1 / 1",
+                                            objectFit: "contain",
+                                            display: "block",
+                                            filter: selectedType === pt.id ? "drop-shadow(0 8px 14px rgba(10,23,18,0.18))" : "drop-shadow(0 5px 9px rgba(10,23,18,0.12))",
+                                        }}
+                                    />
+                                    <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+                                        <div style={{ fontWeight: 600, fontSize: "0.76rem", color: selectedType === pt.id ? "var(--green)" : "var(--label)", lineHeight: 1.15 }}>{pt.name}</div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setInfoModal(pt); }}
+                                    style={{
+                                        position: "absolute", top: 6, right: 6,
+                                        width: 20, height: 20, borderRadius: "50%",
+                                        border: "1.5px solid var(--sep-opaque)",
+                                        background: "var(--bg-card)",
+                                        color: "var(--label-3)", fontSize: "0.62rem", fontWeight: 700,
+                                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                                        fontFamily: "inherit", lineHeight: 1,
+                                    }}
+                                    title={`About ${pt.name}`}
+                                >
+                                    i
+                                </button>
+                            </div>
                         ))}
                     </div>
                     <input type="hidden" name="type" value={selectedType} />
@@ -832,6 +948,15 @@ export default function NewTournamentPublic() {
                             )}
                             <input type="hidden" name="pointsPerMatch" value={pointsPerMatch} />
                         </div>
+
+                        {stats && (
+                            <div style={{ padding: "14px 16px", background: "rgba(28,79,53,0.05)", borderTop: "1px solid var(--sep)", display: "flex", alignItems: "center", gap: 10 }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <div style={{ fontSize: "0.82rem", color: "var(--green)", fontWeight: 600 }}>
+                                    Estimated duration: ~{stats.duration} &nbsp;·&nbsp; {stats.totalRounds} rounds &nbsp;·&nbsp; {stats.activeCourts} active court{stats.activeCourts !== 1 ? "s" : ""}
+                                </div>
+                            </div>
+                        )}
 
                         <div style={{ padding: "16px" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>40:40 Method</div>

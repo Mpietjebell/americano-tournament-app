@@ -77,14 +77,20 @@ export async function loader({ request }) {
 }
 
 function serialize(t) {
-    const winner = [...t.players].sort((a, b) => b.totalPoints - a.totalPoints)[0] ?? null;
     return {
         id: t.id,
         name: t.name,
         type: t.type,
+        deuceMethod: t.deuceMethod,
+        pointsPerMatch: t.pointsPerMatch,
+        courtsAvailable: t.courtsAvailable,
         scheduledAt: t.scheduledAt,
         location: t.location,
         country: t.country,
+        city: t.city || t.venue?.city || null,
+        googleMapsUrl: t.googleMapsUrl || null,
+        price: t.price ?? null,
+        currency: t.currency || "EUR",
         playerCount: t.players.length,
         maxPlayers: t.maxPlayers,
         distanceKm: t._dist,
@@ -111,6 +117,7 @@ function serializeRecent(t) {
         createdAt: t.createdAt,
         location: t.location,
         country: t.country,
+        city: t.city || t.venue?.city || null,
         playerCount: t.players.length,
         distanceKm: t._dist,
         venue: t.venue

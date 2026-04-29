@@ -1,5 +1,6 @@
 import prisma from "../db.server";
 import { corsJson, handleOptions } from "../utils/cors.server";
+import { sendSignupConfirmation, sendTournamentConfirmed } from "../utils/email.server";
 
 export async function action({ request, params }) {
     const early = handleOptions(request);
@@ -43,7 +44,8 @@ export async function action({ request, params }) {
         where: { id: params.id },
         include: {
             players: { select: { id: true } },
-            participants: { select: { id: true, email: true } },
+            participants: { select: { id: true, email: true, name: true } },
+            venue: true,
         },
     });
 
@@ -113,13 +115,23 @@ export async function action({ request, params }) {
     });
 
     const position = currentCount + 1;
+
+    // Send confirmation email (non-blocking)
+    sendSignupConfirmation({ to: email, name, tournament, position }).catch(() => {});
+
+    // If tournament just hit max, notify all participants
+    if (tournament.maxPlayers && position >= tournament.maxPlayers) {
+        const allParticipants = [...tournament.participants, { email, name }];
+        sendTournamentConfirmed({ participants: allParticipants, tournament }).catch(() => {});
+    }
+
     return corsJson(request, {
         ok: true,
         position,
         max: tournament.maxPlayers,
         message: tournament.maxPlayers
-            ? `You're in — spot ${position} of ${tournament.maxPlayers}. See you on the court!`
-            : "You're in — see you on the court!",
+            ? `You're in — spot ${position} of ${tournament.maxPlayers}. Check your email for confirmation!`
+            : "You're in! Check your email for confirmation.",
     });
 }
 

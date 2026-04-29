@@ -28,6 +28,8 @@ export async function loadTournament(id) {
                 include: { matches: true },
                 orderBy: { roundNumber: "asc" },
             },
+            venue: true,
+            participants: { select: { email: true, name: true } },
         },
     });
 

@@ -26,21 +26,65 @@ export function getCountryDisplay(countryCode) {
 }
 
 export function buildJoinInviteText(tournament, joinUrl) {
-  const locationLine = tournament.location ? `${tournament.location}\n` : "";
   const typeLabel = TYPE_LABELS[tournament.type] || tournament.type;
 
-  return [
-    `${tournament.name}`,
-    locationLine.trim(),
-    `${typeLabel} tournament`,
+  // Country flag + city/district
+  const flag = tournament.country
+    ? String.fromCodePoint(...[...tournament.country.toUpperCase()].map(c => 0x1F1E0 - 65 + c.charCodeAt(0)))
+    : "";
+  const city = tournament.city || tournament.venue?.city || "";
+  const venueName = tournament.venue?.name || tournament.location || "";
+  const locationHeader = [flag, city].filter(Boolean).join(" ");
+
+  // Date + duration
+  let dateLine = "";
+  let timeLine = "";
+  if (tournament.scheduledAt) {
+    const d = new Date(tournament.scheduledAt);
+    const dayStr = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "2-digit", year: "numeric" });
+    const startTime = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const durationMins = tournament.maxPlayers
+      ? Math.round(tournament.maxPlayers / 2 * (tournament.pointsPerMatch || 21) * 0.5)
+      : null;
+    const durationStr = durationMins
+      ? durationMins >= 60
+        ? `${Math.floor(durationMins / 60)}h${durationMins % 60 > 0 ? ` ${durationMins % 60}m` : ""}`
+        : `${durationMins} min`
+      : null;
+    const endD = durationMins ? new Date(d.getTime() + durationMins * 60000) : null;
+    const endTime = endD ? endD.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : null;
+
+    dateLine = `${dayStr}${durationStr ? ` (${durationStr})` : ""}`;
+    timeLine = endTime ? `${startTime} - ${endTime}` : startTime;
+  }
+
+  // Price
+  const priceLine = tournament.price ? `Price ${tournament.price} ${tournament.currency || ""}`.trim() : "Free entry";
+
+  // Players
+  const playerLine = tournament.maxPlayers ? `${tournament.maxPlayers} player tournament 🙌` : `${typeLabel} tournament 🙌`;
+
+  const lines = [
+    locationHeader,
+    `"${tournament.name}" 🎾`,
+    dateLine,
+    timeLine,
     "",
-    `Join code: ${tournament.joinCode}`,
+    playerLine,
+    priceLine,
+    `Join via link or code: ${tournament.joinCode}`,
     joinUrl,
-    "",
-    "Powered by NOPA Padel",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ];
+
+  if (venueName || tournament.googleMapsUrl) {
+    lines.push("");
+    if (venueName) lines.push(venueName);
+    if (tournament.googleMapsUrl) lines.push(tournament.googleMapsUrl);
+  }
+
+  lines.push("Powered by NOPA Padel");
+
+  return lines.filter(l => l !== undefined && l !== null).join("\n");
 }
 
 export function buildResultsShareText(tournament, players, pageUrl) {
