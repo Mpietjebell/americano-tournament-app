@@ -387,3 +387,21 @@ export async function proposeScore(tournament, matchId, scoreA, scoreB) {
 
     return { success: true };
 }
+
+export async function confirmScore(tournament, matchId) {
+    const match = await prisma.match.findUnique({ where: { id: matchId } });
+    if (!match) return { error: "Match not found." };
+    if (match.proposedScoreA == null || match.proposedScoreB == null) {
+        return { error: "No proposed score to confirm." };
+    }
+
+    const result = await submitScore(tournament, matchId, match.proposedScoreA, match.proposedScoreB);
+    if (result.error) return result;
+
+    await prisma.match.update({
+        where: { id: matchId },
+        data: { proposedScoreA: null, proposedScoreB: null },
+    });
+
+    return { success: true };
+}
