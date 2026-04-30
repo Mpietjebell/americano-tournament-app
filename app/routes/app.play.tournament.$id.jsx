@@ -2,7 +2,7 @@ import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
-import { loadTournament, generateAllRounds, submitScore } from "../utils/tournament-actions.server";
+import { loadTournament, generateAllRounds, submitScore, proposeScore, confirmScore, resetScore } from "../utils/tournament-actions.server";
 import {
     buildTeams,
     buildTeamStandings,
@@ -34,16 +34,15 @@ export const action = async ({ request, params }) => {
 
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
-    if (!isHost) {
-        return json({ error: "Host access required." }, { status: 403 });
-    }
 
     if (intent === "generate_all_rounds") {
+        if (!isHost) return json({ error: "Host access required." }, { status: 403 });
         await generateAllRounds(tournament);
         return json({ success: true });
     }
 
     if (intent === "submit_score") {
+        if (!isHost) return json({ error: "Host access required." }, { status: 403 });
         const matchId = formData.get("matchId");
         const scoreA = parseInt(formData.get("scoreA"), 10);
         const scoreB = parseInt(formData.get("scoreB"), 10);
@@ -53,6 +52,7 @@ export const action = async ({ request, params }) => {
     }
 
     if (intent === "update_player_setup") {
+        if (!isHost) return json({ error: "Host access required." }, { status: 403 });
         const playerId = formData.get("playerId");
         const name = String(formData.get("name") || "").trim();
         const teamIdValue = String(formData.get("teamId") || "").trim();
@@ -84,6 +84,7 @@ export const action = async ({ request, params }) => {
     }
 
     if (intent === "update_team_assignments") {
+        if (!isHost) return json({ error: "Host access required." }, { status: 403 });
         const payload = String(formData.get("players") || "[]");
         let submittedPlayers;
 
@@ -128,6 +129,31 @@ export const action = async ({ request, params }) => {
             ),
         );
 
+        return json({ success: true });
+    }
+
+    if (intent === "propose_score") {
+        const matchId = formData.get("matchId");
+        const scoreA = parseInt(formData.get("scoreA"), 10);
+        const scoreB = parseInt(formData.get("scoreB"), 10);
+        const result = await proposeScore(tournament, matchId, scoreA, scoreB);
+        if (result.error) return json({ error: result.error }, { status: 400 });
+        return json({ success: true });
+    }
+
+    if (intent === "confirm_score") {
+        if (!isHost) return json({ error: "Host access required." }, { status: 403 });
+        const matchId = formData.get("matchId");
+        const result = await confirmScore(tournament, matchId);
+        if (result.error) return json({ error: result.error }, { status: 400 });
+        return json({ success: true });
+    }
+
+    if (intent === "reset_score") {
+        if (!isHost) return json({ error: "Host access required." }, { status: 403 });
+        const matchId = formData.get("matchId");
+        const result = await resetScore(tournament, matchId);
+        if (result.error) return json({ error: result.error }, { status: 400 });
         return json({ success: true });
     }
 
