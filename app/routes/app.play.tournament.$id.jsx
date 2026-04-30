@@ -978,6 +978,105 @@ function DragTeamBoard({ players }) {
     );
 }
 
+function HostScoreEntry({ match, pointsPerMatch, fetcher, scoreA, scoreB, handleScoreAChange, handleScoreBChange, totalValid }) {
+    const hasProposal = match.proposedScoreA != null && match.proposedScoreB != null;
+    const [showOverride, setShowOverride] = useState(false);
+
+    if (hasProposal && !showOverride) {
+        return (
+            <div>
+                <div style={{ textAlign: "center", marginBottom: 10 }}>
+                    <div style={{ fontSize: "0.65rem", color: "#8B7340", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                        Player proposal
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
+                        <span style={{ fontSize: "1.8rem", fontWeight: 700, color: "var(--label)" }}>{match.proposedScoreA}</span>
+                        <span style={{ color: "var(--label-4)", fontWeight: 700 }}>—</span>
+                        <span style={{ fontSize: "1.8rem", fontWeight: 700, color: "var(--label)" }}>{match.proposedScoreB}</span>
+                    </div>
+                    <fetcher.Form method="post" style={{ marginBottom: 8 }}>
+                        <input type="hidden" name="intent" value="confirm_score" />
+                        <input type="hidden" name="matchId" value={match.id} />
+                        <button
+                            type="submit"
+                            disabled={fetcher.state !== "idle"}
+                            style={{
+                                width: "100%", padding: "11px", borderRadius: "var(--r-cell)",
+                                background: "var(--green)", color: "white",
+                                fontWeight: 700, fontSize: "0.95rem", border: "none",
+                                cursor: "pointer", fontFamily: "inherit",
+                                boxShadow: "0 2px 12px rgba(28,79,53,0.25)",
+                            }}
+                        >
+                            {fetcher.state !== "idle" ? "Confirming..." : "Confirm Score"}
+                        </button>
+                    </fetcher.Form>
+                    <button
+                        type="button"
+                        onClick={() => setShowOverride(true)}
+                        style={{ fontSize: "0.72rem", color: "var(--label-3)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}
+                    >
+                        Override with different score
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="submit_score" />
+            <input type="hidden" name="matchId" value={match.id} />
+            <div style={{ textAlign: "center", marginBottom: 8, fontSize: "0.7rem", color: "var(--label-3)" }}>
+                Total = {pointsPerMatch} pts
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 12 }}>
+                <input
+                    type="number" name="scoreA" min="0" max={pointsPerMatch}
+                    value={scoreA} onChange={handleScoreAChange} placeholder="0"
+                    style={{
+                        width: 60, height: 52, textAlign: "center", fontSize: "1.4rem", fontWeight: 700,
+                        border: "2px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                        background: "var(--bg-grouped)", color: "var(--label)", fontFamily: "inherit", outline: "none",
+                    }}
+                />
+                <span style={{ color: "var(--label-3)", fontWeight: 700, fontSize: "1.2rem" }}>—</span>
+                <input
+                    type="number" name="scoreB" min="0" max={pointsPerMatch}
+                    value={scoreB} onChange={handleScoreBChange} placeholder="0"
+                    style={{
+                        width: 60, height: 52, textAlign: "center", fontSize: "1.4rem", fontWeight: 700,
+                        border: "2px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                        background: "var(--bg-grouped)", color: "var(--label)", fontFamily: "inherit", outline: "none",
+                    }}
+                />
+            </div>
+            <button
+                type="submit"
+                disabled={fetcher.state !== "idle" || !totalValid}
+                style={{
+                    width: "100%", padding: "11px", borderRadius: "var(--r-cell)",
+                    background: totalValid ? "var(--green)" : "var(--sep-opaque)",
+                    color: "white", fontWeight: 600, fontSize: "0.9rem", border: "none",
+                    cursor: totalValid ? "pointer" : "not-allowed", fontFamily: "inherit",
+                    transition: "background 0.2s",
+                }}
+            >
+                {fetcher.state !== "idle" ? "Submitting..." : "Submit Score"}
+            </button>
+            {showOverride && (
+                <button
+                    type="button"
+                    onClick={() => setShowOverride(false)}
+                    style={{ width: "100%", marginTop: 6, fontSize: "0.72rem", color: "var(--label-3)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}
+                >
+                    Cancel override
+                </button>
+            )}
+        </fetcher.Form>
+    );
+}
+
 function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
     const hasProposal = match.proposedScoreA != null && match.proposedScoreB != null;
     const [scoreA, setScoreA] = useState(hasProposal ? String(match.proposedScoreA) : "");
@@ -1147,47 +1246,16 @@ function CourtCard({ match, teamA, teamB, players, fetcher, pointsPerMatch, isHo
                         )}
                     </div>
                 ) : isHost ? (
-                    <fetcher.Form method="post">
-                        <input type="hidden" name="intent" value="submit_score" />
-                        <input type="hidden" name="matchId" value={match.id} />
-                        <div style={{ textAlign: "center", marginBottom: 8, fontSize: "0.7rem", color: "var(--label-3)" }}>
-                            Total = {pointsPerMatch} pts
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 12 }}>
-                            <input
-                                type="number" name="scoreA" min="0" max={pointsPerMatch}
-                                value={scoreA} onChange={handleScoreAChange} placeholder="0"
-                                style={{
-                                    width: 60, height: 52, textAlign: "center", fontSize: "1.4rem", fontWeight: 700,
-                                    border: "2px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
-                                    background: "var(--bg-grouped)", color: "var(--label)", fontFamily: "inherit", outline: "none",
-                                }}
-                            />
-                            <span style={{ color: "var(--label-3)", fontWeight: 700, fontSize: "1.2rem" }}>—</span>
-                            <input
-                                type="number" name="scoreB" min="0" max={pointsPerMatch}
-                                value={scoreB} onChange={handleScoreBChange} placeholder="0"
-                                style={{
-                                    width: 60, height: 52, textAlign: "center", fontSize: "1.4rem", fontWeight: 700,
-                                    border: "2px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
-                                    background: "var(--bg-grouped)", color: "var(--label)", fontFamily: "inherit", outline: "none",
-                                }}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={fetcher.state !== "idle" || !totalValid}
-                            style={{
-                                width: "100%", padding: "11px", borderRadius: "var(--r-cell)",
-                                background: totalValid ? "var(--green)" : "var(--sep-opaque)",
-                                color: "white", fontWeight: 600, fontSize: "0.9rem", border: "none",
-                                cursor: totalValid ? "pointer" : "not-allowed", fontFamily: "inherit",
-                                transition: "background 0.2s",
-                            }}
-                        >
-                            Submit Score
-                        </button>
-                    </fetcher.Form>
+                    <HostScoreEntry
+                        match={match}
+                        pointsPerMatch={pointsPerMatch}
+                        fetcher={fetcher}
+                        scoreA={scoreA}
+                        scoreB={scoreB}
+                        handleScoreAChange={handleScoreAChange}
+                        handleScoreBChange={handleScoreBChange}
+                        totalValid={totalValid}
+                    />
                 ) : (
                     <PlayerProposalForm
                         match={match}
