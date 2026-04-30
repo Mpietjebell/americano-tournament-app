@@ -369,3 +369,21 @@ export async function submitScore(tournament, matchId, scoreA, scoreB) {
 
     return { success: true };
 }
+
+export async function proposeScore(tournament, matchId, scoreA, scoreB) {
+    if (isNaN(scoreA) || isNaN(scoreB)) return { error: "Please enter valid scores." };
+    if (scoreA + scoreB !== tournament.pointsPerMatch) {
+        return { error: `Scores must add up to ${tournament.pointsPerMatch}.` };
+    }
+
+    const match = await prisma.match.findUnique({ where: { id: matchId } });
+    if (!match) return { error: "Match not found." };
+    if (match.status === "completed") return { error: "This match is already completed." };
+
+    await prisma.match.update({
+        where: { id: matchId },
+        data: { proposedScoreA: scoreA, proposedScoreB: scoreB },
+    });
+
+    return { success: true };
+}
