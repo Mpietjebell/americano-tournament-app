@@ -230,6 +230,14 @@ export default function PublicTournamentView() {
         }
     }, [activeTab, isFinished]);
 
+    useEffect(() => {
+        if (isFinished) return;
+        const interval = setInterval(() => {
+            window.location.reload();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [isFinished]);
+
     return (
         <>
             <nav className="ios-nav">
