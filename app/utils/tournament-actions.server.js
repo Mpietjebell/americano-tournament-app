@@ -429,8 +429,10 @@ export async function resetScore(tournament, matchId) {
         });
     }
 
+    // Fetch all rounds once with orderBy for reuse in stats recalculation and finding first incomplete
     const allRounds = await prisma.round.findMany({
         where: { tournamentId: tournament.id },
+        orderBy: { roundNumber: "asc" },
         include: { matches: true },
     });
 
@@ -472,25 +474,22 @@ export async function resetScore(tournament, matchId) {
         }
     }
 
-    for (const stats of playerMap.values()) {
-        await prisma.player.update({
-            where: { id: stats.id },
-            data: {
-                totalPoints: stats.totalPoints,
-                matchesPlayed: stats.matchesPlayed,
-                matchesWon: stats.matchesWon,
-                matchesDrawn: stats.matchesDrawn,
-            },
-        });
-    }
+    // Wrap player updates in a transaction
+    await prisma.$transaction(
+        [...playerMap.values()].map((stats) =>
+            prisma.player.update({
+                where: { id: stats.id },
+                data: {
+                    totalPoints: stats.totalPoints,
+                    matchesPlayed: stats.matchesPlayed,
+                    matchesWon: stats.matchesWon,
+                    matchesDrawn: stats.matchesDrawn,
+                },
+            })
+        )
+    );
 
-    const updatedRounds = await prisma.round.findMany({
-        where: { tournamentId: tournament.id },
-        orderBy: { roundNumber: "asc" },
-        include: { matches: true },
-    });
-
-    const firstIncomplete = updatedRounds.find((r) => r.status !== "completed");
+    const firstIncomplete = allRounds.find((r) => r.status !== "completed");
     if (firstIncomplete) {
         await prisma.tournament.update({
             where: { id: tournament.id },
