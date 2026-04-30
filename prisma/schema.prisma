@@ -133,6 +133,8 @@ model Match {
   teamBIds String
   scoreA   Int?
   scoreB   Int?
+  proposedScoreA Int?
+  proposedScoreB Int?
   status   String @default("pending")
   roundId  String
   round    Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
