@@ -405,3 +405,98 @@ export async function confirmScore(tournament, matchId) {
 
     return { success: true };
 }
+
+export async function resetScore(tournament, matchId) {
+    await prisma.match.update({
+        where: { id: matchId },
+        data: {
+            scoreA: null,
+            scoreB: null,
+            proposedScoreA: null,
+            proposedScoreB: null,
+            status: "pending",
+        },
+    });
+
+    const matchRound = await prisma.round.findFirst({
+        where: { matches: { some: { id: matchId } } },
+        include: { matches: true },
+    });
+    if (matchRound && matchRound.status === "completed") {
+        await prisma.round.update({
+            where: { id: matchRound.id },
+            data: { status: "active" },
+        });
+    }
+
+    const allRounds = await prisma.round.findMany({
+        where: { tournamentId: tournament.id },
+        include: { matches: true },
+    });
+
+    const players = await prisma.player.findMany({
+        where: { tournamentId: tournament.id },
+    });
+
+    const playerMap = new Map(players.map((p) => [p.id, {
+        id: p.id,
+        totalPoints: 0,
+        matchesPlayed: 0,
+        matchesWon: 0,
+        matchesDrawn: 0,
+    }]));
+
+    for (const round of allRounds) {
+        for (const match of round.matches) {
+            if (match.id === matchId) continue;
+            if (match.status !== "completed" || match.scoreA == null || match.scoreB == null) continue;
+            const teamAIds = JSON.parse(match.teamAIds);
+            const teamBIds = JSON.parse(match.teamBIds);
+            const isDraw = match.scoreA === match.scoreB;
+            for (const playerId of teamAIds) {
+                const p = playerMap.get(playerId);
+                if (!p) continue;
+                p.totalPoints += match.scoreA;
+                p.matchesPlayed += 1;
+                if (match.scoreA > match.scoreB) p.matchesWon += 1;
+                if (isDraw) p.matchesDrawn += 1;
+            }
+            for (const playerId of teamBIds) {
+                const p = playerMap.get(playerId);
+                if (!p) continue;
+                p.totalPoints += match.scoreB;
+                p.matchesPlayed += 1;
+                if (match.scoreB > match.scoreA) p.matchesWon += 1;
+                if (isDraw) p.matchesDrawn += 1;
+            }
+        }
+    }
+
+    for (const stats of playerMap.values()) {
+        await prisma.player.update({
+            where: { id: stats.id },
+            data: {
+                totalPoints: stats.totalPoints,
+                matchesPlayed: stats.matchesPlayed,
+                matchesWon: stats.matchesWon,
+                matchesDrawn: stats.matchesDrawn,
+            },
+        });
+    }
+
+    const updatedRounds = await prisma.round.findMany({
+        where: { tournamentId: tournament.id },
+        orderBy: { roundNumber: "asc" },
+        include: { matches: true },
+    });
+
+    const firstIncomplete = updatedRounds.find((r) => r.status !== "completed");
+    if (firstIncomplete) {
+        await prisma.tournament.update({
+            where: { id: tournament.id },
+            data: { currentRound: firstIncomplete.roundNumber, status: "active" },
+        });
+    }
+
+    return { success: true };
+}
