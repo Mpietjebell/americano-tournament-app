@@ -1244,6 +1244,23 @@ function CourtCard({ match, teamA, teamB, players, fetcher, pointsPerMatch, isHo
                         {match.scoreA === match.scoreB && (
                             <div style={{ fontSize: "0.7rem", color: "#8B7340", fontWeight: 600, marginTop: 4 }}>Draw</div>
                         )}
+                        {isHost && (
+                            <fetcher.Form method="post" style={{ marginTop: 8 }}>
+                                <input type="hidden" name="intent" value="reset_score" />
+                                <input type="hidden" name="matchId" value={match.id} />
+                                <button
+                                    type="submit"
+                                    disabled={fetcher.state !== "idle"}
+                                    style={{
+                                        fontSize: "0.68rem", color: "var(--label-3)", background: "none",
+                                        border: "none", cursor: "pointer", textDecoration: "underline",
+                                        fontFamily: "inherit", padding: 0,
+                                    }}
+                                >
+                                    Edit score
+                                </button>
+                            </fetcher.Form>
+                        )}
                     </div>
                 ) : isHost ? (
                     <HostScoreEntry
