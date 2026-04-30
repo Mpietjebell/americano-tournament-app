@@ -1,5 +1,5 @@
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher, Link } from "@remix-run/react";
+import { useLoaderData, useFetcher, useRevalidator, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
 import { loadTournament, generateAllRounds, submitScore, proposeScore, confirmScore, resetScore } from "../utils/tournament-actions.server";
@@ -182,6 +182,7 @@ function fallbackCopy(text, onSuccess) {
 export default function PublicTournamentView() {
     const { tournament, origin, isHost } = useLoaderData();
     const fetcher = useFetcher();
+    const { revalidate } = useRevalidator();
     const [activeTab, setActiveTab] = useState("courts");
     const [copied, setCopied] = useState(false);
     const [showShare, setShowShare] = useState(false);
@@ -233,10 +234,10 @@ export default function PublicTournamentView() {
     useEffect(() => {
         if (isFinished) return;
         const interval = setInterval(() => {
-            window.location.reload();
+            revalidate();
         }, 30000);
         return () => clearInterval(interval);
-    }, [isFinished]);
+    }, [isFinished, revalidate]);
 
     return (
         <>
@@ -500,7 +501,7 @@ export default function PublicTournamentView() {
                                         {round.matches.map((match) => {
                                             const teamA = JSON.parse(match.teamAIds);
                                             const teamB = JSON.parse(match.teamBIds);
-                                            return <CourtCard key={match.id} match={match} teamA={teamA} teamB={teamB} players={players} fetcher={fetcher} pointsPerMatch={tournament.pointsPerMatch} isHost={isHost} />;
+                                            return <CourtCard key={match.id} match={match} teamA={teamA} teamB={teamB} players={players} pointsPerMatch={tournament.pointsPerMatch} isHost={isHost} />;
                                         })}
                                     </div>
                                 </div>
@@ -1173,7 +1174,8 @@ function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
     );
 }
 
-function CourtCard({ match, teamA, teamB, players, fetcher, pointsPerMatch, isHost }) {
+function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost }) {
+    const fetcher = useFetcher();
     const [scoreA, setScoreA] = useState(match.scoreA ?? "");
     const [scoreB, setScoreB] = useState(match.scoreB ?? "");
     const isCompleted = match.status === "completed";
