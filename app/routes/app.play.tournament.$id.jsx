@@ -978,6 +978,102 @@ function DragTeamBoard({ players }) {
     );
 }
 
+function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
+    const hasProposal = match.proposedScoreA != null && match.proposedScoreB != null;
+    const [scoreA, setScoreA] = useState(hasProposal ? String(match.proposedScoreA) : "");
+    const [scoreB, setScoreB] = useState(hasProposal ? String(match.proposedScoreB) : "");
+    const [showEdit, setShowEdit] = useState(false);
+
+    const handleScoreAChange = (e) => {
+        const val = e.target.value;
+        setScoreA(val);
+        if (val !== "" && !isNaN(parseInt(val, 10))) {
+            const a = parseInt(val, 10);
+            if (a >= 0 && a <= pointsPerMatch) setScoreB(String(pointsPerMatch - a));
+        } else { setScoreB(""); }
+    };
+
+    const handleScoreBChange = (e) => {
+        const val = e.target.value;
+        setScoreB(val);
+        if (val !== "" && !isNaN(parseInt(val, 10))) {
+            const b = parseInt(val, 10);
+            if (b >= 0 && b <= pointsPerMatch) setScoreA(String(pointsPerMatch - b));
+        } else { setScoreA(""); }
+    };
+
+    const totalValid = scoreA !== "" && scoreB !== "" && parseInt(scoreA) + parseInt(scoreB) === pointsPerMatch;
+
+    if (hasProposal && !showEdit) {
+        return (
+            <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 8 }}>
+                    <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--label-2)" }}>{match.proposedScoreA}</span>
+                    <span style={{ color: "var(--label-4)", fontWeight: 700 }}>—</span>
+                    <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--label-2)" }}>{match.proposedScoreB}</span>
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#8B7340", fontWeight: 600, background: "rgba(197,165,90,0.1)", border: "1px solid rgba(197,165,90,0.25)", borderRadius: "var(--r-pill)", padding: "4px 12px", display: "inline-block", marginBottom: 8 }}>
+                    Awaiting host confirmation
+                </div>
+                <div>
+                    <button
+                        type="button"
+                        onClick={() => setShowEdit(true)}
+                        style={{ fontSize: "0.72rem", color: "var(--label-3)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}
+                    >
+                        Edit proposal
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="propose_score" />
+            <input type="hidden" name="matchId" value={match.id} />
+            <div style={{ textAlign: "center", marginBottom: 8, fontSize: "0.7rem", color: "var(--label-3)" }}>
+                Total = {pointsPerMatch} pts
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 12 }}>
+                <input
+                    type="number" name="scoreA" min="0" max={pointsPerMatch}
+                    value={scoreA} onChange={handleScoreAChange} placeholder="0"
+                    style={{
+                        width: 60, height: 52, textAlign: "center", fontSize: "1.4rem", fontWeight: 700,
+                        border: "2px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                        background: "var(--bg-grouped)", color: "var(--label)", fontFamily: "inherit", outline: "none",
+                    }}
+                />
+                <span style={{ color: "var(--label-3)", fontWeight: 700, fontSize: "1.2rem" }}>—</span>
+                <input
+                    type="number" name="scoreB" min="0" max={pointsPerMatch}
+                    value={scoreB} onChange={handleScoreBChange} placeholder="0"
+                    style={{
+                        width: 60, height: 52, textAlign: "center", fontSize: "1.4rem", fontWeight: 700,
+                        border: "2px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                        background: "var(--bg-grouped)", color: "var(--label)", fontFamily: "inherit", outline: "none",
+                    }}
+                />
+            </div>
+            <button
+                type="submit"
+                disabled={fetcher.state !== "idle" || !totalValid}
+                style={{
+                    width: "100%", padding: "11px", borderRadius: "var(--r-cell)",
+                    background: totalValid ? "rgba(28,79,53,0.12)" : "var(--sep-opaque)",
+                    color: totalValid ? "var(--green)" : "var(--label-3)",
+                    fontWeight: 600, fontSize: "0.9rem", border: totalValid ? "1.5px solid rgba(28,79,53,0.2)" : "none",
+                    cursor: totalValid ? "pointer" : "not-allowed", fontFamily: "inherit",
+                    transition: "background 0.2s",
+                }}
+            >
+                {fetcher.state !== "idle" ? "Submitting..." : hasProposal ? "Update Proposal" : "Propose Score"}
+            </button>
+        </fetcher.Form>
+    );
+}
+
 function CourtCard({ match, teamA, teamB, players, fetcher, pointsPerMatch, isHost }) {
     const [scoreA, setScoreA] = useState(match.scoreA ?? "");
     const [scoreB, setScoreB] = useState(match.scoreB ?? "");
@@ -1093,9 +1189,11 @@ function CourtCard({ match, teamA, teamB, players, fetcher, pointsPerMatch, isHo
                         </button>
                     </fetcher.Form>
                 ) : (
-                    <div style={{ textAlign: "center", padding: "10px 0 4px" }}>
-                        <div style={{ fontSize: "0.76rem", color: "var(--label-3)" }}>Score entry available to host only</div>
-                    </div>
+                    <PlayerProposalForm
+                        match={match}
+                        pointsPerMatch={pointsPerMatch}
+                        fetcher={fetcher}
+                    />
                 )}
             </div>
         </div>
