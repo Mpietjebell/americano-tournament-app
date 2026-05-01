@@ -287,7 +287,7 @@ export async function submitScore(tournament, matchId, scoreA, scoreB) {
 
     const match = await prisma.match.update({
         where: { id: matchId },
-        data: { scoreA, scoreB, status: "completed" },
+        data: { scoreA, scoreB, status: "completed", proposedScoreA: null, proposedScoreB: null },
     });
 
     const freshPlayers = await prisma.player.findMany({
@@ -375,9 +375,12 @@ export async function proposeScore(tournament, matchId, scoreA, scoreB) {
     if (scoreA + scoreB !== tournament.pointsPerMatch) {
         return { error: `Scores must add up to ${tournament.pointsPerMatch}.` };
     }
+    if (scoreA < 0 || scoreB < 0 || scoreA > tournament.pointsPerMatch || scoreB > tournament.pointsPerMatch) {
+        return { error: "Scores must be between 0 and the total points." };
+    }
 
-    const match = await prisma.match.findUnique({ where: { id: matchId } });
-    if (!match) return { error: "Match not found." };
+    const match = await prisma.match.findUnique({ where: { id: matchId }, include: { round: true } });
+    if (!match || match.round.tournamentId !== tournament.id) return { error: "Match not found." };
     if (match.status === "completed") return { error: "This match is already completed." };
 
     await prisma.match.update({
@@ -389,8 +392,8 @@ export async function proposeScore(tournament, matchId, scoreA, scoreB) {
 }
 
 export async function confirmScore(tournament, matchId) {
-    const match = await prisma.match.findUnique({ where: { id: matchId } });
-    if (!match) return { error: "Match not found." };
+    const match = await prisma.match.findUnique({ where: { id: matchId }, include: { round: true } });
+    if (!match || match.round.tournamentId !== tournament.id) return { error: "Match not found." };
     if (match.proposedScoreA == null || match.proposedScoreB == null) {
         return { error: "No proposed score to confirm." };
     }
@@ -398,15 +401,13 @@ export async function confirmScore(tournament, matchId) {
     const result = await submitScore(tournament, matchId, match.proposedScoreA, match.proposedScoreB);
     if (result.error) return result;
 
-    await prisma.match.update({
-        where: { id: matchId },
-        data: { proposedScoreA: null, proposedScoreB: null },
-    });
-
     return { success: true };
 }
 
 export async function resetScore(tournament, matchId) {
+    const match = await prisma.match.findUnique({ where: { id: matchId }, include: { round: true } });
+    if (!match || match.round.tournamentId !== tournament.id) return { error: "Match not found." };
+
     await prisma.match.update({
         where: { id: matchId },
         data: {
@@ -427,6 +428,22 @@ export async function resetScore(tournament, matchId) {
             where: { id: matchRound.id },
             data: { status: "active" },
         });
+    }
+
+    const dynamicFormats = ["mexicano", "team_mexicano", "king_of_the_court"];
+    if (dynamicFormats.includes(tournament.type) && matchRound) {
+        await prisma.round.deleteMany({
+            where: {
+                tournamentId: tournament.id,
+                roundNumber: { gt: matchRound.roundNumber },
+            },
+        });
+        if (tournament.type === "king_of_the_court") {
+            await prisma.tournament.update({
+                where: { id: tournament.id },
+                data: { kingQueueState: null },
+            });
+        }
     }
 
     // Fetch all rounds once with orderBy for reuse in stats recalculation and finding first incomplete
