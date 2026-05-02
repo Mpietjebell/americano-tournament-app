@@ -382,15 +382,21 @@ export default function NewTournamentPublic() {
     const [pointsPerMatch, setPointsPerMatch] = useState(21);
     const [customPoints, setCustomPoints] = useState(99);
     const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+    const [mapsLoading, setMapsLoading] = useState(false);
+    const [mapsResult, setMapsResult] = useState(null);
+    const [mapsError, setMapsError] = useState(null);
     const [price, setPrice] = useState("");
     const [currency, setCurrency] = useState("EUR");
     const [city, setCity] = useState("");
+    const [locationOverride, setLocationOverride] = useState("");
     const [infoModal, setInfoModal] = useState(null);
     const [deuceMethod, setDeuceMethod] = useState("deuce");
     const [isPublic, setIsPublic] = useState(true);
     const [courtNames, setCourtNames] = useState(["Court 1", "Court 2"]);
     const [country, setCountry] = useState("NL");
     const [logoDataUrl, setLogoDataUrl] = useState("");
+    const [lat, setLat] = useState("");
+    const [lng, setLng] = useState("");
 
     // Venue autocomplete
     const [venueQuery, setVenueQuery] = useState("");
@@ -403,6 +409,56 @@ export default function NewTournamentPublic() {
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduledAt, setScheduledAt] = useState("");
     const [maxPlayers, setMaxPlayers] = useState(courts * 4);
+    const [showDateWarning, setShowDateWarning] = useState(false);
+    const [dateWarningAcknowledged, setDateWarningAcknowledged] = useState(false);
+    const [pendingDate, setPendingDate] = useState("");
+
+    const handleMapsUrlBlur = async () => {
+        const url = googleMapsUrl.trim();
+        if (!url) return;
+        setMapsLoading(true);
+        setMapsError(null);
+        setMapsResult(null);
+        try {
+            const res = await fetch(`/api/maps/parse?url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+            if (data.ok) {
+                setMapsResult(data);
+                if (data.venueName) {
+                    setVenueQuery(data.venueName);
+                    setLocationOverride(data.venueName);
+                }
+                if (data.city) setCity(data.city);
+                if (data.country) setCountry(data.country);
+                if (data.currency) setCurrency(data.currency);
+                if (data.lat) setLat(String(data.lat));
+                if (data.lng) setLng(String(data.lng));
+            } else {
+                setMapsError(data.error || "Could not detect location");
+            }
+        } catch {
+            setMapsError("Network error — fill in manually");
+        } finally {
+            setMapsLoading(false);
+        }
+    };
+
+    const handleScheduledAtChange = (val) => {
+        if (!val) { setScheduledAt(""); return; }
+        if (!dateWarningAcknowledged) {
+            setPendingDate(val);
+            setShowDateWarning(true);
+        } else {
+            setScheduledAt(val);
+        }
+    };
+
+    const confirmDateWarning = () => {
+        setShowDateWarning(false);
+        setDateWarningAcknowledged(true);
+        setScheduledAt(pendingDate);
+        setPendingDate("");
+    };
 
     const handleLogoChange = (e) => {
         const file = e.target.files?.[0];
@@ -451,6 +507,10 @@ export default function NewTournamentPublic() {
             if (data.venue) {
                 setSelectedVenue(data.venue);
                 setCountry(data.venue.country || country);
+                if (data.venue.city) setCity(data.venue.city);
+                if (data.venue.latitude) setLat(String(data.venue.latitude));
+                if (data.venue.longitude) setLng(String(data.venue.longitude));
+                setLocationOverride(data.venue.name || "");
             }
         } catch { /* silent */ }
         finally { setVenueLoading(false); }
@@ -585,15 +645,55 @@ export default function NewTournamentPublic() {
                     {/* ── Location / Venue ── */}
                     {sectionLabel("Location")}
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)", position: "relative" }}>
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", position: "relative" }}>
+                        {/* Hidden inputs */}
+                        <input type="hidden" name="location" value={locationOverride || (selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery)} />
+                        <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
+                        <input type="hidden" name="latitude" value={lat || selectedVenue?.latitude || ""} />
+                        <input type="hidden" name="longitude" value={lng || selectedVenue?.longitude || ""} />
+
+                        {/* Google Maps URL — first, drives everything */}
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", background: "rgba(28,79,53,0.03)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600 }}>Google Maps URL</div>
+                                <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>Required for public</span>
+                                <span style={{ fontSize: "0.6rem", background: "rgba(28,79,53,0.1)", color: "var(--green)", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Auto-fills below</span>
+                            </div>
+                            <input
+                                value={googleMapsUrl}
+                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                                onBlur={handleMapsUrlBlur}
+                                placeholder="Paste a Google Maps link — fills venue, city, country, currency"
+                                type="url"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
+                            {mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 4 }}>Detecting location…</div>
+                            )}
+                            {mapsResult && !mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "var(--green)", marginTop: 4 }}>
+                                    Detected: <strong>{[mapsResult.venueName, mapsResult.city, mapsResult.country].filter(Boolean).join(", ")}</strong>
+                                    {mapsResult.currency !== "EUR" && ` · Currency set to ${mapsResult.currency}`}
+                                </div>
+                            )}
+                            {mapsError && !mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "#b91c1c", marginTop: 4 }}>{mapsError} — fill fields manually</div>
+                            )}
+                            {googleMapsUrl && (
+                                <a href={googleMapsUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "var(--green)", marginTop: 4, display: "block" }}>
+                                    ↗ Preview on Maps
+                                </a>
+                            )}
+                        </div>
+
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                Venue {selectedVenue && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ saved</span>}
+                                Venue Name {mapsResult?.venueName && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
                             </div>
                             <input
                                 value={venueQuery}
-                                onChange={handleVenueInput}
-                                placeholder="Search venue name... (e.g. Padel Park Amsterdam)"
-                                autoComplete="off"
+                                onChange={(e) => { setVenueQuery(e.target.value); setLocationOverride(e.target.value); setSelectedVenue(null); }}
+                                placeholder="e.g. Aspire Zone Padel Courts"
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
                             {/* Autocomplete dropdown */}
@@ -628,14 +728,11 @@ export default function NewTournamentPublic() {
                                 </div>
                             )}
                         </div>
-                        {/* Hidden inputs populated from selected venue or fallback */}
-                        <input type="hidden" name="location" value={selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery} />
-                        <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
-                        <input type="hidden" name="latitude" value={selectedVenue?.latitude ?? ""} />
-                        <input type="hidden" name="longitude" value={selectedVenue?.longitude ?? ""} />
 
                         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>City / District</div>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                City / District {mapsResult?.city && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
+                            </div>
                             <input
                                 value={city}
                                 onChange={(e) => setCity(e.target.value)}
@@ -645,28 +742,10 @@ export default function NewTournamentPublic() {
                             <input type="hidden" name="city" value={city} />
                         </div>
 
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600 }}>Google Maps URL</div>
-                                <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>Required for public</span>
-                            </div>
-                            <input
-                                value={googleMapsUrl}
-                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                                placeholder="https://maps.app.goo.gl/..."
-                                type="url"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                            />
-                            <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
-                            {googleMapsUrl && (
-                                <a href={googleMapsUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "var(--green)", marginTop: 4, display: "block" }}>
-                                    ↗ Preview on Maps
-                                </a>
-                            )}
-                        </div>
-
                         <div style={{ padding: "14px 16px" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Country</div>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                Country {mapsResult?.country && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
+                            </div>
                             <select
                                 value={country}
                                 onChange={(e) => setCountry(e.target.value)}
@@ -713,7 +792,7 @@ export default function NewTournamentPublic() {
                                     <input
                                         type="datetime-local"
                                         value={scheduledAt}
-                                        onChange={(e) => setScheduledAt(e.target.value)}
+                                        onChange={(e) => handleScheduledAtChange(e.target.value)}
                                         required={isScheduled}
                                         min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
                                         style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
@@ -827,6 +906,41 @@ export default function NewTournamentPublic() {
                                     style={{ marginTop: 20, width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit" }}
                                 >
                                     Got it
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Date warning modal ── */}
+                    {showDateWarning && (
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}>
+                            <div style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}>
+                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
+                                <div style={{ fontSize: "1.5rem", marginBottom: 12, textAlign: "center" }}>📅</div>
+                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10, textAlign: "center" }}>Before you confirm this date</div>
+                                <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-cell)", padding: "14px 16px", marginBottom: 16 }}>
+                                    <p style={{ fontSize: "0.88rem", color: "#92400e", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                                        ⚠️ Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
+                                    </p>
+                                </div>
+                                <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "12px 14px", marginBottom: 20 }}>
+                                    <p style={{ fontSize: "0.82rem", color: "var(--label-3)", lineHeight: 1.6, margin: 0 }}>
+                                        This system does <strong>not</strong> check for public holidays, national days, or local events that may affect venue availability.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={confirmDateWarning}
+                                    style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}
+                                >
+                                    Yes, I've confirmed with the venue
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowDateWarning(false); setPendingDate(""); }}
+                                    style={{ width: "100%", padding: "12px", borderRadius: "var(--r-card)", background: "transparent", color: "var(--label-3)", border: "1px solid var(--sep)", fontWeight: 500, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}
+                                >
+                                    Let me check first
                                 </button>
                             </div>
                         </div>

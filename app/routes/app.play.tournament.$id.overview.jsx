@@ -32,12 +32,14 @@ export default function TournamentOverview() {
     });
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";
     const teams = isTeamMode ? buildTeams(setupPlayers) : [];
-    const joinUrl = `${origin}/app/play/join/${tournament.joinCode}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(joinUrl)}&size=220x220&margin=10&color=1C4F35`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(buildJoinInviteText(tournament, joinUrl))}`;
+    const PUBLIC_SITE = "https://nopabrand.com/pages/organise-americano";
+    const publicJoinUrl = `${PUBLIC_SITE}?join=${tournament.joinCode}`;
+    const venueJoinUrl = `${origin}/app/play/join/${tournament.joinCode}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(venueJoinUrl)}&size=220x220&margin=10&color=1C4F35`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(buildJoinInviteText(tournament, publicJoinUrl))}`;
 
     const handleCopy = async () => {
-        await navigator.clipboard.writeText(joinUrl);
+        await navigator.clipboard.writeText(publicJoinUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -184,7 +186,7 @@ export default function TournamentOverview() {
                             <button type="button" onClick={handleCopy} style={{ padding: "14px 16px", borderRadius: "var(--r-card)", background: copied ? "rgba(28,79,53,0.06)" : "var(--bg-fill-2)", color: copied ? "var(--green)" : "var(--label)", border: `1px solid ${copied ? "var(--green)" : "var(--sep)"}`, fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
                                 {copied ? "Link Copied" : "Copy Join Link"}
                             </button>
-                            <div style={{ fontSize: "0.74rem", color: "var(--label-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{joinUrl}</div>
+                            <div style={{ fontSize: "0.74rem", color: "var(--label-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{publicJoinUrl}</div>
                         </div>
                     </section>
 

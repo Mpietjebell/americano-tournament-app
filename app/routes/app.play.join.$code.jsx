@@ -3,6 +3,7 @@ import { useLoaderData, useActionData, Form } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
 import { DEUCE_LABELS, getCountryDisplay, TYPE_LABELS } from "../utils/tournament-helpers";
+import { sendSignupConfirmation } from "../utils/email.server";
 
 export const loader = async ({ params }) => {
     const tournament = await prisma.tournament.findUnique({
@@ -16,14 +17,41 @@ export const loader = async ({ params }) => {
 export const action = async ({ request, params }) => {
     const formData = await request.formData();
     const playerId = formData.get("playerId");
+    const customName = formData.get("customName")?.toString().trim();
     const email = formData.get("email")?.toString().trim().toLowerCase();
 
     const tournament = await prisma.tournament.findUnique({
         where: { joinCode: params.code.toUpperCase() },
+        include: { players: { select: { id: true } } },
     });
     if (!tournament) return json({ error: "Tournament not found." }, { status: 404 });
-    if (!playerId) return json({ error: "Please select your name from the list." }, { status: 400 });
     if (!email || !email.includes("@")) return json({ error: "Please enter a valid email address." }, { status: 400 });
+
+    // New player path — create player + participant
+    if (customName) {
+        if (customName.length < 2) return json({ error: "Please enter your full name." }, { status: 400 });
+
+        let newPlayer;
+        try {
+            newPlayer = await prisma.player.create({
+                data: { name: customName, gender: "unspecified", tournamentId: tournament.id },
+            });
+            await prisma.tournamentParticipant.create({
+                data: { email, name: customName, tournamentId: tournament.id, playerId: newPlayer.id },
+            });
+        } catch {
+            return json({ error: "Could not create player. Try again." }, { status: 500 });
+        }
+        sendSignupConfirmation({ to: email, name: customName, tournament, position: tournament.players.length + 1 }).catch(() => {});
+        return redirect(`/app/play/tournament/${tournament.id}/player?playerId=${newPlayer.id}`, {
+            headers: {
+                "Set-Cookie": `nopa_player_${tournament.id}=${newPlayer.id}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
+            },
+        });
+    }
+
+    // Existing player path
+    if (!playerId) return json({ error: "Please select your name or add yourself below." }, { status: 400 });
 
     // Save participant email — non-critical, don't block on failure
     try {
@@ -55,8 +83,12 @@ export default function JoinCode() {
     const { tournament } = useLoaderData();
     const actionData = useActionData();
     const [selectedPlayer, setSelectedPlayer] = useState("");
-    const [step, setStep] = useState(1); // 1 = email, 2 = pick name
+    const [customName, setCustomName] = useState("");
+    // "new" = type own name (default), "list" = pick from pre-registered list
+    const [nameMode, setNameMode] = useState("new");
+    const [step, setStep] = useState(1);
     const [email, setEmail] = useState("");
+    const hasPreregistered = tournament.players.length > 0;
 
     const emailValid = email.includes("@") && email.includes(".");
 
@@ -199,38 +231,89 @@ export default function JoinCode() {
                         </div>
                     )}
 
-                    {/* Step 2: Pick name */}
+                    {/* Step 2: Who are you? */}
                     {step === 2 && (
                         <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "24px 20px", marginBottom: 20, boxShadow: "var(--shadow)" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
                                 Step 2 of 2
                             </div>
                             <div style={{ fontSize: "1.15rem", fontWeight: 600, color: "var(--label)", marginBottom: 6 }}>Who are you?</div>
-                            <p style={{ fontSize: "0.83rem", color: "var(--label-3)", marginBottom: 20, lineHeight: 1.5 }}>
-                                Select your name from the list below.
-                            </p>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10, marginBottom: 24 }}>
-                                {tournament.players.map((p) => (
-                                    <button
-                                        key={p.id}
-                                        type="button"
-                                        onClick={() => setSelectedPlayer(p.id)}
+
+                            {/* Mode toggle — only show if there are pre-registered players */}
+                            {hasPreregistered && (
+                                <div style={{ display: "flex", gap: 0, border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)", overflow: "hidden", marginBottom: 20 }}>
+                                    {[
+                                        { id: "new", label: "Enter my name" },
+                                        { id: "list", label: "Pick from list" },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => { setNameMode(opt.id); setSelectedPlayer(""); setCustomName(""); }}
+                                            style={{
+                                                flex: 1, padding: "10px 0", border: "none",
+                                                background: nameMode === opt.id ? "var(--green)" : "transparent",
+                                                color: nameMode === opt.id ? "white" : "var(--label-3)",
+                                                fontWeight: 600, fontSize: "0.84rem", cursor: "pointer",
+                                                fontFamily: "inherit", transition: "all 0.15s",
+                                            }}
+                                        >{opt.label}</button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Enter my name (default) */}
+                            {nameMode === "new" && (
+                                <div style={{ marginBottom: 20 }}>
+                                    <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 8, fontWeight: 600 }}>Your full name</div>
+                                    <input
+                                        value={customName}
+                                        onChange={e => setCustomName(e.target.value)}
+                                        placeholder="e.g. Jan de Vries"
+                                        autoFocus
                                         style={{
-                                            padding: "16px 10px", borderRadius: "var(--r-cell)", cursor: "pointer", textAlign: "center",
-                                            border: `2px solid ${selectedPlayer === p.id ? "var(--green)" : "var(--sep-opaque)"}`,
-                                            background: selectedPlayer === p.id ? "rgba(28,79,53,0.08)" : "var(--bg-grouped)",
-                                            fontWeight: selectedPlayer === p.id ? 700 : 500, fontSize: "0.88rem",
-                                            color: selectedPlayer === p.id ? "var(--green)" : "var(--label-2)",
-                                            transition: "all 0.15s", fontFamily: "inherit",
+                                            width: "100%", padding: "14px", fontSize: "1rem",
+                                            border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                            background: "var(--bg-grouped)", fontFamily: "inherit", color: "var(--label)",
+                                            outline: "none", transition: "border-color 0.2s",
                                         }}
-                                    >
-                                        <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                            {p.gender === "male" ? "Male" : p.gender === "female" ? "Female" : "Player"}
-                                        </div>
-                                        {p.name}
-                                    </button>
-                                ))}
-                            </div>
+                                        onFocus={e => e.target.style.borderColor = "var(--green)"}
+                                        onBlur={e => e.target.style.borderColor = "var(--sep-opaque)"}
+                                    />
+                                    <input type="hidden" name="customName" value={customName} />
+                                </div>
+                            )}
+
+                            {/* Pick from pre-registered list */}
+                            {nameMode === "list" && (
+                                <div style={{ marginBottom: 20 }}>
+                                    <p style={{ fontSize: "0.83rem", color: "var(--label-3)", marginBottom: 14, lineHeight: 1.5 }}>
+                                        Select your name from the list below.
+                                    </p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
+                                        {tournament.players.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() => setSelectedPlayer(p.id)}
+                                                style={{
+                                                    padding: "16px 10px", borderRadius: "var(--r-cell)", cursor: "pointer", textAlign: "center",
+                                                    border: `2px solid ${selectedPlayer === p.id ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: selectedPlayer === p.id ? "rgba(28,79,53,0.08)" : "var(--bg-grouped)",
+                                                    fontWeight: selectedPlayer === p.id ? 700 : 500, fontSize: "0.88rem",
+                                                    color: selectedPlayer === p.id ? "var(--green)" : "var(--label-2)",
+                                                    transition: "all 0.15s", fontFamily: "inherit",
+                                                }}
+                                            >
+                                                <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                                    {p.gender === "male" ? "Male" : p.gender === "female" ? "Female" : "Player"}
+                                                </div>
+                                                {p.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <input type="hidden" name="email" value={email} />
 
@@ -249,16 +332,16 @@ export default function JoinCode() {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={!selectedPlayer}
+                                    disabled={nameMode === "new" ? customName.trim().length < 2 : !selectedPlayer}
                                     style={{
                                         flex: 1, padding: "13px", borderRadius: "var(--r-card)",
-                                        background: selectedPlayer ? "var(--green)" : "var(--sep-opaque)",
+                                        background: (nameMode === "new" ? customName.trim().length >= 2 : !!selectedPlayer) ? "var(--green)" : "var(--sep-opaque)",
                                         color: "white", fontWeight: 600, fontSize: "0.95rem",
-                                        border: "none", cursor: selectedPlayer ? "pointer" : "not-allowed",
+                                        border: "none", cursor: (nameMode === "new" ? customName.trim().length >= 2 : !!selectedPlayer) ? "pointer" : "not-allowed",
                                         fontFamily: "inherit", transition: "background 0.2s",
                                     }}
                                 >
-                                    {selectedPlayer ? "Join Tournament" : "Select your name above"}
+                                    {(nameMode === "new" ? customName.trim().length >= 2 : !!selectedPlayer) ? "Join Tournament" : nameMode === "new" ? "Enter your name above" : "Select your name above"}
                                 </button>
                             </div>
                         </div>

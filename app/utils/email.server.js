@@ -1,4 +1,4 @@
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "re_Xn7XBKKd_3rF4qwaqjG7BxKwPbjogEVFj";
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM = "NOPA Padel <tournaments@nopabrand.com>";
 
 async function send({ to, subject, html }) {

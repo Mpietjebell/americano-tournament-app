@@ -28,13 +28,9 @@ export function getCountryDisplay(countryCode) {
 export function buildJoinInviteText(tournament, joinUrl) {
   const typeLabel = TYPE_LABELS[tournament.type] || tournament.type;
 
-  // Country flag + city/district
-  const flag = tournament.country
-    ? String.fromCodePoint(...[...tournament.country.toUpperCase()].map(c => 0x1F1E0 - 65 + c.charCodeAt(0)))
-    : "";
   const city = tournament.city || tournament.venue?.city || "";
   const venueName = tournament.venue?.name || tournament.location || "";
-  const locationHeader = [flag, city].filter(Boolean).join(" ");
+  const locationHeader = city ? `${city}` : "";
 
   // Date + duration
   let dateLine = "";
@@ -62,11 +58,13 @@ export function buildJoinInviteText(tournament, joinUrl) {
   const priceLine = tournament.price ? `Price ${tournament.price} ${tournament.currency || ""}`.trim() : "Free entry";
 
   // Players
-  const playerLine = tournament.maxPlayers ? `${tournament.maxPlayers} player tournament 🙌` : `${typeLabel} tournament 🙌`;
+  const playerLine = tournament.maxPlayers
+    ? `${tournament.maxPlayers} player ${typeLabel} tournament`
+    : `${typeLabel} tournament`;
 
   const lines = [
     locationHeader,
-    `"${tournament.name}" 🎾`,
+    `"${tournament.name}"`,
     dateLine,
     timeLine,
     "",

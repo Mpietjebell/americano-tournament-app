@@ -76,6 +76,19 @@ export async function loader({ request }) {
     return corsJson(request, { upcoming, recent });
 }
 
+function estimateDuration(t) {
+    const players = t.maxPlayers || t.players.length;
+    if (!players || !t.pointsPerMatch) return null;
+    const minutesPerRound = t.pointsPerMatch * 0.5;
+    const activeCourts = Math.min(t.courtsAvailable || 1, Math.floor(players / 4));
+    const totalRounds = Math.max(0, players - 1);
+    const total = totalRounds * minutesPerRound;
+    if (!total) return null;
+    const h = Math.floor(total / 60);
+    const m = Math.round(total % 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 function serialize(t) {
     return {
         id: t.id,
@@ -93,7 +106,10 @@ function serialize(t) {
         currency: t.currency || "EUR",
         playerCount: t.players.length,
         maxPlayers: t.maxPlayers,
+        durationEstimate: estimateDuration(t),
         distanceKm: t._dist,
+        latitude: t.latitude ?? t.venue?.latitude ?? null,
+        longitude: t.longitude ?? t.venue?.longitude ?? null,
         venue: t.venue
             ? {
                   name: t.venue.name,
