@@ -78,6 +78,7 @@ model Tournament {
   scoresLocked    Boolean                 @default(false)
   scheduledAt     DateTime?
   maxPlayers      Int?
+  duration        Int?
   venueId         String?
   latitude        Float?
   longitude       Float?
@@ -99,8 +100,9 @@ model TournamentParticipant {
   playerId     String?
   name         String?
   phone        String?
-  noShow       Boolean    @default(false)
-  createdAt    DateTime   @default(now())
+  noShow          Boolean    @default(false)
+  standbyPosition Int?
+  createdAt       DateTime   @default(now())
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 }
 
