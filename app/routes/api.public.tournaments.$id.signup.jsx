@@ -44,7 +44,7 @@ export async function action({ request, params }) {
         where: { id: params.id },
         include: {
             players: { select: { id: true } },
-            participants: { select: { id: true, email: true, name: true } },
+            participants: { select: { id: true, email: true, name: true, standbyPosition: true } },
             venue: true,
         },
     });
@@ -76,15 +76,51 @@ export async function action({ request, params }) {
         );
     }
 
-    const currentCount = tournament.players.length;
-    if (tournament.maxPlayers != null && currentCount >= tournament.maxPlayers) {
-        return corsJson(
-            request,
-            { error: "This tournament is full.", code: "tournament_full" },
-            { status: 409 }
-        );
+    // Count active participants (standbyPosition is null = active slot)
+    const activeParticipants = tournament.participants.filter(p => p.standbyPosition == null);
+    const activeCount = activeParticipants.length;
+    const isFull = tournament.maxPlayers != null && activeCount >= tournament.maxPlayers;
+
+    if (isFull) {
+        // Check if already on standby with this email
+        const alreadyStandby = tournament.participants.some(p => p.email === email && p.standbyPosition != null);
+        if (alreadyStandby) {
+            return corsJson(request, { error: "You are already on the standby list.", code: "already_signed_up" }, { status: 409 });
+        }
+
+        // Get next standby position
+        const standbyParticipants = tournament.participants.filter(p => p.standbyPosition != null);
+        const maxPos = standbyParticipants.reduce((max, p) => Math.max(max, p.standbyPosition ?? 0), 0);
+        const nextPosition = maxPos + 1;
+
+        // Create player + standby participant in transaction
+        const [standbyPlayer, standbyParticipant] = await prisma.$transaction([
+            prisma.player.create({
+                data: { name, gender: "unspecified", tournamentId: tournament.id },
+            }),
+            prisma.tournamentParticipant.create({
+                data: { email, phone, name, tournamentId: tournament.id, standbyPosition: nextPosition },
+            }),
+        ]);
+
+        // Link playerId to participant
+        await prisma.tournamentParticipant.update({
+            where: { id: standbyParticipant.id },
+            data: { playerId: standbyPlayer.id },
+        });
+
+        // Send signup confirmation email noting standby status
+        sendSignupConfirmation({ to: email, name, tournament, position: nextPosition }).catch(() => {});
+
+        return corsJson(request, {
+            ok: true,
+            standby: true,
+            position: nextPosition,
+            message: `You're on standby — position ${nextPosition}. You'll be emailed if a spot opens!`,
+        });
     }
 
+    const currentCount = activeCount;
     let player, participant;
     try {
         [player, participant] = await prisma.$transaction([
