@@ -4,8 +4,6 @@ import { useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { buildJoinInviteText } from "../utils/tournament-helpers";
 
-const PUBLIC_SITE = "https://nopabrand.com/pages/organise-americano";
-
 export const loader = async ({ params }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
@@ -16,7 +14,7 @@ export default function SharePage() {
     const { tournament } = useLoaderData();
     const [copied, setCopied] = useState(false);
 
-    const joinUrl = `${PUBLIC_SITE}?join=${tournament.joinCode}`;
+    const joinUrl = `https://play.nopabrand.com/j/${tournament.joinCode}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(joinUrl)}&size=240x240&margin=12&color=1C4F35`;
 
     const waText = encodeURIComponent(buildJoinInviteText(tournament, joinUrl));

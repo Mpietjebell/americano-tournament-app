@@ -26,63 +26,51 @@ export function getCountryDisplay(countryCode) {
 }
 
 export function buildJoinInviteText(tournament, joinUrl) {
-  const typeLabel = TYPE_LABELS[tournament.type] || tournament.type;
+    const typeLabel = TYPE_LABELS[tournament.type] || tournament.type;
+    const city = tournament.city || tournament.venue?.city || "";
+    const venueName = tournament.venue?.name || tournament.location || "";
+    const locationParts = [city, venueName].filter(Boolean);
+    const locationLine = locationParts.join(" · ");
 
-  const city = tournament.city || tournament.venue?.city || "";
-  const venueName = tournament.venue?.name || tournament.location || "";
-  const locationHeader = city ? `${city}` : "";
+    let dateLine = "";
+    let timeLine = "";
+    if (tournament.scheduledAt) {
+        const d = new Date(tournament.scheduledAt);
+        dateLine = d.toLocaleDateString("en-GB", {
+            weekday: "long", day: "numeric", month: "2-digit", year: "numeric",
+        });
+        const startTime = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        if (tournament.duration) {
+            const endD = new Date(d.getTime() + tournament.duration * 60000);
+            const endTime = endD.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+            timeLine = "⏰ " + startTime + " - " + endTime;
+        } else {
+            timeLine = "⏰ " + startTime;
+        }
+    }
 
-  // Date + duration
-  let dateLine = "";
-  let timeLine = "";
-  if (tournament.scheduledAt) {
-    const d = new Date(tournament.scheduledAt);
-    const dayStr = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "2-digit", year: "numeric" });
-    const startTime = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-    const durationMins = tournament.maxPlayers
-      ? Math.round(tournament.maxPlayers / 2 * (tournament.pointsPerMatch || 21) * 0.5)
-      : null;
-    const durationStr = durationMins
-      ? durationMins >= 60
-        ? `${Math.floor(durationMins / 60)}h${durationMins % 60 > 0 ? ` ${durationMins % 60}m` : ""}`
-        : `${durationMins} min`
-      : null;
-    const endD = durationMins ? new Date(d.getTime() + durationMins * 60000) : null;
-    const endTime = endD ? endD.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : null;
+    const priceLine = tournament.price
+        ? "💸 Price " + tournament.price + " " + (tournament.currency || "")
+        : "Free entry";
+    const playerLine = tournament.maxPlayers
+        ? tournament.maxPlayers + " player " + typeLabel + " tournament"
+        : typeLabel + " tournament";
 
-    dateLine = `${dayStr}${durationStr ? ` (${durationStr})` : ""}`;
-    timeLine = endTime ? `${startTime} - ${endTime}` : startTime;
-  }
+    const lines = [
+        "🎾 \"" + tournament.name + "\"",
+        locationLine,
+        dateLine,
+        timeLine,
+        playerLine,
+        priceLine,
+    ];
 
-  // Price
-  const priceLine = tournament.price ? `Price ${tournament.price} ${tournament.currency || ""}`.trim() : "Free entry";
+    if (tournament.googleMapsUrl) lines.push("📍 " + tournament.googleMapsUrl);
+    lines.push("Join code: " + tournament.joinCode);
+    lines.push(joinUrl);
+    lines.push("Powered by NOPA Padel");
 
-  // Players
-  const playerLine = tournament.maxPlayers
-    ? `${tournament.maxPlayers} player ${typeLabel} tournament`
-    : `${typeLabel} tournament`;
-
-  const lines = [
-    locationHeader,
-    `"${tournament.name}"`,
-    dateLine,
-    timeLine,
-    "",
-    playerLine,
-    priceLine,
-    `Join via link or code: ${tournament.joinCode}`,
-    joinUrl,
-  ];
-
-  if (venueName || tournament.googleMapsUrl) {
-    lines.push("");
-    if (venueName) lines.push(venueName);
-    if (tournament.googleMapsUrl) lines.push(tournament.googleMapsUrl);
-  }
-
-  lines.push("Powered by NOPA Padel");
-
-  return lines.filter(l => l !== undefined && l !== null).join("\n");
+    return lines.filter(Boolean).join("\n");
 }
 
 export function buildResultsShareText(tournament, players, pageUrl) {

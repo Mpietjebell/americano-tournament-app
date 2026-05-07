@@ -32,8 +32,7 @@ export default function TournamentOverview() {
     });
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";
     const teams = isTeamMode ? buildTeams(setupPlayers) : [];
-    const PUBLIC_SITE = "https://nopabrand.com/pages/organise-americano";
-    const publicJoinUrl = `${PUBLIC_SITE}?join=${tournament.joinCode}`;
+    const publicJoinUrl = `https://play.nopabrand.com/j/${tournament.joinCode}`;
     const venueJoinUrl = `${origin}/app/play/join/${tournament.joinCode}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(venueJoinUrl)}&size=220x220&margin=10&color=1C4F35`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(buildJoinInviteText(tournament, publicJoinUrl))}`;
