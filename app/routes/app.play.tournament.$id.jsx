@@ -1,6 +1,6 @@
+import React, { useState, useEffect } from "react";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher, useRevalidator, Link } from "@remix-run/react";
-import { useState, useEffect } from "react";
+import { useLoaderData, useFetcher, useRevalidator, Link, Form } from "@remix-run/react";
 import prisma from "../db.server";
 import { loadTournament, generateAllRounds, submitScore, proposeScore, confirmScore, resetScore } from "../utils/tournament-actions.server";
 import {
@@ -16,13 +16,47 @@ import {
 } from "../utils/tournament-helpers";
 import { getHostTokenFromRequest } from "../utils/host-auth.server";
 
+function CancelRegistrationInline({ tournamentId, playerId }) {
+    const [showConfirm, setShowConfirm] = React.useState(false);
+    return showConfirm ? (
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "var(--r-card)", padding: "20px", marginTop: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: "1rem", color: "#991b1b", marginBottom: 8 }}>
+                Are you sure you want to deregister from this tournament?
+            </div>
+            <p style={{ fontSize: "0.84rem", color: "#b91c1c", marginBottom: 16 }}>
+                If there are players on standby, the first one will take your spot.
+            </p>
+            <Form method="post" action={`/api/tournament/${tournamentId}/deregister`}>
+                <input type="hidden" name="playerId" value={playerId} />
+                <div style={{ display: "flex", gap: 10 }}>
+                    <button type="button" onClick={() => setShowConfirm(false)}
+                        style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "var(--bg-fill)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        No, keep my spot
+                    </button>
+                    <button type="submit"
+                        style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "#dc2626", border: "none", color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                        Yes, deregister
+                    </button>
+                </div>
+            </Form>
+        </div>
+    ) : (
+        <button type="button" onClick={() => setShowConfirm(true)}
+            style={{ width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "transparent", border: "2px solid #dc2626", color: "#dc2626", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
+            Cancel Registration
+        </button>
+    );
+}
+
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
     const origin = new URL(request.url).origin;
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
-    return json({ tournament, origin, isHost });
+    const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
+    const playerId = playerCookieMatch?.[1] || null;
+    return json({ tournament, origin, isHost, playerId });
 };
 
 export const action = async ({ request, params }) => {
@@ -180,7 +214,7 @@ function fallbackCopy(text, onSuccess) {
 }
 
 export default function PublicTournamentView() {
-    const { tournament, origin, isHost } = useLoaderData();
+    const { tournament, origin, isHost, playerId } = useLoaderData();
     const fetcher = useFetcher();
     const { revalidate } = useRevalidator();
     const [activeTab, setActiveTab] = useState("courts");
@@ -474,11 +508,29 @@ export default function PublicTournamentView() {
                         )}
 
                         {!hasRounds && !isHost && (
-                            <div style={{ marginBottom: 24, background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "28px 20px", textAlign: "center", boxShadow: "var(--shadow)" }}>
-                                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.3rem", color: "var(--label-2)", marginBottom: 8 }}>Waiting for host</div>
-                                <p style={{ fontSize: "0.83rem", color: "var(--label-3)", lineHeight: 1.6 }}>
-                                    Rounds have not been generated yet. The tournament host needs to start play from their private host session.
+                            <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "28px 20px", textAlign: "center", boxShadow: "var(--shadow)", marginBottom: 20 }}>
+                                <div style={{ fontSize: "2rem", marginBottom: 12 }}>⏳</div>
+                                <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--label)", marginBottom: 8 }}>
+                                    Waiting for the host to start the tournament
+                                </div>
+                                <p style={{ fontSize: "0.84rem", color: "var(--label-3)", lineHeight: 1.6, marginBottom: 24 }}>
+                                    The host will generate the matches when everyone is ready.
                                 </p>
+                                <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-card)", padding: "14px 16px", marginBottom: 20 }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600 }}>
+                                        Signed up ({tournament.players.length})
+                                    </div>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                        {tournament.players.map(p => (
+                                            <span key={p.id} style={{
+                                                background: "var(--bg-card)", borderRadius: "var(--r-pill)",
+                                                padding: "6px 14px", fontSize: "0.84rem", fontWeight: 500, color: "var(--label-2)",
+                                                border: "1px solid var(--sep)",
+                                            }}>{p.name}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                                {playerId && <CancelRegistrationInline tournamentId={tournament.id} playerId={playerId} />}
                             </div>
                         )}
 
