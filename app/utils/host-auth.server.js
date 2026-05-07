@@ -18,3 +18,13 @@ export function createHostCookie(tournamentId, hostToken) {
   return `${getHostCookieName(tournamentId)}=${escapeCookieValue(hostToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${HOST_COOKIE_MAX_AGE}`;
 }
 
+/**
+ * Validates that the request has a valid host cookie matching the tournament's hostToken.
+ * Returns the token string if valid, null otherwise.
+ */
+export function validateHostToken(request, tournament) {
+  const token = getHostTokenFromRequest(request, tournament.id);
+  if (!token || token !== tournament.hostToken) return null;
+  return token;
+}
+

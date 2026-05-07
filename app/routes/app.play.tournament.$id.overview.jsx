@@ -10,16 +10,19 @@ import {
     getTournamentStats,
     TYPE_LABELS,
 } from "../utils/tournament-helpers";
+import { validateHostToken } from "../utils/host-auth.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
     const origin = new URL(request.url).origin;
-    return json({ tournament, origin });
+    const hostToken = await validateHostToken(request, tournament);
+    const isHost = Boolean(hostToken);
+    return json({ tournament, origin, isHost });
 };
 
 export default function TournamentOverview() {
-    const { tournament, origin } = useLoaderData();
+    const { tournament, origin, isHost } = useLoaderData();
     const [copied, setCopied] = useState(false);
 
     const courtNames = tournament.courtNames ? JSON.parse(tournament.courtNames) : [];
@@ -189,6 +192,13 @@ export default function TournamentOverview() {
                         </div>
                     </section>
 
+                    {isHost && tournament.status === "setup" && (
+                        <Link to={`/app/play/tournament/${tournament.id}/edit`} style={{ textDecoration: "none", flex: 1 }}>
+                            <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "#1C4F35", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
+                                Edit Tournament
+                            </button>
+                        </Link>
+                    )}
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <a href={`/app/play/tournament/${tournament.id}/print.pdf`} download style={{ textDecoration: "none", flex: 1 }}>
                             <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--bg-card)", color: "var(--label)", border: "1px solid var(--sep)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "var(--shadow)" }}>
