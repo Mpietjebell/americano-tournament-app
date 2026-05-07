@@ -41,6 +41,7 @@ export const action = async ({ request }) => {
     const scheduledAtStr = formData.get("scheduledAt") || null;
     const maxPlayersRaw = formData.get("maxPlayers");
     const maxPlayers = maxPlayersRaw ? parseInt(maxPlayersRaw, 10) || null : null;
+    const duration = formData.get("duration") ? parseInt(formData.get("duration"), 10) : null;
     const latitude = formData.get("latitude") ? parseFloat(formData.get("latitude")) : null;
     const longitude = formData.get("longitude") ? parseFloat(formData.get("longitude")) : null;
     const isScheduled = !!scheduledAtStr;
@@ -101,6 +102,7 @@ export const action = async ({ request }) => {
             latitude: latitude || null,
             longitude: longitude || null,
             googleMapsUrl: googleMapsUrl || null,
+            duration: duration || null,
             price: price || null,
             currency: currency || "EUR",
             players: {
@@ -414,6 +416,7 @@ export default function NewTournamentPublic() {
     const [showDateWarning, setShowDateWarning] = useState(false);
     const [dateWarningAcknowledged, setDateWarningAcknowledged] = useState(false);
     const [pendingDate, setPendingDate] = useState("");
+    const [duration, setDuration] = useState(90);
 
     // Combined datetime for form submission
     const scheduledAt = scheduledDate
@@ -869,6 +872,31 @@ export default function NewTournamentPublic() {
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+
+                                {/* Duration */}
+                                <div style={{ padding: "0 16px 14px", borderBottom: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600 }}>
+                                        Est. Duration
+                                    </div>
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                        {[60, 90, 120, 150, 180].map(d => (
+                                            <button
+                                                key={d}
+                                                type="button"
+                                                onClick={() => setDuration(d)}
+                                                style={{
+                                                    padding: "8px 14px", borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${duration === d ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: duration === d ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: duration === d ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.85rem", cursor: "pointer",
+                                                    fontFamily: "inherit", transition: "all 0.15s",
+                                                }}
+                                            >{d} min</button>
+                                        ))}
+                                    </div>
+                                    <input type="hidden" name="duration" value={duration} />
                                 </div>
 
                                 {/* Summary line */}
