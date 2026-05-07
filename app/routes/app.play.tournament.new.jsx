@@ -407,11 +407,18 @@ export default function NewTournamentPublic() {
 
     // Schedule
     const [isScheduled, setIsScheduled] = useState(false);
-    const [scheduledAt, setScheduledAt] = useState("");
+    const [scheduledDate, setScheduledDate] = useState("");
+    const [scheduledHour, setScheduledHour] = useState(18);
+    const [scheduledMinute, setScheduledMinute] = useState(0);
     const [maxPlayers, setMaxPlayers] = useState(courts * 4);
     const [showDateWarning, setShowDateWarning] = useState(false);
     const [dateWarningAcknowledged, setDateWarningAcknowledged] = useState(false);
     const [pendingDate, setPendingDate] = useState("");
+
+    // Combined datetime for form submission
+    const scheduledAt = scheduledDate
+        ? `${scheduledDate}T${String(scheduledHour).padStart(2, "0")}:${String(scheduledMinute).padStart(2, "0")}`
+        : "";
 
     const handleMapsUrlBlur = async () => {
         const url = googleMapsUrl.trim();
@@ -443,21 +450,28 @@ export default function NewTournamentPublic() {
         }
     };
 
-    const handleScheduledAtChange = (val) => {
-        if (!val) { setScheduledAt(""); return; }
+    const handleScheduledDateChange = (val) => {
+        if (!val) { setScheduledDate(""); return; }
         if (!dateWarningAcknowledged) {
             setPendingDate(val);
             setShowDateWarning(true);
         } else {
-            setScheduledAt(val);
+            setScheduledDate(val);
         }
     };
 
     const confirmDateWarning = () => {
         setShowDateWarning(false);
         setDateWarningAcknowledged(true);
-        setScheduledAt(pendingDate);
+        setScheduledDate(pendingDate);
         setPendingDate("");
+    };
+
+    const fmtScheduledDisplay = () => {
+        if (!scheduledDate) return null;
+        const d = new Date(`${scheduledDate}T${String(scheduledHour).padStart(2, "0")}:${String(scheduledMinute).padStart(2, "0")}`);
+        return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+            + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     };
 
     const handleLogoChange = (e) => {
@@ -787,17 +801,83 @@ export default function NewTournamentPublic() {
 
                         {isScheduled && (
                             <>
+                                {/* ── Date ── */}
                                 <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Date & Time</div>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 8, fontWeight: 600 }}>Date</div>
                                     <input
-                                        type="datetime-local"
-                                        value={scheduledAt}
-                                        onChange={(e) => handleScheduledAtChange(e.target.value)}
+                                        type="date"
+                                        value={scheduledDate}
+                                        onChange={(e) => handleScheduledDateChange(e.target.value)}
                                         required={isScheduled}
-                                        min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
-                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                                        min={new Date(Date.now() + 3600000).toISOString().slice(0, 10)}
+                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
                                     />
                                 </div>
+
+                                {/* ── Time: hour picker ── */}
+                                <div style={{ padding: "14px 0 0", borderBottom: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600, paddingLeft: 16 }}>
+                                        Start Time
+                                        {scheduledDate && (
+                                            <span style={{ float: "right", paddingRight: 16, color: "var(--green)", textTransform: "none", letterSpacing: 0, fontWeight: 700, fontSize: "0.78rem" }}>
+                                                {String(scheduledHour).padStart(2, "0")}:{String(scheduledMinute).padStart(2, "0")}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {/* Hour scroll */}
+                                    <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "0 16px 12px", scrollbarWidth: "none" }}>
+                                        {Array.from({ length: 18 }, (_, i) => i + 6).map(h => (
+                                            <button
+                                                key={h}
+                                                type="button"
+                                                onClick={() => setScheduledHour(h)}
+                                                style={{
+                                                    flexShrink: 0,
+                                                    width: 52, height: 44,
+                                                    borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${scheduledHour === h ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: scheduledHour === h ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: scheduledHour === h ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.88rem", cursor: "pointer",
+                                                    fontFamily: "inherit", transition: "all 0.15s",
+                                                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0,
+                                                }}
+                                            >
+                                                <span style={{ fontSize: "0.78rem", lineHeight: 1 }}>{h < 12 ? h : h === 12 ? 12 : h - 12}</span>
+                                                <span style={{ fontSize: "0.5rem", opacity: 0.7, lineHeight: 1.4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{h < 12 ? "AM" : "PM"}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {/* Minute selector */}
+                                    <div style={{ display: "flex", gap: 8, padding: "0 16px 14px" }}>
+                                        {[0, 15, 30, 45].map(m => (
+                                            <button
+                                                key={m}
+                                                type="button"
+                                                onClick={() => setScheduledMinute(m)}
+                                                style={{
+                                                    flex: 1, height: 38,
+                                                    borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${scheduledMinute === m ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: scheduledMinute === m ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: scheduledMinute === m ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.88rem", cursor: "pointer",
+                                                    fontFamily: "inherit", transition: "all 0.15s",
+                                                }}
+                                            >
+                                                :{String(m).padStart(2, "0")}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Summary line */}
+                                {scheduledDate && (
+                                    <div style={{ padding: "10px 16px", background: "rgba(28,79,53,0.05)", borderBottom: "1px solid var(--sep)", display: "flex", alignItems: "center", gap: 8 }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        <span style={{ fontSize: "0.82rem", color: "var(--green)", fontWeight: 600 }}>{fmtScheduledDisplay()}</span>
+                                    </div>
+                                )}
                                 <div style={{ padding: "14px 16px" }}>
                                     <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Players</div>
                                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
