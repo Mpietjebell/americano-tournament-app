@@ -88,6 +88,133 @@ export async function sendSignupConfirmation({ to, name, tournament, position })
     });
 }
 
+export async function sendStandbyPromoted({ to, name, tournament }) {
+    const venueName = tournament.venue?.name || tournament.location || "";
+    const city = tournament.city || tournament.venue?.city || "";
+    const locationLine = [venueName, city].filter(Boolean).join(", ");
+    const dateStr = tournament.scheduledAt
+        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", {
+              weekday: "long", day: "numeric", month: "long", year: "numeric",
+              hour: "2-digit", minute: "2-digit",
+          })
+        : "";
+
+    await send({
+        to,
+        subject: `A spot opened — you're in! ${tournament.name}`,
+        html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden">
+        <tr><td style="background:#1C4F35;padding:24px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:800;color:white;letter-spacing:0.15em">NOPA</div>
+        </td></tr>
+        <tr><td style="padding:24px">
+          <div style="font-size:1.2rem;font-weight:700;color:#1a1a1a;margin-bottom:8px">Good news, ${name}!</div>
+          <p style="font-size:0.9rem;color:#666;line-height:1.6">A spot opened up in <strong>${tournament.name}</strong> and you're first on the standby list — you're now confirmed!</p>
+          ${locationLine ? `<p style="font-size:0.88rem;color:#1C4F35;font-weight:600">📍 ${locationLine}</p>` : ""}
+          ${dateStr ? `<p style="font-size:0.88rem;color:#333;font-weight:600">📅 ${dateStr}</p>` : ""}
+          ${tournament.googleMapsUrl ? `<p><a href="${tournament.googleMapsUrl}" style="color:#1C4F35;font-weight:600;font-size:0.88rem">Open in Google Maps →</a></p>` : ""}
+        </td></tr>
+        <tr><td style="padding:16px 24px;border-top:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:0.72rem;color:#bbb">Powered by <strong style="color:#1C4F35">NOPA Padel</strong></div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+    });
+}
+
+export async function sendStandbyHostNotification({ to, tournament, standbyCount }) {
+    await send({
+        to,
+        subject: `${standbyCount} players on standby — ${tournament.name}`,
+        html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden">
+        <tr><td style="background:#1C4F35;padding:24px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:800;color:white;letter-spacing:0.15em">NOPA</div>
+        </td></tr>
+        <tr><td style="padding:24px">
+          <div style="font-size:1.2rem;font-weight:700;color:#1a1a1a;margin-bottom:8px">Standby list update</div>
+          <p style="font-size:0.9rem;color:#666;line-height:1.6"><strong>${standbyCount} players</strong> are now on the standby list for <strong>${tournament.name}</strong>. Consider adding more slots or letting them know.</p>
+        </td></tr>
+        <tr><td style="padding:16px 24px;border-top:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:0.72rem;color:#bbb">Powered by <strong style="color:#1C4F35">NOPA Padel</strong></div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+    });
+}
+
+export async function sendLocationChanged({ participants, tournament }) {
+    const venueName = tournament.venue?.name || tournament.location || "";
+    const city = tournament.city || "";
+    const locationLine = [venueName, city].filter(Boolean).join(", ");
+
+    await Promise.all(participants.map(({ email, name }) =>
+        send({
+            to: email,
+            subject: `Venue update — ${tournament.name}`,
+            html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden">
+        <tr><td style="background:#1C4F35;padding:24px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:800;color:white">NOPA</div>
+        </td></tr>
+        <tr><td style="padding:24px">
+          <div style="font-size:1.1rem;font-weight:700;color:#1a1a1a;margin-bottom:8px">Venue updated, ${name || "player"}</div>
+          <p style="font-size:0.9rem;color:#666;line-height:1.6">The venue for <strong>${tournament.name}</strong> has been updated.</p>
+          <p style="font-size:0.95rem;color:#1C4F35;font-weight:600">📍 ${locationLine}</p>
+          ${tournament.googleMapsUrl ? `<p><a href="${tournament.googleMapsUrl}" style="color:#1C4F35;font-weight:600">Open in Google Maps →</a></p>` : ""}
+        </td></tr>
+        <tr><td style="padding:16px 24px;border-top:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:0.72rem;color:#bbb">Powered by <strong style="color:#1C4F35">NOPA Padel</strong></div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+        })
+    ));
+}
+
+export async function sendPriceChanged({ participants, tournament }) {
+    await Promise.all(participants.map(({ email, name }) =>
+        send({
+            to: email,
+            subject: `Price update — ${tournament.name}`,
+            html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden">
+        <tr><td style="background:#1C4F35;padding:24px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:800;color:white">NOPA</div>
+        </td></tr>
+        <tr><td style="padding:24px">
+          <div style="font-size:1.1rem;font-weight:700;color:#1a1a1a;margin-bottom:8px">Price updated, ${name || "player"}</div>
+          <p style="font-size:0.9rem;color:#666;line-height:1.6">The entry price for <strong>${tournament.name}</strong> has been updated to <strong>${tournament.price ? `${tournament.price} ${tournament.currency || ""}` : "Free"}</strong>.</p>
+        </td></tr>
+        <tr><td style="padding:16px 24px;border-top:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:0.72rem;color:#bbb">Powered by <strong style="color:#1C4F35">NOPA Padel</strong></div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+        })
+    ));
+}
+
 export async function sendTournamentConfirmed({ participants, tournament }) {
     const venueName = tournament.venue?.name || tournament.location || "";
     const city = tournament.city || tournament.venue?.city || "";
