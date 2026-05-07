@@ -1,6 +1,6 @@
 import { json, redirect } from "@remix-run/node";
 import { useActionData, useNavigation, Form, Link } from "@remix-run/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import prisma from "../db.server";
 import { createHostCookie } from "../utils/host-auth.server";
 import { buildTeams, getMinimumPlayers, getTournamentStats } from "../utils/tournament-helpers";
@@ -36,7 +36,6 @@ export const action = async ({ request }) => {
     const city = formData.get("city") || null;
     const isPublic = formData.get("isPublic") !== "false";
     const courtNamesRaw = formData.get("courtNames");
-    const playersRaw = formData.get("players");
     const venueId = formData.get("venueId") || null;
     const scheduledAtStr = formData.get("scheduledAt") || null;
     const maxPlayersRaw = formData.get("maxPlayers");
@@ -54,8 +53,10 @@ export const action = async ({ request }) => {
     }
 
     let playerNames = [];
-    if (playersRaw) {
-        try { playerNames = JSON.parse(playersRaw); } catch { return json({ error: "Invalid player data." }, { status: 400 }); }
+    const slotCount = parseInt(formData.get("slotCount") || "0", 10);
+    for (let i = 0; i < slotCount; i++) {
+        const name = (formData.get(`playerSlot_${i}`) || "").toString().trim();
+        if (name) playerNames.push({ name, gender: "unspecified" });
     }
 
     if (!isScheduled) {
@@ -378,9 +379,8 @@ export default function NewTournamentPublic() {
     const isSubmitting = navigation.state === "submitting";
 
     const [selectedType, setSelectedType] = useState("americano");
-    const [players, setPlayers] = useState([]);
-    const [playerName, setPlayerName] = useState("");
     const [courts, setCourts] = useState(2);
+    const [playerSlots, setPlayerSlots] = useState(() => Array(2 * 4).fill(""));
     const [pointsPerMatch, setPointsPerMatch] = useState(21);
     const [customPoints, setCustomPoints] = useState(99);
     const [googleMapsUrl, setGoogleMapsUrl] = useState("");
@@ -533,10 +533,23 @@ export default function NewTournamentPublic() {
         finally { setVenueLoading(false); }
     };
 
+    useEffect(() => {
+        const count = courts * 4;
+        setPlayerSlots(prev => {
+            const next = Array(count).fill("");
+            prev.forEach((val, i) => { if (i < count) next[i] = val; });
+            return next;
+        });
+    }, [courts]);
+
     const minPlayers = getMinimumPlayers(selectedType);
-    const playersForSubmission = selectedType === "team_americano" || selectedType === "team_mexicano"
-        ? players.map((player, index) => ({ ...player, teamId: `team-${Math.floor(index / 2) + 1}` }))
-        : players;
+    const playersForSubmission = playerSlots
+        .filter(s => s.trim())
+        .map((name, index) => ({
+            name: name.trim(),
+            gender: "unspecified",
+            teamId: (selectedType === "team_americano" || selectedType === "team_mexicano") ? `team-${Math.floor(index / 2) + 1}` : null,
+        }));
     const stats = getTournamentStats({
         type: selectedType,
         players: playersForSubmission,
@@ -544,8 +557,7 @@ export default function NewTournamentPublic() {
         pointsPerMatch,
     });
     const pointsOptions = POINTS_PRESETS[selectedType] || [16, 24, 32];
-    const capacityInfo = getFormatCapacityInfo(selectedType, players.length, courts);
-    const teams = selectedType === "team_americano" || selectedType === "team_mexicano" ? buildTeams(playersForSubmission) : [];
+    const capacityInfo = getFormatCapacityInfo(selectedType, playersForSubmission.length, courts);
 
     const handleCourtsChange = (n) => {
         setCourts(n);
@@ -556,16 +568,6 @@ export default function NewTournamentPublic() {
         setSelectedType(type);
         setPointsPerMatch(21);
     };
-
-    const addPlayer = () => {
-        const trimmed = playerName.trim();
-        if (!trimmed || players.find((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return;
-        setPlayers([...players, { name: trimmed, gender: "unspecified" }]);
-        setPlayerName("");
-    };
-
-    const removePlayer = (name) => setPlayers(players.filter((p) => p.name !== name));
-    const handleKeyDown = (e) => { if (e.key === "Enter") { e.preventDefault(); addPlayer(); } };
 
     const sectionLabel = (text) => (
         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 12, marginTop: 8, fontWeight: 600, paddingLeft: 4 }}>
@@ -659,125 +661,296 @@ export default function NewTournamentPublic() {
                         <input type="hidden" name="logoUrl" value={logoDataUrl} />
                     </div>
 
-                    {/* ── Location / Venue ── */}
-                    {sectionLabel("Location")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)", position: "relative" }}>
-                        {/* Hidden inputs */}
-                        <input type="hidden" name="location" value={locationOverride || (selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery)} />
-                        <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
-                        <input type="hidden" name="latitude" value={lat || selectedVenue?.latitude || ""} />
-                        <input type="hidden" name="longitude" value={lng || selectedVenue?.longitude || ""} />
+                    {/* ── Game Type ── */}
+                    {sectionLabel("Game Type")}
 
-                        {/* Google Maps URL — first, drives everything */}
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", background: "rgba(28,79,53,0.03)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600 }}>Google Maps URL</div>
-                                <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>Required for public</span>
-                                <span style={{ fontSize: "0.6rem", background: "rgba(28,79,53,0.1)", color: "var(--green)", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Auto-fills below</span>
-                            </div>
-                            <input
-                                value={googleMapsUrl}
-                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                                onBlur={handleMapsUrlBlur}
-                                placeholder="Paste a Google Maps link — fills venue, city, country, currency"
-                                type="url"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                            />
-                            <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
-                            {mapsLoading && (
-                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 4 }}>Detecting location…</div>
-                            )}
-                            {mapsResult && !mapsLoading && (
-                                <div style={{ fontSize: "0.72rem", color: "var(--green)", marginTop: 4 }}>
-                                    Detected: <strong>{[mapsResult.venueName, mapsResult.city, mapsResult.country].filter(Boolean).join(", ")}</strong>
-                                    {mapsResult.currency !== "EUR" && ` · Currency set to ${mapsResult.currency}`}
-                                </div>
-                            )}
-                            {mapsError && !mapsLoading && (
-                                <div style={{ fontSize: "0.72rem", color: "#b91c1c", marginTop: 4 }}>{mapsError} — fill fields manually</div>
-                            )}
-                            {googleMapsUrl && (
-                                <a href={googleMapsUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "var(--green)", marginTop: 4, display: "block" }}>
-                                    ↗ Preview on Maps
-                                </a>
-                            )}
-                        </div>
-
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                Venue Name {mapsResult?.venueName && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
-                            </div>
-                            <input
-                                value={venueQuery}
-                                onChange={(e) => { setVenueQuery(e.target.value); setLocationOverride(e.target.value); setSelectedVenue(null); }}
-                                placeholder="e.g. Aspire Zone Padel Courts"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                            />
-                            {/* Autocomplete dropdown */}
-                            {venuePredictions.length > 0 && (
-                                <div style={{
-                                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
-                                    background: "white", borderRadius: "0 0 var(--r-card) var(--r-card)",
-                                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
-                                }}>
-                                    {venuePredictions.map((p) => (
-                                        <button
-                                            key={p.placeId}
-                                            type="button"
-                                            onMouseDown={() => handleVenueSelect(p)}
-                                            style={{
-                                                display: "block", width: "100%", textAlign: "left",
-                                                padding: "12px 16px", border: "none", background: "transparent",
-                                                cursor: "pointer", fontFamily: "inherit", borderBottom: "1px solid var(--sep)",
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.background = "rgba(28,79,53,0.06)"}
-                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                                        >
-                                            <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--label)" }}>{p.mainText}</div>
-                                            <div style={{ fontSize: "0.74rem", color: "var(--label-3)", marginTop: 2 }}>{p.secondaryText}</div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                            {venueLoading && (
-                                <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", fontSize: "0.72rem", color: "var(--label-3)" }}>
-                                    Searching…
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                City / District {mapsResult?.city && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
-                            </div>
-                            <input
-                                value={city}
-                                onChange={(e) => setCity(e.target.value)}
-                                placeholder="e.g. Doha — Aspire Zone"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                            />
-                            <input type="hidden" name="city" value={city} />
-                        </div>
-
-                        <div style={{ padding: "14px 16px" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                Country {mapsResult?.country && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
-                            </div>
-                            <select
-                                value={country}
-                                onChange={(e) => setCountry(e.target.value)}
-                                name="country"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
+                    {/* Info modal */}
+                    {infoModal && (
+                        <div
+                            onClick={() => setInfoModal(null)}
+                            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}
+                        >
+                            <div
+                                onClick={e => e.stopPropagation()}
+                                style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}
                             >
-                                {COUNTRIES.map(c => (
-                                    <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
+                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10 }}>{infoModal.name}</div>
+                                <p style={{ fontSize: "0.88rem", color: "var(--label-2)", lineHeight: 1.6, margin: 0 }}>{infoModal.info}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => setInfoModal(null)}
+                                    style={{ marginTop: 20, width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit" }}
+                                >
+                                    Got it
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 24 }}>
+                        {PLAY_TYPES.map((pt) => (
+                            <div key={pt.id} style={{ position: "relative" }}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTypeChange(pt.id)}
+                                    style={{
+                                        width: "100%",
+                                        border: selectedType === pt.id ? "1.5px solid var(--green)" : "1px solid var(--sep)",
+                                        borderRadius: "22px",
+                                        background: selectedType === pt.id ? "rgba(28,79,53,0.05)" : "var(--bg-card)",
+                                        boxShadow: selectedType === pt.id ? "0 14px 24px rgba(28,79,53,0.12)" : "0 8px 18px rgba(15,23,42,0.06)",
+                                        padding: "10px 8px 9px",
+                                        cursor: "pointer",
+                                        textAlign: "center",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        minHeight: 134,
+                                        fontFamily: "inherit",
+                                    }}
+                                >
+                                    <img
+                                        src={GAME_MODE_BUTTON_IMAGES[pt.id]}
+                                        alt={pt.name}
+                                        style={{
+                                            width: "min(100%, 68px)",
+                                            aspectRatio: "1 / 1",
+                                            objectFit: "contain",
+                                            display: "block",
+                                            filter: selectedType === pt.id ? "drop-shadow(0 8px 14px rgba(10,23,18,0.18))" : "drop-shadow(0 5px 9px rgba(10,23,18,0.12))",
+                                        }}
+                                    />
+                                    <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+                                        <div style={{ fontWeight: 600, fontSize: "0.76rem", color: selectedType === pt.id ? "var(--green)" : "var(--label)", lineHeight: 1.15 }}>{pt.name}</div>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setInfoModal(pt); }}
+                                    style={{
+                                        position: "absolute", top: 6, right: 6,
+                                        width: 20, height: 20, borderRadius: "50%",
+                                        border: "1.5px solid var(--sep-opaque)",
+                                        background: "var(--bg-card)",
+                                        color: "var(--label-3)", fontSize: "0.62rem", fontWeight: 700,
+                                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                                        fontFamily: "inherit", lineHeight: 1,
+                                    }}
+                                    title={`About ${pt.name}`}
+                                >
+                                    i
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <input type="hidden" name="type" value={selectedType} />
+
+                    {/* ── Courts ── */}
+                    {sectionLabel("Courts")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div style={{ padding: "16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>Number of Courts</div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                                    <button key={n} type="button" onClick={() => handleCourtsChange(n)}
+                                        style={{
+                                            width: 48, height: 48, borderRadius: "var(--r-cell)",
+                                            border: `2px solid ${courts === n ? "var(--green)" : "var(--sep-opaque)"}`,
+                                            background: courts === n ? "var(--green)" : "var(--bg-grouped)",
+                                            color: courts === n ? "white" : "var(--label-2)",
+                                            fontWeight: 700, fontSize: "1rem", cursor: "pointer",
+                                            transition: "all 0.15s", fontFamily: "inherit",
+                                        }}
+                                    >{n}</button>
                                 ))}
-                            </select>
+                            </div>
+                        </div>
+
+                        <div style={{ padding: "16px" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>Court Names</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
+                                {courtNames.map((name, i) => (
+                                    <input
+                                        key={i}
+                                        value={name}
+                                        onChange={(e) => {
+                                            const updated = [...courtNames];
+                                            updated[i] = e.target.value;
+                                            setCourtNames(updated);
+                                        }}
+                                        placeholder={`Court ${i + 1}`}
+                                        style={{
+                                            textAlign: "center", padding: "10px 12px",
+                                            border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                            background: "var(--bg-grouped)", fontSize: "0.88rem", fontFamily: "inherit",
+                                            color: "var(--label)", outline: "none",
+                                        }}
+                                        onFocus={e => e.target.style.borderColor = "var(--green)"}
+                                        onBlur={e => e.target.style.borderColor = "var(--sep-opaque)"}
+                                    />
+                                ))}
+                            </div>
+                            <input type="hidden" name="courts" value={courts} />
+                            <input type="hidden" name="courtNames" value={JSON.stringify(courtNames)} />
+                        </div>
+                    </div>
+
+                    {/* ── Players ── */}
+                    {sectionLabel("Players")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--sep)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--label)" }}>
+                                {playerSlots.filter(s => s.trim()).length} / {courts * 4} players
+                            </span>
+                            <button type="button" onClick={() => setPlayerSlots(Array(courts * 4).fill(""))}
+                                style={{ background: "none", border: "none", color: "var(--label-3)", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>
+                                Clear all
+                            </button>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 0 }}>
+                            {playerSlots.map((val, i) => (
+                                <div key={i} style={{ padding: "10px 14px", borderBottom: i < playerSlots.length - 2 ? "1px solid var(--sep)" : "none", borderRight: i % 2 === 0 ? "1px solid var(--sep)" : "none" }}>
+                                    <div style={{ fontSize: "0.52rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
+                                        Player {i + 1}
+                                    </div>
+                                    <input
+                                        value={val}
+                                        onChange={e => setPlayerSlots(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                                        placeholder="Name (optional)"
+                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.92rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <input type="hidden" name="slotCount" value={playerSlots.length} />
+                        {playerSlots.map((val, i) => (
+                            <input key={i} type="hidden" name={`playerSlot_${i}`} value={val} />
+                        ))}
+                    </div>
+
+                    {/* ── Match Settings ── */}
+                    {sectionLabel("Match Settings")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div style={{ padding: "16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>Points per Match</div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <div style={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", fontWeight: 600, paddingLeft: 4 }}>
+                                        Standard
+                                    </div>
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                {pointsOptions.map(p => (
+                                    <button key={p} type="button" onClick={() => setPointsPerMatch(p)}
+                                        style={{
+                                            width: 58, height: 44, borderRadius: "var(--r-cell)",
+                                            border: `2px solid ${pointsPerMatch === p ? "var(--green)" : "var(--sep-opaque)"}`,
+                                            background: pointsPerMatch === p ? "var(--green)" : "var(--bg-grouped)",
+                                            color: pointsPerMatch === p ? "white" : "var(--label-2)",
+                                            fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                                            transition: "all 0.15s", fontFamily: "inherit",
+                                        }}
+                                    >{p}</button>
+                                ))}
+                                    </div>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <div style={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", fontWeight: 600, paddingLeft: 4 }}>
+                                        Custom
+                                    </div>
+                                    <input
+                                        type="number" min="1" max="999" value={customPoints}
+                                        onChange={(e) => {
+                                            const value = parseInt(e.target.value, 10) || 1;
+                                            setCustomPoints(value);
+                                            setPointsPerMatch(value);
+                                        }}
+                                        style={{
+                                            width: 72, padding: "8px 10px", border: `2px solid ${!pointsOptions.includes(pointsPerMatch) ? "#dc2626" : "var(--sep-opaque)"}`,
+                                            borderRadius: "var(--r-cell)", fontSize: "0.95rem", fontWeight: 700,
+                                            textAlign: "center", fontFamily: "inherit", background: "var(--bg-grouped)",
+                                            color: !pointsOptions.includes(pointsPerMatch) ? "#b91c1c" : "var(--label)",
+                                        }}
+                                        title="Custom"
+                                    />
+                                </div>
+                            </div>
+                            {!pointsOptions.includes(pointsPerMatch) && (
+                                <div style={{ marginTop: 10, fontSize: "0.75rem", color: "#b91c1c", fontWeight: 600 }}>
+                                    *Custom not recommended can result in non conclusive score
+                                </div>
+                            )}
+                            <input type="hidden" name="pointsPerMatch" value={pointsPerMatch} />
+                        </div>
+
+                        {stats && (
+                            <div style={{ padding: "14px 16px", background: "rgba(28,79,53,0.05)", borderTop: "1px solid var(--sep)", display: "flex", alignItems: "center", gap: 10 }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <div style={{ fontSize: "0.82rem", color: "var(--green)", fontWeight: 600 }}>
+                                    Estimated duration: ~{stats.duration} &nbsp;·&nbsp; {stats.totalRounds} rounds &nbsp;·&nbsp; {stats.activeCourts} active court{stats.activeCourts !== 1 ? "s" : ""}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ padding: "16px" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>40:40 Method</div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                {DEUCE_METHODS.map(d => (
+                                    <button key={d.id} type="button" onClick={() => setDeuceMethod(d.id)}
+                                        style={{
+                                            padding: "9px 16px", borderRadius: "var(--r-pill)",
+                                            border: `2px solid ${deuceMethod === d.id ? "var(--green)" : "var(--sep-opaque)"}`,
+                                            background: deuceMethod === d.id ? "var(--green)" : "var(--bg-grouped)",
+                                            color: deuceMethod === d.id ? "white" : "var(--label-2)",
+                                            fontWeight: 500, fontSize: "0.85rem", cursor: "pointer",
+                                            transition: "all 0.15s", fontFamily: "inherit",
+                                        }}
+                                    >{d.label}</button>
+                                ))}
+                            </div>
+                            <input type="hidden" name="deuceMethod" value={deuceMethod} />
                         </div>
                     </div>
 
                     {/* ── Schedule ── */}
                     {sectionLabel("Schedule")}
+
+                    {/* Date warning modal */}
+                    {showDateWarning && (
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}>
+                            <div style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}>
+                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
+                                <div style={{ fontSize: "1.5rem", marginBottom: 12, textAlign: "center" }}>📅</div>
+                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10, textAlign: "center" }}>Before you confirm this date</div>
+                                <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-cell)", padding: "14px 16px", marginBottom: 16 }}>
+                                    <p style={{ fontSize: "0.88rem", color: "#92400e", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                                        ⚠️ Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
+                                    </p>
+                                </div>
+                                <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "12px 14px", marginBottom: 20 }}>
+                                    <p style={{ fontSize: "0.82rem", color: "var(--label-3)", lineHeight: 1.6, margin: 0 }}>
+                                        This system does <strong>not</strong> check for public holidays, national days, or local events that may affect venue availability.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={confirmDateWarning}
+                                    style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}
+                                >
+                                    Yes, I've confirmed with the venue
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowDateWarning(false); setPendingDate(""); }}
+                                    style={{ width: "100%", padding: "12px", borderRadius: "var(--r-card)", background: "transparent", color: "var(--label-3)", border: "1px solid var(--sep)", fontWeight: 500, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}
+                                >
+                                    Let me check first
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
                         {/* Toggle */}
                         <div style={{ padding: "14px 16px", borderBottom: isScheduled ? "1px solid var(--sep)" : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -992,315 +1165,121 @@ export default function NewTournamentPublic() {
                         <input type="hidden" name="isPublic" value={String(isPublic)} />
                     </div>
 
-                    {/* ── Game Type ── */}
-                    {sectionLabel("Game Type")}
+                    {/* ── Location / Venue ── */}
+                    {sectionLabel("Location")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)", position: "relative" }}>
+                        {/* Hidden inputs */}
+                        <input type="hidden" name="location" value={locationOverride || (selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery)} />
+                        <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
+                        <input type="hidden" name="latitude" value={lat || selectedVenue?.latitude || ""} />
+                        <input type="hidden" name="longitude" value={lng || selectedVenue?.longitude || ""} />
 
-                    {/* Info modal */}
-                    {infoModal && (
-                        <div
-                            onClick={() => setInfoModal(null)}
-                            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}
-                        >
-                            <div
-                                onClick={e => e.stopPropagation()}
-                                style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}
-                            >
-                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
-                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10 }}>{infoModal.name}</div>
-                                <p style={{ fontSize: "0.88rem", color: "var(--label-2)", lineHeight: 1.6, margin: 0 }}>{infoModal.info}</p>
-                                <button
-                                    type="button"
-                                    onClick={() => setInfoModal(null)}
-                                    style={{ marginTop: 20, width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit" }}
-                                >
-                                    Got it
-                                </button>
+                        {/* Google Maps URL — first, drives everything */}
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", background: "rgba(28,79,53,0.03)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600 }}>Google Maps URL</div>
+                                <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>Required for public</span>
+                                <span style={{ fontSize: "0.6rem", background: "rgba(28,79,53,0.1)", color: "var(--green)", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Auto-fills below</span>
                             </div>
-                        </div>
-                    )}
-
-                    {/* ── Date warning modal ── */}
-                    {showDateWarning && (
-                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}>
-                            <div style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}>
-                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
-                                <div style={{ fontSize: "1.5rem", marginBottom: 12, textAlign: "center" }}>📅</div>
-                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10, textAlign: "center" }}>Before you confirm this date</div>
-                                <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-cell)", padding: "14px 16px", marginBottom: 16 }}>
-                                    <p style={{ fontSize: "0.88rem", color: "#92400e", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-                                        ⚠️ Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
-                                    </p>
-                                </div>
-                                <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "12px 14px", marginBottom: 20 }}>
-                                    <p style={{ fontSize: "0.82rem", color: "var(--label-3)", lineHeight: 1.6, margin: 0 }}>
-                                        This system does <strong>not</strong> check for public holidays, national days, or local events that may affect venue availability.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={confirmDateWarning}
-                                    style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}
-                                >
-                                    Yes, I've confirmed with the venue
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setShowDateWarning(false); setPendingDate(""); }}
-                                    style={{ width: "100%", padding: "12px", borderRadius: "var(--r-card)", background: "transparent", color: "var(--label-3)", border: "1px solid var(--sep)", fontWeight: 500, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}
-                                >
-                                    Let me check first
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 24 }}>
-                        {PLAY_TYPES.map((pt) => (
-                            <div key={pt.id} style={{ position: "relative" }}>
-                                <button
-                                    type="button"
-                                    onClick={() => handleTypeChange(pt.id)}
-                                    style={{
-                                        width: "100%",
-                                        border: selectedType === pt.id ? "1.5px solid var(--green)" : "1px solid var(--sep)",
-                                        borderRadius: "22px",
-                                        background: selectedType === pt.id ? "rgba(28,79,53,0.05)" : "var(--bg-card)",
-                                        boxShadow: selectedType === pt.id ? "0 14px 24px rgba(28,79,53,0.12)" : "0 8px 18px rgba(15,23,42,0.06)",
-                                        padding: "10px 8px 9px",
-                                        cursor: "pointer",
-                                        textAlign: "center",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "center",
-                                        gap: 8,
-                                        minHeight: 134,
-                                        fontFamily: "inherit",
-                                    }}
-                                >
-                                    <img
-                                        src={GAME_MODE_BUTTON_IMAGES[pt.id]}
-                                        alt={pt.name}
-                                        style={{
-                                            width: "min(100%, 68px)",
-                                            aspectRatio: "1 / 1",
-                                            objectFit: "contain",
-                                            display: "block",
-                                            filter: selectedType === pt.id ? "drop-shadow(0 8px 14px rgba(10,23,18,0.18))" : "drop-shadow(0 5px 9px rgba(10,23,18,0.12))",
-                                        }}
-                                    />
-                                    <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-                                        <div style={{ fontWeight: 600, fontSize: "0.76rem", color: selectedType === pt.id ? "var(--green)" : "var(--label)", lineHeight: 1.15 }}>{pt.name}</div>
-                                    </div>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setInfoModal(pt); }}
-                                    style={{
-                                        position: "absolute", top: 6, right: 6,
-                                        width: 20, height: 20, borderRadius: "50%",
-                                        border: "1.5px solid var(--sep-opaque)",
-                                        background: "var(--bg-card)",
-                                        color: "var(--label-3)", fontSize: "0.62rem", fontWeight: 700,
-                                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontFamily: "inherit", lineHeight: 1,
-                                    }}
-                                    title={`About ${pt.name}`}
-                                >
-                                    i
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                    <input type="hidden" name="type" value={selectedType} />
-
-                    {/* ── Match Settings ── */}
-                    {sectionLabel("Match Settings")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                        <div style={{ padding: "16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>Points per Match</div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                    <div style={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", fontWeight: 600, paddingLeft: 4 }}>
-                                        Standard
-                                    </div>
-                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                {pointsOptions.map(p => (
-                                    <button key={p} type="button" onClick={() => setPointsPerMatch(p)}
-                                        style={{
-                                            width: 58, height: 44, borderRadius: "var(--r-cell)",
-                                            border: `2px solid ${pointsPerMatch === p ? "var(--green)" : "var(--sep-opaque)"}`,
-                                            background: pointsPerMatch === p ? "var(--green)" : "var(--bg-grouped)",
-                                            color: pointsPerMatch === p ? "white" : "var(--label-2)",
-                                            fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-                                            transition: "all 0.15s", fontFamily: "inherit",
-                                        }}
-                                    >{p}</button>
-                                ))}
-                                    </div>
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                    <div style={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", fontWeight: 600, paddingLeft: 4 }}>
-                                        Custom
-                                    </div>
-                                    <input
-                                        type="number" min="1" max="999" value={customPoints}
-                                        onChange={(e) => {
-                                            const value = parseInt(e.target.value, 10) || 1;
-                                            setCustomPoints(value);
-                                            setPointsPerMatch(value);
-                                        }}
-                                        style={{
-                                            width: 72, padding: "8px 10px", border: `2px solid ${!pointsOptions.includes(pointsPerMatch) ? "#dc2626" : "var(--sep-opaque)"}`,
-                                            borderRadius: "var(--r-cell)", fontSize: "0.95rem", fontWeight: 700,
-                                            textAlign: "center", fontFamily: "inherit", background: "var(--bg-grouped)",
-                                            color: !pointsOptions.includes(pointsPerMatch) ? "#b91c1c" : "var(--label)",
-                                        }}
-                                        title="Custom"
-                                    />
-                                </div>
-                            </div>
-                            {!pointsOptions.includes(pointsPerMatch) && (
-                                <div style={{ marginTop: 10, fontSize: "0.75rem", color: "#b91c1c", fontWeight: 600 }}>
-                                    *Custom not recommended can result in non conclusive score
+                            <input
+                                value={googleMapsUrl}
+                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                                onBlur={handleMapsUrlBlur}
+                                placeholder="Paste a Google Maps link — fills venue, city, country, currency"
+                                type="url"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
+                            {mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 4 }}>Detecting location…</div>
+                            )}
+                            {mapsResult && !mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "var(--green)", marginTop: 4 }}>
+                                    Detected: <strong>{[mapsResult.venueName, mapsResult.city, mapsResult.country].filter(Boolean).join(", ")}</strong>
+                                    {mapsResult.currency !== "EUR" && ` · Currency set to ${mapsResult.currency}`}
                                 </div>
                             )}
-                            <input type="hidden" name="pointsPerMatch" value={pointsPerMatch} />
+                            {mapsError && !mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "#b91c1c", marginTop: 4 }}>{mapsError} — fill fields manually</div>
+                            )}
+                            {googleMapsUrl && (
+                                <a href={googleMapsUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "var(--green)", marginTop: 4, display: "block" }}>
+                                    ↗ Preview on Maps
+                                </a>
+                            )}
                         </div>
 
-                        {stats && (
-                            <div style={{ padding: "14px 16px", background: "rgba(28,79,53,0.05)", borderTop: "1px solid var(--sep)", display: "flex", alignItems: "center", gap: 10 }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                <div style={{ fontSize: "0.82rem", color: "var(--green)", fontWeight: 600 }}>
-                                    Estimated duration: ~{stats.duration} &nbsp;·&nbsp; {stats.totalRounds} rounds &nbsp;·&nbsp; {stats.activeCourts} active court{stats.activeCourts !== 1 ? "s" : ""}
-                                </div>
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                Venue Name {mapsResult?.venueName && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
                             </div>
-                        )}
-
-                        <div style={{ padding: "16px" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>40:40 Method</div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                {DEUCE_METHODS.map(d => (
-                                    <button key={d.id} type="button" onClick={() => setDeuceMethod(d.id)}
-                                        style={{
-                                            padding: "9px 16px", borderRadius: "var(--r-pill)",
-                                            border: `2px solid ${deuceMethod === d.id ? "var(--green)" : "var(--sep-opaque)"}`,
-                                            background: deuceMethod === d.id ? "var(--green)" : "var(--bg-grouped)",
-                                            color: deuceMethod === d.id ? "white" : "var(--label-2)",
-                                            fontWeight: 500, fontSize: "0.85rem", cursor: "pointer",
-                                            transition: "all 0.15s", fontFamily: "inherit",
-                                        }}
-                                    >{d.label}</button>
-                                ))}
-                            </div>
-                            <input type="hidden" name="deuceMethod" value={deuceMethod} />
-                        </div>
-                    </div>
-
-                    {/* ── Courts ── */}
-                    {sectionLabel("Courts")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                        <div style={{ padding: "16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>Number of Courts</div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                                    <button key={n} type="button" onClick={() => handleCourtsChange(n)}
-                                        style={{
-                                            width: 48, height: 48, borderRadius: "var(--r-cell)",
-                                            border: `2px solid ${courts === n ? "var(--green)" : "var(--sep-opaque)"}`,
-                                            background: courts === n ? "var(--green)" : "var(--bg-grouped)",
-                                            color: courts === n ? "white" : "var(--label-2)",
-                                            fontWeight: 700, fontSize: "1rem", cursor: "pointer",
-                                            transition: "all 0.15s", fontFamily: "inherit",
-                                        }}
-                                    >{n}</button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div style={{ padding: "16px" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>Court Names</div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
-                                {courtNames.map((name, i) => (
-                                    <input
-                                        key={i}
-                                        value={name}
-                                        onChange={(e) => {
-                                            const updated = [...courtNames];
-                                            updated[i] = e.target.value;
-                                            setCourtNames(updated);
-                                        }}
-                                        placeholder={`Court ${i + 1}`}
-                                        style={{
-                                            textAlign: "center", padding: "10px 12px",
-                                            border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
-                                            background: "var(--bg-grouped)", fontSize: "0.88rem", fontFamily: "inherit",
-                                            color: "var(--label)", outline: "none",
-                                        }}
-                                        onFocus={e => e.target.style.borderColor = "var(--green)"}
-                                        onBlur={e => e.target.style.borderColor = "var(--sep-opaque)"}
-                                    />
-                                ))}
-                            </div>
-                            <input type="hidden" name="courts" value={courts} />
-                            <input type="hidden" name="courtNames" value={JSON.stringify(courtNames)} />
-                        </div>
-                    </div>
-
-                    {/* ── Players ── */}
-                    {sectionLabel("Players")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: players.length > 0 ? "1px solid var(--sep)" : "none" }}>
-                            <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--label)" }}>{players.length} players</span>
-                            <span style={{ fontSize: "0.78rem", color: "var(--label-3)" }}>
-                                {selectedType === "team_americano" || selectedType === "team_mexicano"
-                                    ? <>Teams: <strong style={{ color: "var(--green)" }}>{teams.length}</strong></>
-                                    : <>Full setup: <strong style={{ color: "var(--green)" }}>{courts * 4}</strong></>}
-                            </span>
-                        </div>
-
-                        {players.map((p, i) => (
-                            <div key={p.name} style={{
-                                display: "flex", alignItems: "center", padding: "13px 16px",
-                                borderBottom: "1px solid var(--sep)", gap: 12,
-                            }}>
-                                <span style={{ width: 22, fontWeight: 700, color: "var(--green)", fontSize: "0.82rem", flexShrink: 0 }}>{i + 1}</span>
-                                <span style={{ flex: 1, fontWeight: 500, fontSize: "0.92rem", color: "var(--label)" }}>{p.name}</span>
-                                {(selectedType === "team_americano" || selectedType === "team_mexicano") && (
-                                    <span style={{ fontSize: "0.74rem", color: "var(--green)", fontWeight: 700 }}>
-                                        Team {Math.floor(i / 2) + 1}
-                                    </span>
-                                )}
-                                <button type="button" onClick={() => removePlayer(p.name)} style={{
-                                    background: "var(--bg-fill)", border: "none", color: "var(--label-3)",
-                                    cursor: "pointer", fontSize: "0.9rem", width: 26, height: 26,
-                                    borderRadius: "50%", lineHeight: 1, fontFamily: "inherit",
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                }}>×</button>
-                            </div>
-                        ))}
-
-                        <div style={{ padding: "12px 16px", display: "flex", gap: 8 }}>
                             <input
-                                value={playerName}
-                                onChange={(e) => setPlayerName(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Player name..."
-                                style={{
-                                    flex: 1, padding: "10px 12px", border: "1.5px solid var(--sep-opaque)",
-                                    borderRadius: "var(--r-cell)", fontSize: "0.9rem", fontFamily: "inherit",
-                                    color: "var(--label)", background: "var(--bg-grouped)", outline: "none",
-                                }}
-                                onFocus={e => e.target.style.borderColor = "var(--green)"}
-                                onBlur={e => e.target.style.borderColor = "var(--sep-opaque)"}
+                                value={venueQuery}
+                                onChange={(e) => { setVenueQuery(e.target.value); setLocationOverride(e.target.value); setSelectedVenue(null); }}
+                                placeholder="e.g. Aspire Zone Padel Courts"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
-                            <button type="button" onClick={addPlayer} style={{
-                                padding: "10px 18px", borderRadius: "var(--r-cell)",
-                                background: "var(--green)", color: "white",
-                                fontWeight: 600, fontSize: "0.88rem", border: "none",
-                                cursor: "pointer", fontFamily: "inherit",
-                            }}>Add</button>
+                            {/* Autocomplete dropdown */}
+                            {venuePredictions.length > 0 && (
+                                <div style={{
+                                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
+                                    background: "white", borderRadius: "0 0 var(--r-card) var(--r-card)",
+                                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
+                                }}>
+                                    {venuePredictions.map((p) => (
+                                        <button
+                                            key={p.placeId}
+                                            type="button"
+                                            onMouseDown={() => handleVenueSelect(p)}
+                                            style={{
+                                                display: "block", width: "100%", textAlign: "left",
+                                                padding: "12px 16px", border: "none", background: "transparent",
+                                                cursor: "pointer", fontFamily: "inherit", borderBottom: "1px solid var(--sep)",
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "rgba(28,79,53,0.06)"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                        >
+                                            <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--label)" }}>{p.mainText}</div>
+                                            <div style={{ fontSize: "0.74rem", color: "var(--label-3)", marginTop: 2 }}>{p.secondaryText}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {venueLoading && (
+                                <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", fontSize: "0.72rem", color: "var(--label-3)" }}>
+                                    Searching…
+                                </div>
+                            )}
                         </div>
-                        <input type="hidden" name="players" value={JSON.stringify(playersForSubmission)} />
+
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                City / District {mapsResult?.city && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
+                            </div>
+                            <input
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                placeholder="e.g. Doha — Aspire Zone"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            <input type="hidden" name="city" value={city} />
+                        </div>
+
+                        <div style={{ padding: "14px 16px" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                Country {mapsResult?.country && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
+                            </div>
+                            <select
+                                value={country}
+                                onChange={(e) => setCountry(e.target.value)}
+                                name="country"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
+                            >
+                                {COUNTRIES.map(c => (
+                                    <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     {/* ── Stats Preview ── */}
@@ -1343,23 +1322,23 @@ export default function NewTournamentPublic() {
 
                     <button
                         type="submit"
-                        disabled={(!isScheduled && players.length < minPlayers) || isSubmitting}
+                        disabled={(!isScheduled && playerSlots.filter(s => s.trim()).length < minPlayers) || isSubmitting}
                         style={{
                             width: "100%", padding: "16px", borderRadius: "var(--r-card)",
-                            background: (isScheduled || players.length >= minPlayers) ? "var(--green)" : "var(--sep-opaque)",
+                            background: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "var(--green)" : "var(--sep-opaque)",
                             color: "white", fontWeight: 600, fontSize: "1rem",
-                            border: "none", cursor: (isScheduled || players.length >= minPlayers) ? "pointer" : "not-allowed",
+                            border: "none", cursor: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "pointer" : "not-allowed",
                             fontFamily: "inherit", transition: "background 0.2s",
-                            boxShadow: (isScheduled || players.length >= minPlayers) ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
+                            boxShadow: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
                         }}
                     >
                         {isSubmitting
                             ? "Creating..."
                             : isScheduled
                                 ? `Schedule Tournament · open for ${maxPlayers} players`
-                                : players.length < minPlayers
-                                    ? `Need ${minPlayers - players.length} more to start · ${courts * 4} for full setup`
-                                    : `Create Tournament · ${players.length} players`}
+                                : playerSlots.filter(s => s.trim()).length < minPlayers
+                                    ? `Need ${minPlayers - playerSlots.filter(s => s.trim()).length} more to start · ${courts * 4} for full setup`
+                                    : `Create Tournament · ${playerSlots.filter(s => s.trim()).length} players`}
                     </button>
                 </Form>
             </div>

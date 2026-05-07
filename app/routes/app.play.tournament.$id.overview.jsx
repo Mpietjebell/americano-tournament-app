@@ -10,14 +10,14 @@ import {
     getTournamentStats,
     TYPE_LABELS,
 } from "../utils/tournament-helpers";
-import { validateHostToken } from "../utils/host-auth.server";
+import { getHostTokenFromRequest } from "../utils/host-auth.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
     const origin = new URL(request.url).origin;
-    const hostToken = await validateHostToken(request, tournament);
-    const isHost = Boolean(hostToken);
+    const hostToken = getHostTokenFromRequest(request, tournament.id);
+    const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     return json({ tournament, origin, isHost });
 };
 
