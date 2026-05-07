@@ -87,8 +87,8 @@ export default function JoinCode() {
     const actionData = useActionData();
     const [selectedPlayer, setSelectedPlayer] = useState("");
     const [customName, setCustomName] = useState("");
-    // "new" = type own name (default), "list" = pick from pre-registered list
-    const [nameMode, setNameMode] = useState("new");
+    // "new" = type own name, "list" = pick from pre-registered list (default)
+    const [nameMode, setNameMode] = useState("list");
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState("");
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -315,6 +315,23 @@ export default function JoinCode() {
                                                 {p.name}
                                             </button>
                                         ))}
+                                        {/* Empty slot — tap to enter own name */}
+                                        <button
+                                            type="button"
+                                            onClick={() => { setNameMode("new"); setSelectedPlayer(""); setCustomName(""); }}
+                                            style={{
+                                                padding: "16px 10px", borderRadius: "var(--r-cell)", cursor: "pointer", textAlign: "center",
+                                                border: "2px dashed var(--sep-opaque)",
+                                                background: "transparent",
+                                                fontWeight: 500, fontSize: "0.88rem",
+                                                color: "var(--label-3)",
+                                                fontFamily: "inherit",
+                                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
+                                            }}
+                                        >
+                                            <div style={{ fontSize: "1.4rem", lineHeight: 1 }}>+</div>
+                                            <div style={{ fontSize: "0.78rem" }}>Add your name</div>
+                                        </button>
                                     </div>
                                 </div>
                             )}
