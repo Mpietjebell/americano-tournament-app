@@ -1,6 +1,6 @@
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, Link, useRevalidator } from "@remix-run/react";
-import { useEffect } from "react";
+import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
+import { useEffect, useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { getCountryDisplay, getPlacementLabel } from "../utils/tournament-helpers";
 
@@ -29,6 +29,7 @@ function getPlayerName(id, players) {
 export default function PlayerScoreboard() {
     const { tournament, playerId } = useLoaderData();
     const revalidator = useRevalidator();
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
     // Auto-refresh every 15 seconds
     useEffect(() => {
@@ -269,6 +270,39 @@ export default function PlayerScoreboard() {
                     </div>
                 )}
             </div>
+
+            {!isFinished && tournament.status === "setup" && playerId && (
+                <div style={{ padding: "0 16px 32px" }}>
+                    {showCancelConfirm ? (
+                        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "var(--r-card)", padding: "20px" }}>
+                            <div style={{ fontWeight: 700, fontSize: "1rem", color: "#991b1b", marginBottom: 8 }}>
+                                Are you sure you want to deregister from this tournament?
+                            </div>
+                            <p style={{ fontSize: "0.84rem", color: "#b91c1c", marginBottom: 16, lineHeight: 1.5 }}>
+                                If there are players on standby, the first one will take your spot.
+                            </p>
+                            <Form method="post" action={`/api/tournament/${tournament.id}/deregister`}>
+                                <input type="hidden" name="playerId" value={playerId} />
+                                <div style={{ display: "flex", gap: 10 }}>
+                                    <button type="button" onClick={() => setShowCancelConfirm(false)}
+                                        style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "var(--bg-fill)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                                        No, keep my spot
+                                    </button>
+                                    <button type="submit"
+                                        style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "#dc2626", border: "none", color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                                        Yes, deregister
+                                    </button>
+                                </div>
+                            </Form>
+                        </div>
+                    ) : (
+                        <button type="button" onClick={() => setShowCancelConfirm(true)}
+                            style={{ width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "transparent", border: "2px solid #dc2626", color: "#dc2626", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
+                            Cancel Registration
+                        </button>
+                    )}
+                </div>
+            )}
         </>
     );
 }
