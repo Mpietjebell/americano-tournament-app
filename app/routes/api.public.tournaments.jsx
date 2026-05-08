@@ -17,12 +17,12 @@ export async function loader({ request }) {
         prisma.tournament.findMany({
             where: {
                 isPublic: true,
-                status: "setup",
+                status: { notIn: ["finished"] },
                 scheduledAt: { gt: now },
             },
             include: {
                 players: { select: { id: true, name: true } },
-                participants: { select: { id: true } },
+                participants: { select: { id: true, name: true, standbyPosition: true } },
                 venue: true,
             },
             orderBy: { scheduledAt: "asc" },
@@ -67,9 +67,7 @@ export async function loader({ request }) {
             .slice(0, 30);
     }
 
-    const upcoming = withDistance(upcomingRaw)
-        .filter((t) => t.maxPlayers == null || t.players.length < t.maxPlayers)
-        .map(serialize);
+    const upcoming = withDistance(upcomingRaw).map(serialize);
 
     const recent = withDistance(recentRaw).map(serializeRecent);
 
@@ -90,6 +88,14 @@ function estimateDuration(t) {
 }
 
 function serialize(t) {
+    const activeParticipants = t.participants.filter(p => p.standbyPosition == null);
+    const standbyParticipants = t.participants.filter(p => p.standbyPosition != null);
+    // Fall back to players array if no participants yet (host-only tournament)
+    const playerCount = t.participants.length > 0 ? activeParticipants.length : t.players.length;
+    const standbyCount = standbyParticipants.length;
+    const playerNames = t.participants.length > 0
+        ? activeParticipants.map(p => p.name).filter(Boolean)
+        : t.players.map(p => p.name);
     return {
         id: t.id,
         name: t.name,
@@ -104,9 +110,12 @@ function serialize(t) {
         googleMapsUrl: t.googleMapsUrl || null,
         price: t.price ?? null,
         currency: t.currency || "EUR",
-        playerCount: t.players.length,
-        playerNames: t.players.map(p => p.name),
+        playerCount,
+        standbyCount,
+        playerNames,
         maxPlayers: t.maxPlayers,
+        maxStandby: t.maxStandby ?? null,
+        joinCode: t.joinCode,
         durationEstimate: estimateDuration(t),
         distanceKm: t._dist,
         latitude: t.latitude ?? t.venue?.latitude ?? null,

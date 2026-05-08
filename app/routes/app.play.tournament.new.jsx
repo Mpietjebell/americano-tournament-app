@@ -40,6 +40,8 @@ export const action = async ({ request }) => {
     const scheduledAtStr = formData.get("scheduledAt") || null;
     const maxPlayersRaw = formData.get("maxPlayers");
     const maxPlayers = maxPlayersRaw ? parseInt(maxPlayersRaw, 10) || null : null;
+    const maxStandbyRaw = formData.get("maxStandby");
+    const maxStandby = maxStandbyRaw ? parseInt(maxStandbyRaw, 10) || null : null;
     const duration = formData.get("duration") ? parseInt(formData.get("duration"), 10) : null;
     const latitude = formData.get("latitude") ? parseFloat(formData.get("latitude")) : null;
     const longitude = formData.get("longitude") ? parseFloat(formData.get("longitude")) : null;
@@ -50,6 +52,9 @@ export const action = async ({ request }) => {
     }
     if (isPublic && !googleMapsUrl) {
         return json({ error: "A Google Maps URL is required for public tournaments." }, { status: 400 });
+    }
+    if (isPublic && !maxPlayers) {
+        return json({ error: "Max players is required for public tournaments." }, { status: 400 });
     }
 
     let playerNames = [];
@@ -99,6 +104,7 @@ export const action = async ({ request }) => {
             createdById: userId || null,
             scheduledAt: scheduledAtStr ? new Date(scheduledAtStr) : null,
             maxPlayers: maxPlayers || null,
+            maxStandby: maxStandby || null,
             venueId: venueId || null,
             latitude: latitude || null,
             longitude: longitude || null,
@@ -413,6 +419,7 @@ export default function NewTournamentPublic() {
     const [scheduledHour, setScheduledHour] = useState(18);
     const [scheduledMinute, setScheduledMinute] = useState(0);
     const [maxPlayers, setMaxPlayers] = useState(courts * 4);
+    const [maxStandby, setMaxStandby] = useState(courts * 4);
     const [showDateWarning, setShowDateWarning] = useState(false);
     const [dateWarningAcknowledged, setDateWarningAcknowledged] = useState(false);
     const [pendingDate, setPendingDate] = useState("");
@@ -1131,8 +1138,57 @@ export default function NewTournamentPublic() {
                                         />
                                     </div>
                                 </div>
+                                {/* Live duration estimate */}
+                                {(() => {
+                                    const mp = maxPlayers || courts * 4;
+                                    const activeCourts = Math.min(courts, Math.floor(mp / 4));
+                                    const totalRounds = Math.max(0, mp - 1);
+                                    const mins = totalRounds * (pointsPerMatch * 0.5);
+                                    const h = Math.floor(mins / 60);
+                                    const m = Math.round(mins % 60);
+                                    const est = mins > 0 ? (h > 0 ? `${h}h ${m}m` : `${m}m`) : null;
+                                    return est ? (
+                                        <div style={{ padding: "10px 16px", borderTop: "1px solid var(--sep)", background: "rgba(28,79,53,0.04)" }}>
+                                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 2, fontWeight: 600 }}>Estimated Duration</div>
+                                            <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--green)" }}>⏱ {est}</div>
+                                            <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 2 }}>{mp} players · {activeCourts} courts · {pointsPerMatch} pts/match · {totalRounds} rounds</div>
+                                        </div>
+                                    ) : null;
+                                })()}
+                                {/* Standby (waitlist) max */}
+                                <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Standby (Waitlist)</div>
+                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                        {[4, 8, 12].map(n => (
+                                            <button key={n} type="button" onClick={() => setMaxStandby(n)}
+                                                style={{
+                                                    width: 52, height: 40, borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${maxStandby === n ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: maxStandby === n ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: maxStandby === n ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                                                    transition: "all 0.15s", fontFamily: "inherit",
+                                                }}
+                                            >{n}</button>
+                                        ))}
+                                        <input
+                                            type="number" min="0" max="100"
+                                            value={maxStandby}
+                                            onChange={(e) => setMaxStandby(parseInt(e.target.value, 10) || 0)}
+                                            style={{
+                                                width: 68, padding: "8px 10px",
+                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                                fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
+                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
+                                            }}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 6 }}>Players beyond the max join a waitlist. 0 = no waitlist.</div>
+                                </div>
                                 <input type="hidden" name="scheduledAt" value={scheduledAt} />
                                 <input type="hidden" name="maxPlayers" value={maxPlayers} />
+                                <input type="hidden" name="maxStandby" value={maxStandby} />
                             </>
                         )}
                     </div>

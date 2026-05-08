@@ -269,7 +269,7 @@ export default function PublicTournamentView() {
         if (isFinished) return;
         const interval = setInterval(() => {
             revalidate();
-        }, 30000);
+        }, 10000);
         return () => clearInterval(interval);
     }, [isFinished, revalidate]);
 
@@ -627,16 +627,24 @@ export default function PublicTournamentView() {
                                     )}
 
                                     <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                                        <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
-                                            <button style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.88rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                                                Share Results
-                                            </button>
-                                        </Link>
-                                        <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
-                                            <button style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.3)", fontWeight: 500, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}>
-                                                Full Awards
-                                            </button>
-                                        </Link>
+                                        {(isHost || tournament.resultsPublished) ? (
+                                            <>
+                                                <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
+                                                    <button style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.88rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                                        {isHost ? "Share Results" : "View Results"}
+                                                    </button>
+                                                </Link>
+                                                <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
+                                                    <button style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.3)", fontWeight: 500, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}>
+                                                        Full Awards
+                                                    </button>
+                                                </Link>
+                                            </>
+                                        ) : (
+                                            <div style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", fontSize: "0.85rem", border: "1px solid rgba(255,255,255,0.2)" }}>
+                                                ⏳ Results will be released by the host
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

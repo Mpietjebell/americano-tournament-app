@@ -1,6 +1,6 @@
 import { json } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
-import { useState } from "react";
+import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
+import { useState, useEffect } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
 import {
     buildTeams,
@@ -24,6 +24,13 @@ export const loader = async ({ params, request }) => {
 export default function TournamentOverview() {
     const { tournament, origin, isHost } = useLoaderData();
     const [copied, setCopied] = useState(false);
+    const { revalidate } = useRevalidator();
+
+    useEffect(() => {
+        if (tournament.status === "finished") return;
+        const interval = setInterval(() => revalidate(), 10000);
+        return () => clearInterval(interval);
+    }, [tournament.status, revalidate]);
 
     const courtNames = tournament.courtNames ? JSON.parse(tournament.courtNames) : [];
     const setupPlayers = tournament.setupPlayers || tournament.players;

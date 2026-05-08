@@ -99,7 +99,7 @@ export default function JoinCode() {
     return (
         <>
             <nav className="ios-nav">
-                <a href="/app/play/join" className="ios-nav-back">
+                <a href="https://nopabrand.com/pages/organise-americano" className="ios-nav-back">
                     <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Home
                 </a>

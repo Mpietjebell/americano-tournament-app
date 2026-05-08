@@ -1,14 +1,17 @@
 import { json } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
+import { useLoaderData, Link, useFetcher } from "@remix-run/react";
 import { useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { buildResultsShareText, buildTeamStandings, getCountryDisplay, getPlacementLabel, getTeamColor } from "../utils/tournament-helpers";
+import { getHostTokenFromRequest } from "../utils/host-auth.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
     const origin = new URL(request.url).origin;
-    return json({ tournament, origin });
+    const hostToken = getHostTokenFromRequest(request, params.id);
+    const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
+    return json({ tournament, origin, isHost });
 };
 
 export const meta = ({ data }) => {
@@ -48,8 +51,10 @@ function execCopy(text, onSuccess) {
 }
 
 export default function FinalLeaderboard() {
-    const { tournament, origin } = useLoaderData();
+    const { tournament, origin, isHost } = useLoaderData();
     const [copied, setCopied] = useState(false);
+    const [released, setReleased] = useState(tournament.resultsPublished);
+    const releaseFetcher = useFetcher();
 
     const players = tournament.players;
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";
@@ -77,6 +82,41 @@ export default function FinalLeaderboard() {
 
     const finish = () => { setCopied(true); setTimeout(() => setCopied(false), 2500); };
     const handleCopyLink = () => copyText(pageUrl, finish);
+
+    const handleNativeShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: `${tournament.name} — Results`, text: shareText, url: pageUrl });
+            } catch { /* user cancelled */ }
+        } else {
+            window.open(waUrl, "_blank");
+        }
+    };
+
+    const handleReleaseResults = () => {
+        releaseFetcher.submit({}, { method: "post", action: `/api/tournament/${tournament.id}/release-results` });
+        setReleased(true);
+    };
+
+    if (!isHost && !released) {
+        return (
+            <>
+                <nav className="ios-nav">
+                    <Link to={`/app/play/tournament/${tournament.id}`} className="ios-nav-back">
+                        <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Back
+                    </Link>
+                    <span className="ios-nav-brand">NOPA</span>
+                    <span style={{ minWidth: 60 }} />
+                </nav>
+                <div className="ios-page" style={{ maxWidth: 640, textAlign: "center", paddingTop: 80 }}>
+                    <div style={{ fontSize: "3rem", marginBottom: 16 }}>⏳</div>
+                    <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--label)", marginBottom: 8 }}>Results not released yet</div>
+                    <div style={{ fontSize: "0.88rem", color: "var(--label-3)" }}>The host hasn't released the results yet. Check back shortly!</div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -163,17 +203,40 @@ export default function FinalLeaderboard() {
                     Screenshot the card above to share as an image
                 </div>
 
+                {/* ── Host: Release Results button ── */}
+                {isHost && !released && (
+                    <button
+                        type="button"
+                        onClick={handleReleaseResults}
+                        style={{
+                            width: "100%", padding: "15px", borderRadius: "var(--r-card)", marginBottom: 12,
+                            background: "var(--gold)", border: "none", color: "white",
+                            fontWeight: 700, fontSize: "1rem", cursor: "pointer", fontFamily: "inherit",
+                        }}
+                    >
+                        🏆 Release Results to Players
+                    </button>
+                )}
+                {isHost && released && (
+                    <div style={{ textAlign: "center", fontSize: "0.82rem", color: "var(--green)", marginBottom: 12, fontWeight: 600 }}>
+                        ✅ Results are visible to all players
+                    </div>
+                )}
+
                 {/* ── Share actions ── */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
-                    <a href={waUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
-                        <div style={{
+                    <button
+                        type="button"
+                        onClick={handleNativeShare}
+                        style={{
                             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                             background: "#25D366", borderRadius: "var(--r-card)", padding: "15px 20px",
                             color: "white", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer",
-                        }}>
-                            Share on WhatsApp
-                        </div>
-                    </a>
+                            border: "none", fontFamily: "inherit", width: "100%",
+                        }}
+                    >
+                        📤 Share Results
+                    </button>
 
                     <button
                         type="button"
@@ -191,20 +254,6 @@ export default function FinalLeaderboard() {
                             <div style={{ fontSize: "0.72rem", color: "var(--label-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 280, marginTop: 2 }}>{pageUrl}</div>
                         </div>
                     </button>
-
-                    <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-sm)", padding: "10px 14px" }}>
-                        <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Tap to copy URL manually</div>
-                        <input
-                            readOnly
-                            value={pageUrl}
-                            onFocus={e => e.target.select()}
-                            style={{
-                                width: "100%", background: "var(--bg-card)", border: "1px solid var(--sep-opaque)",
-                                borderRadius: "var(--r-sm)", padding: "8px 10px", fontSize: "0.75rem",
-                                fontFamily: "monospace", color: "var(--green)", outline: "none",
-                            }}
-                        />
-                    </div>
                 </div>
 
                 {/* ── Full standings ── */}

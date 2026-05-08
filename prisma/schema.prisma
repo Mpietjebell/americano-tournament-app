@@ -86,6 +86,8 @@ model Tournament {
   price           Float?
   currency        String?   @default("EUR")
   city            String?
+  maxStandby      Int?
+  resultsPublished Boolean  @default(false)
   players         Player[]
   rounds          Round[]
   createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])
