@@ -101,6 +101,7 @@ function serialize(t) {
         id: t.id,
         name: t.name,
         logoUrl: t.logoUrl || null,
+        organizerName: t.organizerName || null,
         type: t.type,
         deuceMethod: t.deuceMethod,
         pointsPerMatch: t.pointsPerMatch,

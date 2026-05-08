@@ -317,3 +317,66 @@ export async function sendTournamentConfirmed({ participants, tournament }) {
         )
     );
 }
+
+export async function sendCancellationEmail({ participants, tournament }) {
+    const dateStr = tournament.scheduledAt
+        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "";
+
+    await Promise.all(participants.map(({ email, name }) =>
+        send({
+            to: email,
+            subject: `Cancelled — ${tournament.name}`,
+            html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        ${headerBanner("")}
+        <tr><td style="padding:28px 28px 16px">
+          <div style="font-size:1.3rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">Tournament cancelled 😔</div>
+          <div style="font-size:0.9rem;color:#666;line-height:1.6">Hi ${name || "player"}, <strong>${tournament.name}</strong> has been cancelled by the organiser.${dateStr ? ` It was scheduled for ${dateStr}.` : ""}</div>
+        </td></tr>
+        <tr><td style="padding:0 28px 28px">
+          <div style="font-size:0.82rem;color:#666;line-height:1.6;background:#fef2f2;border-left:3px solid #dc2626;padding:12px 14px;border-radius:0 8px 8px 0">
+            Your registration has been removed. We hope to see you at another NOPA tournament soon.
+          </div>
+        </td></tr>
+        <tr><td style="padding:16px 28px;border-top:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:0.72rem;color:#bbb">Powered by <strong style="color:#1C4F35">NOPA Padel</strong></div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+        })
+    ));
+}
+
+export async function sendForgotPasswordEmail({ to, tournament }) {
+    await send({
+        to,
+        subject: `Your host password — ${tournament.name}`,
+        html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        ${headerBanner("")}
+        <tr><td style="padding:28px 28px 16px">
+          <div style="font-size:1.2rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">Your host password</div>
+          <div style="font-size:0.9rem;color:#666;line-height:1.6;margin-bottom:16px">Here is the host password for <strong>${tournament.name}</strong>:</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#1C4F35;background:#f0fdf4;border:2px solid #bbf7d0;border-radius:10px;padding:16px;text-align:center;letter-spacing:0.05em">${tournament.hostPassword}</div>
+        </td></tr>
+        <tr><td style="padding:0 28px 28px">
+          <div style="font-size:0.78rem;color:#999;line-height:1.6">Keep this password safe. Use it to start the tournament, edit settings, or make changes on the tournament page.</div>
+        </td></tr>
+        <tr><td style="padding:16px 28px;border-top:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:0.72rem;color:#bbb">Powered by <strong style="color:#1C4F35">NOPA Padel</strong></div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+    });
+}

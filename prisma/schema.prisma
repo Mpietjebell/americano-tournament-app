@@ -88,6 +88,9 @@ model Tournament {
   city            String?
   maxStandby      Int?
   resultsPublished Boolean  @default(false)
+  organizerName   String?
+  hostPassword    String?
+  hostEmail       String?
   players         Player[]
   rounds          Round[]
   createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])

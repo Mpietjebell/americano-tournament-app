@@ -43,6 +43,9 @@ export const action = async ({ request }) => {
     const maxStandbyRaw = formData.get("maxStandby");
     const maxStandby = maxStandbyRaw ? parseInt(maxStandbyRaw, 10) || null : null;
     const duration = formData.get("duration") ? parseInt(formData.get("duration"), 10) : null;
+    const organizerName = formData.get("organizerName") || null;
+    const hostPassword = formData.get("hostPassword") || null;
+    const hostEmail = formData.get("hostEmail") || null;
     const latitude = formData.get("latitude") ? parseFloat(formData.get("latitude")) : null;
     const longitude = formData.get("longitude") ? parseFloat(formData.get("longitude")) : null;
     const isScheduled = !!scheduledAtStr;
@@ -112,6 +115,9 @@ export const action = async ({ request }) => {
             duration: duration || null,
             price: price || null,
             currency: currency || "EUR",
+            organizerName: organizerName || null,
+            hostPassword: hostPassword || null,
+            hostEmail: hostEmail || null,
             players: {
                 create: playerNames.map((p, index) => ({
                     name: p.name,
@@ -1343,6 +1349,43 @@ export default function NewTournamentPublic() {
                         {playerSlots.map((val, i) => (
                             <input key={i} type="hidden" name={`playerSlot_${i}`} value={val} />
                         ))}
+                    </div>
+
+                    {/* ── Organiser ── */}
+                    {sectionLabel("Organiser")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
+                                Your Name <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--label-3)", fontWeight: 400 }}>— visible to players</span>
+                            </div>
+                            <input
+                                name="organizerName"
+                                placeholder="e.g. Maikel"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                        </div>
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
+                                Host Password <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--label-3)", fontWeight: 400 }}>— remember this to start the match or make changes</span>
+                            </div>
+                            <input
+                                name="hostPassword"
+                                type="password"
+                                placeholder="Choose a password"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                        </div>
+                        <div style={{ padding: "14px 16px" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
+                                Your Email <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--label-3)", fontWeight: 400 }}>— for password recovery</span>
+                            </div>
+                            <input
+                                name="hostEmail"
+                                type="email"
+                                placeholder="you@example.com"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                        </div>
                     </div>
 
                     {/* ── Stats Preview ── */}
