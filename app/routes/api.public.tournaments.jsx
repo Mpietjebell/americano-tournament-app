@@ -110,6 +110,7 @@ function serialize(t) {
         country: t.country,
         city: t.city || t.venue?.city || null,
         googleMapsUrl: t.googleMapsUrl || null,
+        address: [t.city || t.venue?.city, t.country || t.venue?.country].filter(Boolean).join(", ") || null,
         price: t.price ?? null,
         currency: t.currency || "EUR",
         playerCount,

@@ -25,10 +25,12 @@ function getCurrency(cc) {
 
 function extractCoordsFromUrl(urlStr) {
     try {
-        const full = urlStr;
-        // @lat,lng,zoom
-        const m = full.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-        if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+        // !3d{lat}!4d{lng} — actual venue pin (most accurate)
+        const pinMatch = urlStr.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+        if (pinMatch) return { lat: parseFloat(pinMatch[1]), lng: parseFloat(pinMatch[2]) };
+        // @lat,lng,zoom — map view center (fallback)
+        const viewMatch = urlStr.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (viewMatch) return { lat: parseFloat(viewMatch[1]), lng: parseFloat(viewMatch[2]) };
         // ?q=lat,lng
         const u = new URL(urlStr);
         const q = u.searchParams.get("q") || u.searchParams.get("center");
@@ -101,12 +103,18 @@ export async function loader({ request }) {
 
     const country = geo?.country || null;
     const currency = getCurrency(country);
+    const city = geo?.city || null;
+    // URL place name is more accurate than reverse-geocode name
+    const venueName = placeName || geo?.venueName || null;
+    const addressParts = [city, country].filter(Boolean);
+    const address = addressParts.length ? addressParts.join(", ") : null;
 
     return json({
         ok: true,
-        venueName: geo?.venueName || placeName || null,
+        venueName,
         placeName: placeName || null,
-        city: geo?.city || null,
+        address,
+        city,
         district: geo?.district || null,
         country,
         currency,
