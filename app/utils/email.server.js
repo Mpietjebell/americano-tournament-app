@@ -1,5 +1,5 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM = "NOPA Padel <tournaments@nopabrand.com>";
+const FROM = "NOPA Padel <tournaments@tournaments.nopabrand.com>";
 
 async function send({ to, subject, html }) {
     try {

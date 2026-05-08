@@ -419,7 +419,7 @@ export default function NewTournamentPublic() {
     const [scheduledHour, setScheduledHour] = useState(18);
     const [scheduledMinute, setScheduledMinute] = useState(0);
     const [maxPlayers, setMaxPlayers] = useState(courts * 4);
-    const [maxStandby, setMaxStandby] = useState(courts * 4);
+    const [maxStandby, setMaxStandby] = useState(Math.ceil(courts * 4 * 0.1));
     const [showDateWarning, setShowDateWarning] = useState(false);
     const [dateWarningAcknowledged, setDateWarningAcknowledged] = useState(false);
     const [pendingDate, setPendingDate] = useState("");
@@ -549,6 +549,10 @@ export default function NewTournamentPublic() {
         });
     }, [courts]);
 
+    useEffect(() => {
+        setMaxStandby(Math.ceil(maxPlayers * 0.1));
+    }, [maxPlayers]);
+
     const minPlayers = getMinimumPlayers(selectedType);
     const playersForSubmission = playerSlots
         .filter(s => s.trim())
@@ -668,6 +672,34 @@ export default function NewTournamentPublic() {
                         <input type="hidden" name="logoUrl" value={logoDataUrl} />
                     </div>
 
+                    {/* ── Visibility ── */}
+                    {sectionLabel("Visibility")}
+                    <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+                        {[{ val: true, label: "Public", desc: "Listed on The Clubhouse" }, { val: false, label: "Private", desc: "Only via link/code" }].map(opt => (
+                            <label key={String(opt.val)} style={{
+                                display: "flex", alignItems: "center", gap: 12, cursor: "pointer", flex: 1,
+                                padding: "14px 16px", borderRadius: "var(--r-card)",
+                                border: `2px solid ${isPublic === opt.val ? "var(--green)" : "var(--sep-opaque)"}`,
+                                background: isPublic === opt.val ? "rgba(28,79,53,0.06)" : "var(--bg-card)",
+                                transition: "all 0.15s", boxShadow: "var(--shadow)",
+                            }}>
+                                <input
+                                    type="radio"
+                                    name="isPublicRadio"
+                                    value={String(opt.val)}
+                                    checked={isPublic === opt.val}
+                                    onChange={() => setIsPublic(opt.val)}
+                                    style={{ accentColor: "var(--green)", width: 16, height: 16, flexShrink: 0 }}
+                                />
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: "0.9rem", color: isPublic === opt.val ? "var(--green)" : "var(--label)" }}>{opt.label}</div>
+                                    <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 1 }}>{opt.desc}</div>
+                                </div>
+                            </label>
+                        ))}
+                        <input type="hidden" name="isPublic" value={String(isPublic)} />
+                    </div>
+
                     {/* ── Game Type ── */}
                     {sectionLabel("Game Type")}
 
@@ -754,6 +786,123 @@ export default function NewTournamentPublic() {
                     </div>
                     <input type="hidden" name="type" value={selectedType} />
 
+                    {/* ── Location / Venue ── */}
+                    {sectionLabel("Location")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)", position: "relative" }}>
+                        {/* Hidden inputs */}
+                        <input type="hidden" name="location" value={locationOverride || (selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery)} />
+                        <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
+                        <input type="hidden" name="latitude" value={lat || selectedVenue?.latitude || ""} />
+                        <input type="hidden" name="longitude" value={lng || selectedVenue?.longitude || ""} />
+
+                        {/* Google Maps URL — first, drives everything */}
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", background: "rgba(28,79,53,0.03)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600 }}>Google Maps URL</div>
+                                <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>Required for public</span>
+                                <span style={{ fontSize: "0.6rem", background: "rgba(28,79,53,0.1)", color: "var(--green)", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Auto-fills below</span>
+                            </div>
+                            <input
+                                value={googleMapsUrl}
+                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                                onBlur={handleMapsUrlBlur}
+                                placeholder="Paste a Google Maps link — fills venue, city, country, currency"
+                                type="url"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
+                            {mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 4 }}>Detecting location…</div>
+                            )}
+                            {mapsResult && !mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "var(--green)", marginTop: 4 }}>
+                                    Detected: <strong>{[mapsResult.venueName, mapsResult.city, mapsResult.country].filter(Boolean).join(", ")}</strong>
+                                    {mapsResult.currency !== "EUR" && ` · Currency set to ${mapsResult.currency}`}
+                                </div>
+                            )}
+                            {mapsError && !mapsLoading && (
+                                <div style={{ fontSize: "0.72rem", color: "#b91c1c", marginTop: 4 }}>{mapsError} — fill fields manually</div>
+                            )}
+                            {googleMapsUrl && (
+                                <a href={googleMapsUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "var(--green)", marginTop: 4, display: "block" }}>
+                                    ↗ Preview on Maps
+                                </a>
+                            )}
+                        </div>
+
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                Venue Name {mapsResult?.venueName && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
+                            </div>
+                            <input
+                                value={venueQuery}
+                                onChange={(e) => { setVenueQuery(e.target.value); setLocationOverride(e.target.value); setSelectedVenue(null); }}
+                                placeholder="e.g. Aspire Zone Padel Courts"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            {/* Autocomplete dropdown */}
+                            {venuePredictions.length > 0 && (
+                                <div style={{
+                                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
+                                    background: "white", borderRadius: "0 0 var(--r-card) var(--r-card)",
+                                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
+                                }}>
+                                    {venuePredictions.map((p) => (
+                                        <button
+                                            key={p.placeId}
+                                            type="button"
+                                            onMouseDown={() => handleVenueSelect(p)}
+                                            style={{
+                                                display: "block", width: "100%", textAlign: "left",
+                                                padding: "12px 16px", border: "none", background: "transparent",
+                                                cursor: "pointer", fontFamily: "inherit", borderBottom: "1px solid var(--sep)",
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = "rgba(28,79,53,0.06)"}
+                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                        >
+                                            <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--label)" }}>{p.mainText}</div>
+                                            <div style={{ fontSize: "0.74rem", color: "var(--label-3)", marginTop: 2 }}>{p.secondaryText}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {venueLoading && (
+                                <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", fontSize: "0.72rem", color: "var(--label-3)" }}>
+                                    Searching…
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                City / District {mapsResult?.city && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
+                            </div>
+                            <input
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                placeholder="e.g. Doha — Aspire Zone"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                            />
+                            <input type="hidden" name="city" value={city} />
+                        </div>
+
+                        <div style={{ padding: "14px 16px" }}>
+                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                Country {mapsResult?.country && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
+                            </div>
+                            <select
+                                value={country}
+                                onChange={(e) => setCountry(e.target.value)}
+                                name="country"
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
+                            >
+                                {COUNTRIES.map(c => (
+                                    <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
                     {/* ── Courts ── */}
                     {sectionLabel("Courts")}
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
@@ -804,39 +953,6 @@ export default function NewTournamentPublic() {
                         </div>
                     </div>
 
-                    {/* ── Players ── */}
-                    {sectionLabel("Players")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--sep)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--label)" }}>
-                                {playerSlots.filter(s => s.trim()).length} / {courts * 4} players
-                            </span>
-                            <button type="button" onClick={() => setPlayerSlots(Array(courts * 4).fill(""))}
-                                style={{ background: "none", border: "none", color: "var(--label-3)", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>
-                                Clear all
-                            </button>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 0 }}>
-                            {playerSlots.map((val, i) => (
-                                <div key={i} style={{ padding: "10px 14px", borderBottom: i < playerSlots.length - 2 ? "1px solid var(--sep)" : "none", borderRight: i % 2 === 0 ? "1px solid var(--sep)" : "none" }}>
-                                    <div style={{ fontSize: "0.52rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
-                                        Player {i + 1}
-                                    </div>
-                                    <input
-                                        value={val}
-                                        onChange={e => setPlayerSlots(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
-                                        placeholder="Name (optional)"
-                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.92rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <input type="hidden" name="slotCount" value={playerSlots.length} />
-                        {playerSlots.map((val, i) => (
-                            <input key={i} type="hidden" name={`playerSlot_${i}`} value={val} />
-                        ))}
-                    </div>
-
                     {/* ── Match Settings ── */}
                     {sectionLabel("Match Settings")}
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
@@ -845,21 +961,31 @@ export default function NewTournamentPublic() {
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                     <div style={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", fontWeight: 600, paddingLeft: 4 }}>
-                                        Standard
+                                        Points to win
                                     </div>
                                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                 {pointsOptions.map(p => (
                                     <button key={p} type="button" onClick={() => setPointsPerMatch(p)}
                                         style={{
                                             width: 58, height: 44, borderRadius: "var(--r-cell)",
-                                            border: `2px solid ${pointsPerMatch === p ? "var(--green)" : "var(--sep-opaque)"}`,
-                                            background: pointsPerMatch === p ? "var(--green)" : "var(--bg-grouped)",
-                                            color: pointsPerMatch === p ? "white" : "var(--label-2)",
+                                            border: `2px solid ${pointsPerMatch === p && deuceMethod !== "golden_point" ? "var(--green)" : "var(--sep-opaque)"}`,
+                                            background: pointsPerMatch === p && deuceMethod !== "golden_point" ? "var(--green)" : "var(--bg-grouped)",
+                                            color: pointsPerMatch === p && deuceMethod !== "golden_point" ? "white" : "var(--label-2)",
                                             fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
                                             transition: "all 0.15s", fontFamily: "inherit",
                                         }}
                                     >{p}</button>
                                 ))}
+                                <button type="button" onClick={() => setDeuceMethod(deuceMethod === "golden_point" ? "deuce" : "golden_point")}
+                                    style={{
+                                        padding: "0 14px", height: 44, borderRadius: "var(--r-cell)",
+                                        border: `2px solid ${deuceMethod === "golden_point" ? "var(--green)" : "var(--sep-opaque)"}`,
+                                        background: deuceMethod === "golden_point" ? "var(--green)" : "var(--bg-grouped)",
+                                        color: deuceMethod === "golden_point" ? "white" : "var(--label-2)",
+                                        fontWeight: 700, fontSize: "0.78rem", cursor: "pointer",
+                                        transition: "all 0.15s", fontFamily: "inherit", letterSpacing: "0.02em",
+                                    }}
+                                >Golden Point</button>
                                     </div>
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1158,23 +1284,26 @@ export default function NewTournamentPublic() {
                                 {/* Standby (waitlist) max */}
                                 <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
                                     <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Standby (Waitlist)</div>
-                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                        {[4, 8, 12].map(n => (
-                                            <button key={n} type="button" onClick={() => setMaxStandby(n)}
-                                                style={{
-                                                    width: 52, height: 40, borderRadius: "var(--r-cell)",
-                                                    border: `2px solid ${maxStandby === n ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                    background: maxStandby === n ? "var(--green)" : "var(--bg-grouped)",
-                                                    color: maxStandby === n ? "white" : "var(--label-2)",
-                                                    fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-                                                    transition: "all 0.15s", fontFamily: "inherit",
-                                                }}
-                                            >{n}</button>
-                                        ))}
+                                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                                        {[0.1, 0.25, 0.5, 1.0].map(pct => {
+                                            const n = Math.ceil(maxPlayers * pct);
+                                            return (
+                                                <button key={pct} type="button" onClick={() => setMaxStandby(n)}
+                                                    style={{
+                                                        padding: "0 12px", height: 40, borderRadius: "var(--r-cell)",
+                                                        border: `2px solid ${maxStandby === n ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                        background: maxStandby === n ? "var(--green)" : "var(--bg-grouped)",
+                                                        color: maxStandby === n ? "white" : "var(--label-2)",
+                                                        fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
+                                                        transition: "all 0.15s", fontFamily: "inherit",
+                                                    }}
+                                                >{Math.round(pct * 100)}% · {n}</button>
+                                            );
+                                        })}
                                         <input
-                                            type="number" min="0" max="100"
+                                            type="number" min="0" max={maxPlayers}
                                             value={maxStandby}
-                                            onChange={(e) => setMaxStandby(parseInt(e.target.value, 10) || 0)}
+                                            onChange={(e) => setMaxStandby(Math.min(parseInt(e.target.value, 10) || 0, maxPlayers))}
                                             style={{
                                                 width: 68, padding: "8px 10px",
                                                 border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
@@ -1184,7 +1313,7 @@ export default function NewTournamentPublic() {
                                             placeholder="0"
                                         />
                                     </div>
-                                    <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 6 }}>Players beyond the max join a waitlist. 0 = no waitlist.</div>
+                                    <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 6 }}>Auto-set to 10% of max players. Max = {maxPlayers}.</div>
                                 </div>
                                 <input type="hidden" name="scheduledAt" value={scheduledAt} />
                                 <input type="hidden" name="maxPlayers" value={maxPlayers} />
@@ -1193,149 +1322,37 @@ export default function NewTournamentPublic() {
                         )}
                     </div>
 
-                    {/* ── Visibility ── */}
-                    {sectionLabel("Visibility")}
-                    <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-                        {[{ val: true, label: "Public", desc: "Listed on The Clubhouse" }, { val: false, label: "Private", desc: "Only via link/code" }].map(opt => (
-                            <label key={String(opt.val)} style={{
-                                display: "flex", alignItems: "center", gap: 12, cursor: "pointer", flex: 1,
-                                padding: "14px 16px", borderRadius: "var(--r-card)",
-                                border: `2px solid ${isPublic === opt.val ? "var(--green)" : "var(--sep-opaque)"}`,
-                                background: isPublic === opt.val ? "rgba(28,79,53,0.06)" : "var(--bg-card)",
-                                transition: "all 0.15s", boxShadow: "var(--shadow)",
-                            }}>
-                                <input
-                                    type="radio"
-                                    name="isPublicRadio"
-                                    value={String(opt.val)}
-                                    checked={isPublic === opt.val}
-                                    onChange={() => setIsPublic(opt.val)}
-                                    style={{ accentColor: "var(--green)", width: 16, height: 16, flexShrink: 0 }}
-                                />
-                                <div>
-                                    <div style={{ fontWeight: 600, fontSize: "0.9rem", color: isPublic === opt.val ? "var(--green)" : "var(--label)" }}>{opt.label}</div>
-                                    <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 1 }}>{opt.desc}</div>
+                    {/* ── Players ── */}
+                    {sectionLabel("Players")}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--sep)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--label)" }}>
+                                {playerSlots.filter(s => s.trim()).length} / {courts * 4} players
+                            </span>
+                            <button type="button" onClick={() => setPlayerSlots(Array(courts * 4).fill(""))}
+                                style={{ background: "none", border: "none", color: "var(--label-3)", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>
+                                Clear all
+                            </button>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 0 }}>
+                            {playerSlots.map((val, i) => (
+                                <div key={i} style={{ padding: "10px 14px", borderBottom: i < playerSlots.length - 2 ? "1px solid var(--sep)" : "none", borderRight: i % 2 === 0 ? "1px solid var(--sep)" : "none" }}>
+                                    <div style={{ fontSize: "0.52rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
+                                        Player {i + 1}
+                                    </div>
+                                    <input
+                                        value={val}
+                                        onChange={e => setPlayerSlots(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                                        placeholder="Name (optional)"
+                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.92rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                                    />
                                 </div>
-                            </label>
+                            ))}
+                        </div>
+                        <input type="hidden" name="slotCount" value={playerSlots.length} />
+                        {playerSlots.map((val, i) => (
+                            <input key={i} type="hidden" name={`playerSlot_${i}`} value={val} />
                         ))}
-                        <input type="hidden" name="isPublic" value={String(isPublic)} />
-                    </div>
-
-                    {/* ── Location / Venue ── */}
-                    {sectionLabel("Location")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)", position: "relative" }}>
-                        {/* Hidden inputs */}
-                        <input type="hidden" name="location" value={locationOverride || (selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery)} />
-                        <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
-                        <input type="hidden" name="latitude" value={lat || selectedVenue?.latitude || ""} />
-                        <input type="hidden" name="longitude" value={lng || selectedVenue?.longitude || ""} />
-
-                        {/* Google Maps URL — first, drives everything */}
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", background: "rgba(28,79,53,0.03)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600 }}>Google Maps URL</div>
-                                <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>Required for public</span>
-                                <span style={{ fontSize: "0.6rem", background: "rgba(28,79,53,0.1)", color: "var(--green)", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Auto-fills below</span>
-                            </div>
-                            <input
-                                value={googleMapsUrl}
-                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                                onBlur={handleMapsUrlBlur}
-                                placeholder="Paste a Google Maps link — fills venue, city, country, currency"
-                                type="url"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                            />
-                            <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
-                            {mapsLoading && (
-                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 4 }}>Detecting location…</div>
-                            )}
-                            {mapsResult && !mapsLoading && (
-                                <div style={{ fontSize: "0.72rem", color: "var(--green)", marginTop: 4 }}>
-                                    Detected: <strong>{[mapsResult.venueName, mapsResult.city, mapsResult.country].filter(Boolean).join(", ")}</strong>
-                                    {mapsResult.currency !== "EUR" && ` · Currency set to ${mapsResult.currency}`}
-                                </div>
-                            )}
-                            {mapsError && !mapsLoading && (
-                                <div style={{ fontSize: "0.72rem", color: "#b91c1c", marginTop: 4 }}>{mapsError} — fill fields manually</div>
-                            )}
-                            {googleMapsUrl && (
-                                <a href={googleMapsUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.7rem", color: "var(--green)", marginTop: 4, display: "block" }}>
-                                    ↗ Preview on Maps
-                                </a>
-                            )}
-                        </div>
-
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                Venue Name {mapsResult?.venueName && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
-                            </div>
-                            <input
-                                value={venueQuery}
-                                onChange={(e) => { setVenueQuery(e.target.value); setLocationOverride(e.target.value); setSelectedVenue(null); }}
-                                placeholder="e.g. Aspire Zone Padel Courts"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                            />
-                            {/* Autocomplete dropdown */}
-                            {venuePredictions.length > 0 && (
-                                <div style={{
-                                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
-                                    background: "white", borderRadius: "0 0 var(--r-card) var(--r-card)",
-                                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
-                                }}>
-                                    {venuePredictions.map((p) => (
-                                        <button
-                                            key={p.placeId}
-                                            type="button"
-                                            onMouseDown={() => handleVenueSelect(p)}
-                                            style={{
-                                                display: "block", width: "100%", textAlign: "left",
-                                                padding: "12px 16px", border: "none", background: "transparent",
-                                                cursor: "pointer", fontFamily: "inherit", borderBottom: "1px solid var(--sep)",
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.background = "rgba(28,79,53,0.06)"}
-                                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                                        >
-                                            <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--label)" }}>{p.mainText}</div>
-                                            <div style={{ fontSize: "0.74rem", color: "var(--label-3)", marginTop: 2 }}>{p.secondaryText}</div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                            {venueLoading && (
-                                <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", fontSize: "0.72rem", color: "var(--label-3)" }}>
-                                    Searching…
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                City / District {mapsResult?.city && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
-                            </div>
-                            <input
-                                value={city}
-                                onChange={(e) => setCity(e.target.value)}
-                                placeholder="e.g. Doha — Aspire Zone"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
-                            />
-                            <input type="hidden" name="city" value={city} />
-                        </div>
-
-                        <div style={{ padding: "14px 16px" }}>
-                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
-                                Country {mapsResult?.country && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
-                            </div>
-                            <select
-                                value={country}
-                                onChange={(e) => setCountry(e.target.value)}
-                                name="country"
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
-                            >
-                                {COUNTRIES.map(c => (
-                                    <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
 
                     {/* ── Stats Preview ── */}
