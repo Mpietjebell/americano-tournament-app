@@ -99,6 +99,7 @@ function serialize(t) {
     return {
         id: t.id,
         name: t.name,
+        logoUrl: t.logoUrl || null,
         type: t.type,
         deuceMethod: t.deuceMethod,
         pointsPerMatch: t.pointsPerMatch,
