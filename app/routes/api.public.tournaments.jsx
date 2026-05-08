@@ -21,7 +21,7 @@ export async function loader({ request }) {
                 scheduledAt: { gt: now },
             },
             include: {
-                players: { select: { id: true } },
+                players: { select: { id: true, name: true } },
                 participants: { select: { id: true } },
                 venue: true,
             },
@@ -105,6 +105,7 @@ function serialize(t) {
         price: t.price ?? null,
         currency: t.currency || "EUR",
         playerCount: t.players.length,
+        playerNames: t.players.map(p => p.name),
         maxPlayers: t.maxPlayers,
         durationEstimate: estimateDuration(t),
         distanceKm: t._dist,

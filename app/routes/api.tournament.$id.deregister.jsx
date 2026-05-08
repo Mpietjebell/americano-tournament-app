@@ -1,6 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import prisma from "../db.server";
 import { sendStandbyPromoted } from "../utils/email.server";
+import { corsJson, handleOptions } from "../utils/cors.server";
 
 export async function action({ request, params }) {
     if (request.method !== "POST") {
@@ -72,6 +73,14 @@ export async function action({ request, params }) {
         }
     }
 
+    // For cross-origin requests (from Shopify), return JSON instead of redirect
+    const origin = request.headers.get("Origin") || "";
+    const isCrossOrigin = origin.includes("nopabrand.com") || origin.includes("shopify");
+
+    if (isCrossOrigin) {
+        return corsJson(request, { ok: true, message: "You have been deregistered." });
+    }
+
     // Clear player cookie and redirect to join page
     const cookieName = `nopa_player_${params.id}`;
     return redirect(`/app/play/join/${tournament.joinCode}`, {
@@ -81,6 +90,6 @@ export async function action({ request, params }) {
     });
 }
 
-export async function loader() {
-    return json({ error: "POST only" }, { status: 405 });
+export async function loader({ request }) {
+    return handleOptions(request) ?? json({ error: "POST only" }, { status: 405 });
 }

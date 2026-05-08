@@ -165,6 +165,7 @@ export async function action({ request, params }) {
         ok: true,
         position,
         max: tournament.maxPlayers,
+        playerId: player.id,
         message: tournament.maxPlayers
             ? `You're in — spot ${position} of ${tournament.maxPlayers}. Check your email for confirmation!`
             : "You're in! Check your email for confirmation.",
