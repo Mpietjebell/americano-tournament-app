@@ -1,5 +1,51 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM = "NOPA Padel <tournaments@tournaments.nopabrand.com>";
+const LOGO_URL = "https://nopabrand.com/cdn/shop/files/NOPA_Logo_clear_background.png";
+const AD_IMG_URL = "https://nopabrand.com/cdn/shop/collections/IMG_8059.jpg";
+const SHOP_URL = "https://nopabrand.com/collections/racquets";
+const APP_BASE = "https://americano-tournament-app-production.up.railway.app";
+
+function calendarButtons(tournament) {
+    if (!tournament.scheduledAt) return "";
+    const start = new Date(tournament.scheduledAt);
+    const end = new Date(start.getTime() + (tournament.duration || 120) * 60000);
+    const fmt = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const venueName = tournament.venue?.name || (tournament.location && !tournament.location.startsWith("http") ? tournament.location : "") || "";
+    const city = tournament.city || "";
+    const loc = encodeURIComponent([venueName, city].filter(Boolean).join(", "));
+    const title = encodeURIComponent(tournament.name);
+    const desc = encodeURIComponent(`NOPA Padel Tournament — nopabrand.com`);
+
+    const gcal = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${desc}&location=${loc}`;
+    const outlook = `https://outlook.live.com/calendar/0/action/compose?subject=${title}&startdt=${start.toISOString()}&enddt=${end.toISOString()}&location=${loc}&body=${desc}`;
+    const ics = `${APP_BASE}/api/tournament/${tournament.id}/ics`;
+
+    return `
+    <tr><td style="padding:0 28px 20px">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:#999;font-weight:700;margin-bottom:10px">Add to calendar</div>
+      <table cellpadding="0" cellspacing="0"><tr>
+        <td style="padding-right:8px"><a href="${gcal}" style="display:inline-block;padding:9px 14px;background:#1C4F35;color:white;border-radius:8px;font-size:0.78rem;font-weight:700;text-decoration:none;letter-spacing:0.03em">Google Calendar</a></td>
+        <td style="padding-right:8px"><a href="${ics}" style="display:inline-block;padding:9px 14px;background:#333;color:white;border-radius:8px;font-size:0.78rem;font-weight:700;text-decoration:none;letter-spacing:0.03em">Apple / Outlook</a></td>
+      </tr></table>
+    </td></tr>`;
+}
+
+function adBanner() {
+    return `
+    <tr><td style="padding:0 28px 28px">
+      <a href="${SHOP_URL}" style="display:block;text-decoration:none;border-radius:12px;overflow:hidden;position:relative">
+        <img src="${AD_IMG_URL}" width="100%" alt="NOPA Padel Racquets" style="display:block;width:100%;border-radius:12px" />
+        <div style="text-align:center;padding:10px 0 0;font-size:0.72rem;color:#999;letter-spacing:0.06em;text-transform:uppercase">Shop NOPA Racquets →</div>
+      </a>
+    </td></tr>`;
+}
+
+function headerBanner(subtext) {
+    return `<tr><td style="background:#1C4F35;padding:24px 28px 20px;text-align:center">
+      <img src="${LOGO_URL}" width="90" alt="NOPA" style="display:block;margin:0 auto 8px;height:36px;width:auto" />
+      ${subtext ? `<div style="font-size:0.72rem;color:rgba(255,255,255,0.65);letter-spacing:0.1em;text-transform:uppercase">${subtext}</div>` : ""}
+    </td></tr>`
+}
 
 async function send({ to, subject, html }) {
     try {
@@ -45,10 +91,7 @@ export async function sendSignupConfirmation({ to, name, tournament, position })
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
-        <tr><td style="background:#1C4F35;padding:28px 28px 24px;text-align:center">
-          <div style="font-size:1.5rem;font-weight:800;color:white;letter-spacing:0.15em">NOPA</div>
-          <div style="font-size:0.78rem;color:rgba(255,255,255,0.7);margin-top:4px;letter-spacing:0.1em;text-transform:uppercase">Padel Tournaments</div>
-        </td></tr>
+        ${headerBanner("Padel Tournaments")}
         <tr><td style="padding:28px 28px 8px">
           <div style="font-size:1.3rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">You're in, ${name}! 🎾</div>
           <div style="font-size:0.9rem;color:#666;line-height:1.6">${spotsLine}</div>
@@ -72,11 +115,13 @@ export async function sendSignupConfirmation({ to, name, tournament, position })
             </td></tr>` : ""}
           </table>
         </td></tr>
-        <tr><td style="padding:8px 28px 28px">
+        ${calendarButtons(tournament)}
+        <tr><td style="padding:0 28px 20px">
           <div style="font-size:0.82rem;color:#999;line-height:1.6;background:#fff7ed;border-left:3px solid #f59e0b;padding:12px 14px;border-radius:0 8px 8px 0">
             ⚠️ By signing up you commit to showing up. No-shows will be banned from future NOPA tournaments.
           </div>
         </td></tr>
+        ${adBanner()}
         <tr><td style="padding:16px 28px;border-top:1px solid #f0f0f0;text-align:center">
           <div style="font-size:0.72rem;color:#bbb">Powered by <strong style="color:#1C4F35">NOPA Padel</strong></div>
         </td></tr>
@@ -107,9 +152,7 @@ export async function sendStandbyPromoted({ to, name, tournament }) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden">
-        <tr><td style="background:#1C4F35;padding:24px;text-align:center">
-          <div style="font-size:1.4rem;font-weight:800;color:white;letter-spacing:0.15em">NOPA</div>
-        </td></tr>
+        ${headerBanner("")}
         <tr><td style="padding:24px">
           <div style="font-size:1.2rem;font-weight:700;color:#1a1a1a;margin-bottom:8px">Good news, ${name}!</div>
           <p style="font-size:0.9rem;color:#666;line-height:1.6">A spot opened up in <strong>${tournament.name}</strong> and you're first on the standby list — you're now confirmed!</p>
@@ -136,9 +179,7 @@ export async function sendStandbyHostNotification({ to, tournament, standbyCount
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden">
-        <tr><td style="background:#1C4F35;padding:24px;text-align:center">
-          <div style="font-size:1.4rem;font-weight:800;color:white;letter-spacing:0.15em">NOPA</div>
-        </td></tr>
+        ${headerBanner("")}
         <tr><td style="padding:24px">
           <div style="font-size:1.2rem;font-weight:700;color:#1a1a1a;margin-bottom:8px">Standby list update</div>
           <p style="font-size:0.9rem;color:#666;line-height:1.6"><strong>${standbyCount} players</strong> are now on the standby list for <strong>${tournament.name}</strong>. Consider adding more slots or letting them know.</p>
@@ -239,10 +280,7 @@ export async function sendTournamentConfirmed({ participants, tournament }) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
-        <tr><td style="background:#1C4F35;padding:28px 28px 24px;text-align:center">
-          <div style="font-size:1.5rem;font-weight:800;color:white;letter-spacing:0.15em">NOPA</div>
-          <div style="font-size:0.78rem;color:rgba(255,255,255,0.7);margin-top:4px;letter-spacing:0.1em;text-transform:uppercase">Padel Tournaments</div>
-        </td></tr>
+        ${headerBanner("Padel Tournaments")}
         <tr><td style="padding:28px 28px 8px">
           <div style="font-size:1.3rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">It's on, ${name || "player"}! 🙌</div>
           <div style="font-size:0.9rem;color:#666;line-height:1.6"><strong>${tournament.name}</strong> is now full and confirmed. Get ready to play!</div>
