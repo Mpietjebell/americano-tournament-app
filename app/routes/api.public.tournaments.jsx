@@ -90,12 +90,13 @@ function estimateDuration(t) {
 function serialize(t) {
     const activeParticipants = t.participants.filter(p => p.standbyPosition == null);
     const standbyParticipants = t.participants.filter(p => p.standbyPosition != null);
-    // Fall back to players array if no participants yet (host-only tournament)
-    const playerCount = t.participants.length > 0 ? activeParticipants.length : t.players.length;
+    // Preset players + public sign-ups both count
+    const playerCount = t.players.length + activeParticipants.length;
     const standbyCount = standbyParticipants.length;
-    const playerNames = t.participants.length > 0
-        ? activeParticipants.map(p => p.name).filter(Boolean)
-        : t.players.map(p => p.name);
+    const playerNames = [
+        ...t.players.map(p => p.name),
+        ...activeParticipants.map(p => p.name),
+    ].filter(Boolean);
     return {
         id: t.id,
         name: t.name,
