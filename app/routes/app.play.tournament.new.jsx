@@ -398,7 +398,7 @@ export default function NewTournamentPublic() {
     const [city, setCity] = useState("");
     const [locationOverride, setLocationOverride] = useState("");
     const [infoModal, setInfoModal] = useState(null);
-    const [deuceMethod, setDeuceMethod] = useState("deuce");
+    const [deuceMethod, setDeuceMethod] = useState("golden_point");
     const [isPublic, setIsPublic] = useState(true);
     const [courtNames, setCourtNames] = useState(["Court 1", "Court 2"]);
     const [country, setCountry] = useState("NL");
@@ -700,6 +700,282 @@ export default function NewTournamentPublic() {
                         <input type="hidden" name="isPublic" value={String(isPublic)} />
                     </div>
 
+                    {/* ── Schedule ── */}
+                    {sectionLabel("Schedule")}
+
+                    {/* Date warning modal */}
+                    {showDateWarning && (
+                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}>
+                            <div style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}>
+                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
+                                <div style={{ fontSize: "1.5rem", marginBottom: 12, textAlign: "center" }}>📅</div>
+                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10, textAlign: "center" }}>Before you confirm this date</div>
+                                <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-cell)", padding: "14px 16px", marginBottom: 16 }}>
+                                    <p style={{ fontSize: "0.88rem", color: "#92400e", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                                        ⚠️ Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
+                                    </p>
+                                </div>
+                                <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "12px 14px", marginBottom: 20 }}>
+                                    <p style={{ fontSize: "0.82rem", color: "var(--label-3)", lineHeight: 1.6, margin: 0 }}>
+                                        This system does <strong>not</strong> check for public holidays, national days, or local events that may affect venue availability.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={confirmDateWarning}
+                                    style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}
+                                >
+                                    Yes, I've confirmed with the venue
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowDateWarning(false); setPendingDate(""); }}
+                                    style={{ width: "100%", padding: "12px", borderRadius: "var(--r-card)", background: "transparent", color: "var(--label-3)", border: "1px solid var(--sep)", fontWeight: 500, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}
+                                >
+                                    Let me check first
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        {/* Toggle */}
+                        <div style={{ padding: "14px 16px", borderBottom: isScheduled ? "1px solid var(--sep)" : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div>
+                                <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--label)" }}>Schedule for later</div>
+                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 2 }}>Public sign-ups open until the event is full or it starts</div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsScheduled(!isScheduled)}
+                                style={{
+                                    width: 44, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
+                                    background: isScheduled ? "var(--green)" : "var(--sep-opaque)",
+                                    position: "relative", transition: "background 0.2s", flexShrink: 0,
+                                }}
+                            >
+                                <span style={{
+                                    position: "absolute", top: 3, left: isScheduled ? 21 : 3,
+                                    width: 20, height: 20, borderRadius: "50%", background: "white",
+                                    transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                }} />
+                            </button>
+                        </div>
+
+                        {isScheduled && (
+                            <>
+                                {/* ── Date ── */}
+                                <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 8, fontWeight: 600 }}>Date</div>
+                                    <input
+                                        type="date"
+                                        value={scheduledDate}
+                                        onChange={(e) => handleScheduledDateChange(e.target.value)}
+                                        required={isScheduled}
+                                        min={new Date(Date.now() + 3600000).toISOString().slice(0, 10)}
+                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
+                                    />
+                                </div>
+
+                                {/* ── Time: hour picker ── */}
+                                <div style={{ padding: "14px 0 0", borderBottom: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600, paddingLeft: 16 }}>
+                                        Start Time
+                                        {scheduledDate && (
+                                            <span style={{ float: "right", paddingRight: 16, color: "var(--green)", textTransform: "none", letterSpacing: 0, fontWeight: 700, fontSize: "0.78rem" }}>
+                                                {String(scheduledHour).padStart(2, "0")}:{String(scheduledMinute).padStart(2, "0")}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {/* Hour scroll */}
+                                    <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "0 16px 12px", scrollbarWidth: "none" }}>
+                                        {Array.from({ length: 18 }, (_, i) => i + 6).map(h => (
+                                            <button
+                                                key={h}
+                                                type="button"
+                                                onClick={() => setScheduledHour(h)}
+                                                style={{
+                                                    flexShrink: 0,
+                                                    width: 52, height: 44,
+                                                    borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${scheduledHour === h ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: scheduledHour === h ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: scheduledHour === h ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.88rem", cursor: "pointer",
+                                                    fontFamily: "inherit", transition: "all 0.15s",
+                                                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0,
+                                                }}
+                                            >
+                                                <span style={{ fontSize: "0.78rem", lineHeight: 1 }}>{h < 12 ? h : h === 12 ? 12 : h - 12}</span>
+                                                <span style={{ fontSize: "0.5rem", opacity: 0.7, lineHeight: 1.4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{h < 12 ? "AM" : "PM"}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {/* Minute selector */}
+                                    <div style={{ display: "flex", gap: 8, padding: "0 16px 14px" }}>
+                                        {[0, 15, 30, 45].map(m => (
+                                            <button
+                                                key={m}
+                                                type="button"
+                                                onClick={() => setScheduledMinute(m)}
+                                                style={{
+                                                    flex: 1, height: 38,
+                                                    borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${scheduledMinute === m ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: scheduledMinute === m ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: scheduledMinute === m ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.88rem", cursor: "pointer",
+                                                    fontFamily: "inherit", transition: "all 0.15s",
+                                                }}
+                                            >
+                                                :{String(m).padStart(2, "0")}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Duration */}
+                                <div style={{ padding: "0 16px 14px", borderBottom: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600 }}>
+                                        Est. Duration
+                                    </div>
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                        {[60, 90, 120, 150, 180].map(d => (
+                                            <button
+                                                key={d}
+                                                type="button"
+                                                onClick={() => setDuration(d)}
+                                                style={{
+                                                    padding: "8px 14px", borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${duration === d ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: duration === d ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: duration === d ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.85rem", cursor: "pointer",
+                                                    fontFamily: "inherit", transition: "all 0.15s",
+                                                }}
+                                            >{d} min</button>
+                                        ))}
+                                    </div>
+                                    <input type="hidden" name="duration" value={duration} />
+                                </div>
+
+                                {/* Summary line */}
+                                {scheduledDate && (
+                                    <div style={{ padding: "10px 16px", background: "rgba(28,79,53,0.05)", borderBottom: "1px solid var(--sep)", display: "flex", alignItems: "center", gap: 8 }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        <span style={{ fontSize: "0.82rem", color: "var(--green)", fontWeight: 600 }}>{fmtScheduledDisplay()}</span>
+                                    </div>
+                                )}
+                                <div style={{ padding: "14px 16px" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Players</div>
+                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                        {[courts * 4, courts * 4 + 4, courts * 4 + 8].map(n => (
+                                            <button key={n} type="button" onClick={() => setMaxPlayers(n)}
+                                                style={{
+                                                    width: 52, height: 40, borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${maxPlayers === n ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: maxPlayers === n ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: maxPlayers === n ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                                                    transition: "all 0.15s", fontFamily: "inherit",
+                                                }}
+                                            >{n}</button>
+                                        ))}
+                                        <input
+                                            type="number" min="4" max="200"
+                                            value={maxPlayers}
+                                            onChange={(e) => setMaxPlayers(parseInt(e.target.value, 10) || courts * 4)}
+                                            style={{
+                                                width: 68, padding: "8px 10px",
+                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                                fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
+                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
+                                            }}
+                                            placeholder="Custom"
+                                        />
+                                    </div>
+                                </div>
+                                <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Entry Price</div>
+                                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                                        <select
+                                            value={currency}
+                                            onChange={(e) => setCurrency(e.target.value)}
+                                            name="currency"
+                                            style={{ border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label-3)", outline: "none", cursor: "pointer", flexShrink: 0, fontWeight: 600 }}
+                                        >
+                                            {["EUR","USD","GBP","QAR","AED","SAR","CHF","SEK","NOK","DKK"].map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="number" min="0" step="0.01"
+                                            value={price}
+                                            onChange={(e) => setPrice(e.target.value)}
+                                            name="price"
+                                            placeholder="0 = free"
+                                            style={{ flex: 1, border: "none", background: "transparent", fontSize: "1.1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", fontWeight: 600 }}
+                                        />
+                                    </div>
+                                </div>
+                                {/* Live duration estimate */}
+                                {(() => {
+                                    const mp = maxPlayers || courts * 4;
+                                    const activeCourts = Math.min(courts, Math.floor(mp / 4));
+                                    const totalRounds = Math.max(0, mp - 1);
+                                    const mins = totalRounds * (pointsPerMatch * 0.5);
+                                    const h = Math.floor(mins / 60);
+                                    const m = Math.round(mins % 60);
+                                    const est = mins > 0 ? (h > 0 ? `${h}h ${m}m` : `${m}m`) : null;
+                                    return est ? (
+                                        <div style={{ padding: "10px 16px", borderTop: "1px solid var(--sep)", background: "rgba(28,79,53,0.04)" }}>
+                                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 2, fontWeight: 600 }}>Estimated Duration</div>
+                                            <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--green)" }}>⏱ {est}</div>
+                                            <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 2 }}>{mp} players · {activeCourts} courts · {pointsPerMatch} pts/match · {totalRounds} rounds</div>
+                                        </div>
+                                    ) : null;
+                                })()}
+                                {/* Standby (waitlist) max */}
+                                <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
+                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Standby (Waitlist)</div>
+                                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                                        {[0.1, 0.25, 0.5, 1.0].map(pct => {
+                                            const n = Math.ceil(maxPlayers * pct);
+                                            return (
+                                                <button key={pct} type="button" onClick={() => setMaxStandby(n)}
+                                                    style={{
+                                                        width: 52, height: 40, borderRadius: "var(--r-cell)",
+                                                        border: `2px solid ${maxStandby === n ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                        background: maxStandby === n ? "var(--green)" : "var(--bg-grouped)",
+                                                        color: maxStandby === n ? "white" : "var(--label-2)",
+                                                        fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                                                        transition: "all 0.15s", fontFamily: "inherit",
+                                                    }}
+                                                >{n}</button>
+                                            );
+                                        })}
+                                        <input
+                                            type="number" min="0" max={maxPlayers}
+                                            value={maxStandby}
+                                            onChange={(e) => setMaxStandby(Math.min(parseInt(e.target.value, 10) || 0, maxPlayers))}
+                                            style={{
+                                                width: 68, padding: "8px 10px",
+                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                                fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
+                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
+                                            }}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 6 }}>Auto-set to 10% of max players. Max = {maxPlayers}.</div>
+                                </div>
+                                <input type="hidden" name="scheduledAt" value={scheduledAt} />
+                                <input type="hidden" name="maxPlayers" value={maxPlayers} />
+                                <input type="hidden" name="maxStandby" value={maxStandby} />
+                            </>
+                        )}
+                    </div>
+
                     {/* ── Game Type ── */}
                     {sectionLabel("Game Type")}
 
@@ -968,24 +1244,14 @@ export default function NewTournamentPublic() {
                                     <button key={p} type="button" onClick={() => setPointsPerMatch(p)}
                                         style={{
                                             width: 58, height: 44, borderRadius: "var(--r-cell)",
-                                            border: `2px solid ${pointsPerMatch === p && deuceMethod !== "golden_point" ? "var(--green)" : "var(--sep-opaque)"}`,
-                                            background: pointsPerMatch === p && deuceMethod !== "golden_point" ? "var(--green)" : "var(--bg-grouped)",
-                                            color: pointsPerMatch === p && deuceMethod !== "golden_point" ? "white" : "var(--label-2)",
+                                            border: `2px solid ${pointsPerMatch === p ? "var(--green)" : "var(--sep-opaque)"}`,
+                                            background: pointsPerMatch === p ? "var(--green)" : "var(--bg-grouped)",
+                                            color: pointsPerMatch === p ? "white" : "var(--label-2)",
                                             fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
                                             transition: "all 0.15s", fontFamily: "inherit",
                                         }}
                                     >{p}</button>
                                 ))}
-                                <button type="button" onClick={() => setDeuceMethod(deuceMethod === "golden_point" ? "deuce" : "golden_point")}
-                                    style={{
-                                        padding: "0 14px", height: 44, borderRadius: "var(--r-cell)",
-                                        border: `2px solid ${deuceMethod === "golden_point" ? "var(--green)" : "var(--sep-opaque)"}`,
-                                        background: deuceMethod === "golden_point" ? "var(--green)" : "var(--bg-grouped)",
-                                        color: deuceMethod === "golden_point" ? "white" : "var(--label-2)",
-                                        fontWeight: 700, fontSize: "0.78rem", cursor: "pointer",
-                                        transition: "all 0.15s", fontFamily: "inherit", letterSpacing: "0.02em",
-                                    }}
-                                >Golden Point</button>
                                     </div>
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1044,282 +1310,6 @@ export default function NewTournamentPublic() {
                             </div>
                             <input type="hidden" name="deuceMethod" value={deuceMethod} />
                         </div>
-                    </div>
-
-                    {/* ── Schedule ── */}
-                    {sectionLabel("Schedule")}
-
-                    {/* Date warning modal */}
-                    {showDateWarning && (
-                        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}>
-                            <div style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}>
-                                <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
-                                <div style={{ fontSize: "1.5rem", marginBottom: 12, textAlign: "center" }}>📅</div>
-                                <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10, textAlign: "center" }}>Before you confirm this date</div>
-                                <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-cell)", padding: "14px 16px", marginBottom: 16 }}>
-                                    <p style={{ fontSize: "0.88rem", color: "#92400e", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-                                        ⚠️ Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
-                                    </p>
-                                </div>
-                                <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "12px 14px", marginBottom: 20 }}>
-                                    <p style={{ fontSize: "0.82rem", color: "var(--label-3)", lineHeight: 1.6, margin: 0 }}>
-                                        This system does <strong>not</strong> check for public holidays, national days, or local events that may affect venue availability.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={confirmDateWarning}
-                                    style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}
-                                >
-                                    Yes, I've confirmed with the venue
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setShowDateWarning(false); setPendingDate(""); }}
-                                    style={{ width: "100%", padding: "12px", borderRadius: "var(--r-card)", background: "transparent", color: "var(--label-3)", border: "1px solid var(--sep)", fontWeight: 500, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}
-                                >
-                                    Let me check first
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                        {/* Toggle */}
-                        <div style={{ padding: "14px 16px", borderBottom: isScheduled ? "1px solid var(--sep)" : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div>
-                                <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--label)" }}>Schedule for later</div>
-                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 2 }}>Public sign-ups open until the event is full or it starts</div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setIsScheduled(!isScheduled)}
-                                style={{
-                                    width: 44, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
-                                    background: isScheduled ? "var(--green)" : "var(--sep-opaque)",
-                                    position: "relative", transition: "background 0.2s", flexShrink: 0,
-                                }}
-                            >
-                                <span style={{
-                                    position: "absolute", top: 3, left: isScheduled ? 21 : 3,
-                                    width: 20, height: 20, borderRadius: "50%", background: "white",
-                                    transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-                                }} />
-                            </button>
-                        </div>
-
-                        {isScheduled && (
-                            <>
-                                {/* ── Date ── */}
-                                <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
-                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 8, fontWeight: 600 }}>Date</div>
-                                    <input
-                                        type="date"
-                                        value={scheduledDate}
-                                        onChange={(e) => handleScheduledDateChange(e.target.value)}
-                                        required={isScheduled}
-                                        min={new Date(Date.now() + 3600000).toISOString().slice(0, 10)}
-                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
-                                    />
-                                </div>
-
-                                {/* ── Time: hour picker ── */}
-                                <div style={{ padding: "14px 0 0", borderBottom: "1px solid var(--sep)" }}>
-                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600, paddingLeft: 16 }}>
-                                        Start Time
-                                        {scheduledDate && (
-                                            <span style={{ float: "right", paddingRight: 16, color: "var(--green)", textTransform: "none", letterSpacing: 0, fontWeight: 700, fontSize: "0.78rem" }}>
-                                                {String(scheduledHour).padStart(2, "0")}:{String(scheduledMinute).padStart(2, "0")}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {/* Hour scroll */}
-                                    <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "0 16px 12px", scrollbarWidth: "none" }}>
-                                        {Array.from({ length: 18 }, (_, i) => i + 6).map(h => (
-                                            <button
-                                                key={h}
-                                                type="button"
-                                                onClick={() => setScheduledHour(h)}
-                                                style={{
-                                                    flexShrink: 0,
-                                                    width: 52, height: 44,
-                                                    borderRadius: "var(--r-cell)",
-                                                    border: `2px solid ${scheduledHour === h ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                    background: scheduledHour === h ? "var(--green)" : "var(--bg-grouped)",
-                                                    color: scheduledHour === h ? "white" : "var(--label-2)",
-                                                    fontWeight: 700, fontSize: "0.88rem", cursor: "pointer",
-                                                    fontFamily: "inherit", transition: "all 0.15s",
-                                                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0,
-                                                }}
-                                            >
-                                                <span style={{ fontSize: "0.78rem", lineHeight: 1 }}>{h < 12 ? h : h === 12 ? 12 : h - 12}</span>
-                                                <span style={{ fontSize: "0.5rem", opacity: 0.7, lineHeight: 1.4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{h < 12 ? "AM" : "PM"}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {/* Minute selector */}
-                                    <div style={{ display: "flex", gap: 8, padding: "0 16px 14px" }}>
-                                        {[0, 15, 30, 45].map(m => (
-                                            <button
-                                                key={m}
-                                                type="button"
-                                                onClick={() => setScheduledMinute(m)}
-                                                style={{
-                                                    flex: 1, height: 38,
-                                                    borderRadius: "var(--r-cell)",
-                                                    border: `2px solid ${scheduledMinute === m ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                    background: scheduledMinute === m ? "var(--green)" : "var(--bg-grouped)",
-                                                    color: scheduledMinute === m ? "white" : "var(--label-2)",
-                                                    fontWeight: 700, fontSize: "0.88rem", cursor: "pointer",
-                                                    fontFamily: "inherit", transition: "all 0.15s",
-                                                }}
-                                            >
-                                                :{String(m).padStart(2, "0")}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Duration */}
-                                <div style={{ padding: "0 16px 14px", borderBottom: "1px solid var(--sep)" }}>
-                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600 }}>
-                                        Est. Duration
-                                    </div>
-                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                        {[60, 90, 120, 150, 180].map(d => (
-                                            <button
-                                                key={d}
-                                                type="button"
-                                                onClick={() => setDuration(d)}
-                                                style={{
-                                                    padding: "8px 14px", borderRadius: "var(--r-cell)",
-                                                    border: `2px solid ${duration === d ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                    background: duration === d ? "var(--green)" : "var(--bg-grouped)",
-                                                    color: duration === d ? "white" : "var(--label-2)",
-                                                    fontWeight: 700, fontSize: "0.85rem", cursor: "pointer",
-                                                    fontFamily: "inherit", transition: "all 0.15s",
-                                                }}
-                                            >{d} min</button>
-                                        ))}
-                                    </div>
-                                    <input type="hidden" name="duration" value={duration} />
-                                </div>
-
-                                {/* Summary line */}
-                                {scheduledDate && (
-                                    <div style={{ padding: "10px 16px", background: "rgba(28,79,53,0.05)", borderBottom: "1px solid var(--sep)", display: "flex", alignItems: "center", gap: 8 }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                        <span style={{ fontSize: "0.82rem", color: "var(--green)", fontWeight: 600 }}>{fmtScheduledDisplay()}</span>
-                                    </div>
-                                )}
-                                <div style={{ padding: "14px 16px" }}>
-                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Players</div>
-                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                        {[courts * 4, courts * 4 + 4, courts * 4 + 8].map(n => (
-                                            <button key={n} type="button" onClick={() => setMaxPlayers(n)}
-                                                style={{
-                                                    width: 52, height: 40, borderRadius: "var(--r-cell)",
-                                                    border: `2px solid ${maxPlayers === n ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                    background: maxPlayers === n ? "var(--green)" : "var(--bg-grouped)",
-                                                    color: maxPlayers === n ? "white" : "var(--label-2)",
-                                                    fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-                                                    transition: "all 0.15s", fontFamily: "inherit",
-                                                }}
-                                            >{n}</button>
-                                        ))}
-                                        <input
-                                            type="number" min="4" max="200"
-                                            value={maxPlayers}
-                                            onChange={(e) => setMaxPlayers(parseInt(e.target.value, 10) || courts * 4)}
-                                            style={{
-                                                width: 68, padding: "8px 10px",
-                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
-                                                fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
-                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
-                                            }}
-                                            placeholder="Custom"
-                                        />
-                                    </div>
-                                </div>
-                                <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
-                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Entry Price</div>
-                                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                                        <select
-                                            value={currency}
-                                            onChange={(e) => setCurrency(e.target.value)}
-                                            name="currency"
-                                            style={{ border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label-3)", outline: "none", cursor: "pointer", flexShrink: 0, fontWeight: 600 }}
-                                        >
-                                            {["EUR","USD","GBP","QAR","AED","SAR","CHF","SEK","NOK","DKK"].map(c => (
-                                                <option key={c} value={c}>{c}</option>
-                                            ))}
-                                        </select>
-                                        <input
-                                            type="number" min="0" step="0.01"
-                                            value={price}
-                                            onChange={(e) => setPrice(e.target.value)}
-                                            name="price"
-                                            placeholder="0 = free"
-                                            style={{ flex: 1, border: "none", background: "transparent", fontSize: "1.1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", fontWeight: 600 }}
-                                        />
-                                    </div>
-                                </div>
-                                {/* Live duration estimate */}
-                                {(() => {
-                                    const mp = maxPlayers || courts * 4;
-                                    const activeCourts = Math.min(courts, Math.floor(mp / 4));
-                                    const totalRounds = Math.max(0, mp - 1);
-                                    const mins = totalRounds * (pointsPerMatch * 0.5);
-                                    const h = Math.floor(mins / 60);
-                                    const m = Math.round(mins % 60);
-                                    const est = mins > 0 ? (h > 0 ? `${h}h ${m}m` : `${m}m`) : null;
-                                    return est ? (
-                                        <div style={{ padding: "10px 16px", borderTop: "1px solid var(--sep)", background: "rgba(28,79,53,0.04)" }}>
-                                            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 2, fontWeight: 600 }}>Estimated Duration</div>
-                                            <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--green)" }}>⏱ {est}</div>
-                                            <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 2 }}>{mp} players · {activeCourts} courts · {pointsPerMatch} pts/match · {totalRounds} rounds</div>
-                                        </div>
-                                    ) : null;
-                                })()}
-                                {/* Standby (waitlist) max */}
-                                <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
-                                    <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Standby (Waitlist)</div>
-                                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                        {[0.1, 0.25, 0.5, 1.0].map(pct => {
-                                            const n = Math.ceil(maxPlayers * pct);
-                                            return (
-                                                <button key={pct} type="button" onClick={() => setMaxStandby(n)}
-                                                    style={{
-                                                        padding: "0 12px", height: 40, borderRadius: "var(--r-cell)",
-                                                        border: `2px solid ${maxStandby === n ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                        background: maxStandby === n ? "var(--green)" : "var(--bg-grouped)",
-                                                        color: maxStandby === n ? "white" : "var(--label-2)",
-                                                        fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
-                                                        transition: "all 0.15s", fontFamily: "inherit",
-                                                    }}
-                                                >{Math.round(pct * 100)}% · {n}</button>
-                                            );
-                                        })}
-                                        <input
-                                            type="number" min="0" max={maxPlayers}
-                                            value={maxStandby}
-                                            onChange={(e) => setMaxStandby(Math.min(parseInt(e.target.value, 10) || 0, maxPlayers))}
-                                            style={{
-                                                width: 68, padding: "8px 10px",
-                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
-                                                fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
-                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
-                                            }}
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 6 }}>Auto-set to 10% of max players. Max = {maxPlayers}.</div>
-                                </div>
-                                <input type="hidden" name="scheduledAt" value={scheduledAt} />
-                                <input type="hidden" name="maxPlayers" value={maxPlayers} />
-                                <input type="hidden" name="maxStandby" value={maxStandby} />
-                            </>
-                        )}
                     </div>
 
                     {/* ── Players ── */}
