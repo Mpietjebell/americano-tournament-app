@@ -91,6 +91,8 @@ model Tournament {
   organizerName   String?
   hostPassword    String?
   hostEmail       String?
+  level           Int?
+  description     String?
   players         Player[]
   rounds          Round[]
   createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])
