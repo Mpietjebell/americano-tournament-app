@@ -150,7 +150,7 @@ export async function action({ request, params }) {
         data: { playerId: player.id },
     });
 
-    const position = currentCount + 1;
+    const position = tournament.players.length + currentCount + 1;
 
     // Send confirmation email (non-blocking)
     sendSignupConfirmation({ to: email, name, tournament, position }).catch(() => {});
