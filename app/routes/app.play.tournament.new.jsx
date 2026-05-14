@@ -65,6 +65,9 @@ export const action = async ({ request }) => {
     if (isPublic && !maxPlayers) {
         return json({ error: "Max players is required for public tournaments." }, { status: 400 });
     }
+    if (isPublic && !hostPassword) {
+        return json({ error: "A host password is required for public tournaments." }, { status: 400 });
+    }
 
     let playerNames = [];
     const slotCount = parseInt(formData.get("slotCount") || "0", 10);
@@ -480,6 +483,11 @@ export default function NewTournamentPublic() {
     const [repeatWeeklyInput, setRepeatWeeklyInput] = useState("");
     const [repeatWeeklyConfirmed, setRepeatWeeklyConfirmed] = useState(false);
     const [repeatWeeks, setRepeatWeeks] = useState(4);
+
+    // Organiser
+    const [organizerName, setOrganizerName] = useState("");
+    const [hostPassword, setHostPassword] = useState("");
+    const [hostEmail, setHostEmail] = useState("");
 
     // Combined datetime for form submission
     const scheduledAt = scheduledDate
@@ -1560,17 +1568,21 @@ export default function NewTournamentPublic() {
                             <input
                                 name="organizerName"
                                 placeholder="e.g. Maikel"
+                                value={organizerName}
+                                onChange={(e) => setOrganizerName(e.target.value)}
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
                         </div>
                         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
-                                Host Password <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--label-3)", fontWeight: 400 }}>— remember this to start the match or make changes</span>
+                                Host Password {isPublic && <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700, marginLeft: 4 }}>Required</span>} <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--label-3)", fontWeight: 400 }}>— remember this to start the match or make changes</span>
                             </div>
                             <input
                                 name="hostPassword"
                                 type="password"
                                 placeholder="Choose a password"
+                                value={hostPassword}
+                                onChange={(e) => setHostPassword(e.target.value)}
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
                         </div>
@@ -1582,6 +1594,8 @@ export default function NewTournamentPublic() {
                                 name="hostEmail"
                                 type="email"
                                 placeholder="you@example.com"
+                                value={hostEmail}
+                                onChange={(e) => setHostEmail(e.target.value)}
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
                         </div>
