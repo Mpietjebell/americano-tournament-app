@@ -222,19 +222,17 @@ export default function ShareLanding() {
             </div>
 
             {/* ── Sticky join button ── */}
-            {!t.isPast && (
-                <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "12px 16px calc(12px + env(safe-area-inset-bottom))", background: "rgba(245,244,241,.92)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(0,0,0,.08)", zIndex: 100 }}>
-                    {btnDisabled ? (
-                        <div style={{ width: "100%", maxWidth: 480, margin: "0 auto", padding: "15px", borderRadius: 14, background: "#e5e5e5", color: "#aaa", fontWeight: 700, fontSize: "1rem", textAlign: "center", fontFamily: "inherit" }}>
-                            {btnText}
-                        </div>
-                    ) : (
-                        <a href={joinUrl} style={{ display: "block", maxWidth: 480, margin: "0 auto", padding: "15px", borderRadius: 14, background: btnBg, color: "white", fontWeight: 700, fontSize: "1rem", textAlign: "center", textDecoration: "none", letterSpacing: "0.02em" }}>
-                            {btnText}
-                        </a>
-                    )}
-                </div>
-            )}
+            <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "12px 16px calc(12px + env(safe-area-inset-bottom))", background: "rgba(245,244,241,.92)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(0,0,0,.08)", zIndex: 100 }}>
+                {btnDisabled ? (
+                    <div style={{ width: "100%", maxWidth: 480, margin: "0 auto", padding: "15px", borderRadius: 14, background: "#e5e5e5", color: "#aaa", fontWeight: 700, fontSize: "1rem", textAlign: "center", fontFamily: "inherit" }}>
+                        {btnText}
+                    </div>
+                ) : (
+                    <a href={joinUrl} style={{ display: "block", maxWidth: 480, margin: "0 auto", padding: "15px", borderRadius: 14, background: btnBg, color: "white", fontWeight: 700, fontSize: "1rem", textAlign: "center", textDecoration: "none", letterSpacing: "0.02em" }}>
+                        {btnText}
+                    </a>
+                )}
+            </div>
         </div>
     );
 }
