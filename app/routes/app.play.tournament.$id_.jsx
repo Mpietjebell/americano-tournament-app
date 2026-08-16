@@ -15,6 +15,7 @@ import {
     TYPE_LABELS,
 } from "../utils/tournament-helpers";
 import { getHostTokenFromRequest } from "../utils/host-auth.server";
+import { getRequestOrigin } from "../utils/request.server";
 
 function CancelRegistrationInline({ tournamentId, playerId }) {
     const [showConfirm, setShowConfirm] = React.useState(false);
@@ -51,12 +52,34 @@ function CancelRegistrationInline({ tournamentId, playerId }) {
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
-    const origin = new URL(request.url).origin;
+    const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
     const playerId = playerCookieMatch?.[1] || null;
     return json({ tournament, origin, isHost, playerId });
+};
+
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "Tournament — NOPA" }];
+    const t = data.tournament;
+    const title = `${t.name} — NOPA`;
+    const desc = `${TYPE_LABELS[t.type] || t.type} · ${t.players.length} players · ${t.courtsAvailable} courts on NOPA Padel.`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const url = `${data.origin}/app/play/tournament/${t.id}`;
+    return [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: image },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: desc },
+        { name: "twitter:image", content: image },
+    ];
 };
 
 export const action = async ({ request, params }) => {
@@ -68,10 +91,16 @@ export const action = async ({ request, params }) => {
 
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
+    const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
+    const playerId = playerCookieMatch?.[1] || null;
 
     if (intent === "generate_all_rounds") {
         if (!isHost) return json({ error: "Host access required." }, { status: 403 });
-        await generateAllRounds(tournament);
+        try {
+            await generateAllRounds(tournament);
+        } catch (err) {
+            return json({ error: err.message }, { status: 400 });
+        }
         return json({ success: true });
     }
 
@@ -168,6 +197,23 @@ export const action = async ({ request, params }) => {
 
     if (intent === "propose_score") {
         const matchId = formData.get("matchId");
+
+        // A player can only propose a score for a match they're actually
+        // in — without this, anyone with the join link (or another
+        // player's cookie) could submit a score for someone else's court.
+        // The host is exempt: they can already submit/confirm/reset any
+        // score directly, and may be entering a score on a player's behalf.
+        if (!isHost) {
+            const match = tournament.rounds.flatMap((r) => r.matches).find((m) => m.id === matchId);
+            if (!match) return json({ error: "Match not found." }, { status: 404 });
+            const teamAIds = JSON.parse(match.teamAIds);
+            const teamBIds = JSON.parse(match.teamBIds);
+            const isParticipant = Boolean(playerId) && (teamAIds.includes(playerId) || teamBIds.includes(playerId));
+            if (!isParticipant) {
+                return json({ error: "You can only submit a score for your own match." }, { status: 403 });
+            }
+        }
+
         const scoreA = parseInt(formData.get("scoreA"), 10);
         const scoreB = parseInt(formData.get("scoreB"), 10);
         const result = await proposeScore(tournament, matchId, scoreA, scoreB);
@@ -220,6 +266,7 @@ export default function PublicTournamentView() {
     const [activeTab, setActiveTab] = useState("courts");
     const [copied, setCopied] = useState(false);
     const [showShare, setShowShare] = useState(false);
+    const [confirmEarlyStart, setConfirmEarlyStart] = useState(false);
 
     const players = tournament.players;
     const setupPlayers = tournament.setupPlayers || tournament.players;
@@ -239,6 +286,18 @@ export default function PublicTournamentView() {
     const completedMatches = allMatches.filter((m) => m.status === "completed");
     const pendingMatches = allMatches.filter((m) => m.status !== "completed");
     const isFinished = tournament.status === "finished" || (hasRounds && pendingMatches.length === 0 && completedMatches.length > 0);
+    // The Leaderboard tab's podium/standings/all-results content is the
+    // same "who won" information the host controls via Release Results on
+    // the final-results page — it shouldn't leak here for everyone the
+    // moment the last match completes while that page still gates it.
+    const resultsHidden = isFinished && !isHost && !tournament.resultsPublished;
+
+    // A scheduled public tournament stays open for sign-ups until the host
+    // starts it — but nothing stopped a host from generating rounds the
+    // moment enough players existed to legally start, even if sign-ups
+    // hadn't reached the max players they set. Surface that explicitly
+    // instead of letting one tap silently lock in a partial roster.
+    const spotsOpen = Boolean(tournament.isPublic && tournament.maxPlayers && players.length < tournament.maxPlayers);
 
     const joinUrl = tournament.joinCode ? `${origin}/app/play/join/${tournament.joinCode}` : null;
     const qrUrl = joinUrl ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(joinUrl)}&size=200x200&margin=10&color=1C4F35` : null;
@@ -267,9 +326,13 @@ export default function PublicTournamentView() {
 
     useEffect(() => {
         if (isFinished) return;
+        // Scores get proposed/confirmed live from multiple phones on
+        // different courts — poll often enough that a host confirming one
+        // match, or a player proposing a score, shows up for everyone else
+        // within a few seconds rather than up to ten.
         const interval = setInterval(() => {
             revalidate();
-        }, 10000);
+        }, 5000);
         return () => clearInterval(interval);
     }, [isFinished, revalidate]);
 
@@ -304,7 +367,7 @@ export default function PublicTournamentView() {
                     <p style={{ fontSize: "0.82rem", color: "var(--label-3)", marginBottom: hasRounds ? 12 : 0 }}>
                         {TYPE_LABELS[tournament.type]} · {players.length} players{isTeamMode ? ` · ${setupTeams.length} teams` : ""} · {tournament.courtsAvailable} courts · {tournament.pointsPerMatch} pts
                     </p>
-                    {hasRounds && (
+                    {hasRounds && allMatches.length > 0 && (
                         <div>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--label-3)", marginBottom: 5 }}>
                                 <span>{completedMatches.length} / {allMatches.length} matches</span>
@@ -471,18 +534,44 @@ export default function PublicTournamentView() {
                                         ? `Start the tournament. Rounds will continue automatically until ${plannedRounds} rounds are complete.`
                                         : `Generate all ${plannedRounds} rounds at once.`}
                                 </p>
-                                <fetcher.Form method="post">
-                                    <input type="hidden" name="intent" value="generate_all_rounds" />
-                                    <button type="submit" disabled={fetcher.state !== "idle"} style={{
-                                        padding: "13px 32px", borderRadius: "var(--r-card)",
-                                        background: "var(--green)", color: "white",
-                                        fontWeight: 600, fontSize: "0.95rem", border: "none",
-                                        cursor: "pointer", fontFamily: "inherit",
-                                        boxShadow: "0 4px 16px rgba(28,79,53,0.3)",
-                                    }}>
-                                        {fetcher.state !== "idle" ? "Generating..." : generatesRoundsDynamically ? "Start Tournament" : `Generate All ${plannedRounds} Rounds`}
-                                    </button>
-                                </fetcher.Form>
+                                {spotsOpen && !confirmEarlyStart ? (
+                                    <>
+                                        <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-card)", padding: "12px 16px", marginBottom: 16, color: "#9a3412", fontSize: "0.82rem", lineHeight: 1.5 }}>
+                                            Only {players.length} of {tournament.maxPlayers} spots are filled. Starting now closes sign-ups and locks in the current roster.
+                                        </div>
+                                        <button type="button" onClick={() => setConfirmEarlyStart(true)} style={{
+                                            padding: "13px 32px", borderRadius: "var(--r-card)",
+                                            background: "transparent", color: "#9a3412",
+                                            fontWeight: 600, fontSize: "0.95rem", border: "2px solid #fdba74",
+                                            cursor: "pointer", fontFamily: "inherit",
+                                        }}>
+                                            Start with {players.length} anyway
+                                        </button>
+                                    </>
+                                ) : (
+                                    <fetcher.Form method="post">
+                                        <input type="hidden" name="intent" value="generate_all_rounds" />
+                                        <button type="submit" disabled={fetcher.state !== "idle"} style={{
+                                            padding: "13px 32px", borderRadius: "var(--r-card)",
+                                            background: "var(--green)", color: "white",
+                                            fontWeight: 600, fontSize: "0.95rem", border: "none",
+                                            cursor: "pointer", fontFamily: "inherit",
+                                            boxShadow: "0 4px 16px rgba(28,79,53,0.3)",
+                                        }}>
+                                            {fetcher.state !== "idle" ? "Generating..." : generatesRoundsDynamically ? "Start Tournament" : `Generate All ${plannedRounds} Rounds`}
+                                        </button>
+                                        {spotsOpen && (
+                                            <button type="button" onClick={() => setConfirmEarlyStart(false)} style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "var(--label-3)", fontSize: "0.78rem", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
+                                                Wait for more sign-ups instead
+                                            </button>
+                                        )}
+                                    </fetcher.Form>
+                                )}
+                                {fetcher.data?.error && (
+                                    <div style={{ marginTop: 12, fontSize: "0.82rem", color: "#dc2626", fontWeight: 600 }}>
+                                        {fetcher.data.error}
+                                    </div>
+                                )}
 
                                 <div style={{ marginTop: 24, textAlign: "left" }}>
                                     <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>
@@ -535,7 +624,10 @@ export default function PublicTournamentView() {
                         )}
 
                         {tournament.rounds.map((round) => {
-                            const roundCompleted = round.matches.every((m) => m.status === "completed");
+                            // .every() on an empty array is vacuously true — a round with
+                            // no match rows would otherwise render as "Done" instead of
+                            // reflecting that it never got any matches.
+                            const roundCompleted = round.matches.length > 0 && round.matches.every((m) => m.status === "completed");
                             const roundActive = round.matches.some((m) => m.status === "completed");
                             return (
                                 <div key={round.id} style={{ marginBottom: 32 }}>
@@ -553,7 +645,7 @@ export default function PublicTournamentView() {
                                         {round.matches.map((match) => {
                                             const teamA = JSON.parse(match.teamAIds);
                                             const teamB = JSON.parse(match.teamBIds);
-                                            return <CourtCard key={match.id} match={match} teamA={teamA} teamB={teamB} players={players} pointsPerMatch={tournament.pointsPerMatch} isHost={isHost} />;
+                                            return <CourtCard key={match.id} match={match} teamA={teamA} teamB={teamB} players={players} pointsPerMatch={tournament.pointsPerMatch} isHost={isHost} playerId={playerId} />;
                                         })}
                                     </div>
                                 </div>
@@ -578,7 +670,17 @@ export default function PublicTournamentView() {
                 )}
 
                 {/* ──────── LEADERBOARD TAB ──────── */}
-                {activeTab === "leaderboard" && (
+                {activeTab === "leaderboard" && (resultsHidden ? (
+                    <div style={{
+                        background: "linear-gradient(135deg, var(--green-dark), var(--green))",
+                        color: "white", borderRadius: "var(--r-card)", padding: "40px 20px",
+                        textAlign: "center", marginBottom: 20, boxShadow: "0 6px 24px rgba(28,79,53,0.3)",
+                    }}>
+                        <div style={{ fontSize: "2.4rem", marginBottom: 12 }}>⏳</div>
+                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", marginBottom: 8 }}>Results not released yet</div>
+                        <div style={{ fontSize: "0.82rem", opacity: 0.75 }}>{completedMatches.length} matches · {tournament.rounds.length} rounds played. The host will share the final standings shortly.</div>
+                    </div>
+                ) : (
                     <>
                         {isFinished && (() => {
                             const mvp = isTeamMode ? teamStandings[0] : players[0];
@@ -712,13 +814,13 @@ export default function PublicTournamentView() {
                             </div>
                         )}
                     </>
-                )}
+                ))}
 
                 {/* ──────── MATCHES TAB ──────── */}
                 {activeTab === "matches" && (
                     <div>
                         {tournament.rounds.map((round) => {
-                            const done = round.matches.every(m => m.status === "completed");
+                            const done = round.matches.length > 0 && round.matches.every(m => m.status === "completed");
                             const active = round.matches.some(m => m.status === "completed");
                             return (
                                 <div key={round.id} style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 14, boxShadow: "var(--shadow)" }}>
@@ -1234,7 +1336,7 @@ function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
     );
 }
 
-function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost }) {
+function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playerId }) {
     const fetcher = useFetcher();
     const [scoreA, setScoreA] = useState(match.scoreA ?? "");
     const [scoreB, setScoreB] = useState(match.scoreB ?? "");
@@ -1262,6 +1364,7 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost }) {
     const setupTeams = buildTeams(players);
     const teamAEntry = findTeamEntry(teamA, setupTeams);
     const teamBEntry = findTeamEntry(teamB, setupTeams);
+    const isParticipant = Boolean(playerId) && (teamA.includes(playerId) || teamB.includes(playerId));
 
     return (
         <div style={{
@@ -1335,12 +1438,18 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost }) {
                         handleScoreBChange={handleScoreBChange}
                         totalValid={totalValid}
                     />
-                ) : (
+                ) : isParticipant ? (
                     <PlayerProposalForm
                         match={match}
                         pointsPerMatch={pointsPerMatch}
                         fetcher={fetcher}
                     />
+                ) : (
+                    <div style={{ textAlign: "center", padding: "10px 0 4px", fontSize: "0.78rem", color: "var(--label-3)" }}>
+                        {match.proposedScoreA != null && match.proposedScoreB != null
+                            ? `${match.proposedScoreA} — ${match.proposedScoreB} · awaiting host confirmation`
+                            : "Waiting for these players to enter a score"}
+                    </div>
                 )}
             </div>
         </div>

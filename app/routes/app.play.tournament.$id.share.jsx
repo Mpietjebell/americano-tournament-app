@@ -10,6 +10,11 @@ export const loader = async ({ params }) => {
     return json({ tournament });
 };
 
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "Share Tournament — NOPA" }];
+    return [{ title: `Share ${data.tournament.name} — NOPA` }];
+};
+
 export default function SharePage() {
     const { tournament } = useLoaderData();
     const [copied, setCopied] = useState(false);

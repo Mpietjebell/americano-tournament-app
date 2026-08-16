@@ -12,7 +12,7 @@ import {
     generateTeamMexicanoRound,
     processMatchScore,
 } from "../utils/tournament-engine.server";
-import { buildTeams, getDefaultRounds, isDynamicFormat } from "./tournament-helpers";
+import { buildTeams, getDefaultRounds, getMinimumPlayers, isDynamicFormat } from "./tournament-helpers";
 
 export async function loadTournament(id) {
     const tournament = await prisma.tournament.findUnique({
@@ -178,6 +178,21 @@ async function buildNextDynamicRound(tournament, roundNumber, completedRound, fr
 export async function generateAllRounds(tournament) {
     const players = tournament.setupPlayers || tournament.players;
     const numCourts = tournament.courtsAvailable;
+
+    // Scheduled public tournaments start with 0 sign-ups and only get
+    // players over time — a host can hit "Generate All Rounds" before
+    // enough people have joined. Without this guard, getDefaultRounds()
+    // still plans rounds (e.g. players.length - 1), and each one gets
+    // created with zero courts/matches: a round that's technically
+    // "complete" the instant it's created, with nothing in it.
+    const minPlayers = getMinimumPlayers(tournament.type);
+    if (players.length < minPlayers) {
+        throw new Error(`This format needs at least ${minPlayers} players to generate rounds — there ${players.length === 1 ? "is" : "are"} currently ${players.length}.`);
+    }
+    if ((tournament.type === "team_americano" || tournament.type === "team_mexicano") && players.length % 2 !== 0) {
+        throw new Error("Fixed-team formats need an even number of players to generate rounds.");
+    }
+
     const plannedRounds = getDefaultRounds(tournament.type, players, buildTeams(players));
 
     if (isDynamicFormat(tournament.type)) {

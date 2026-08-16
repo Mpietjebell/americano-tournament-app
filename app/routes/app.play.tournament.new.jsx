@@ -5,6 +5,7 @@ import prisma from "../db.server";
 import { createHostCookie } from "../utils/host-auth.server";
 import { buildTeams, getMinimumPlayers, getTournamentStats } from "../utils/tournament-helpers";
 import { GAME_MODE_BUTTON_IMAGES } from "../utils/game-mode-icons";
+import { getCurrencyForCountry, SUPPORTED_CURRENCIES } from "../utils/currency";
 
 function getUserIdFromCookie(request) {
     const cookie = request.headers.get("Cookie") || "";
@@ -18,6 +19,20 @@ function generateJoinCode() {
     for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
     return code;
 }
+
+// Builds a Date from a "YYYY-MM-DD" + hour/minute, returning null instead of
+// an Invalid Date when the pieces don't form a real date (e.g. a malformed
+// value typed into the native date input).
+function parseScheduledDateTime(dateStr, hour, minute) {
+    if (!dateStr) return null;
+    const d = new Date(`${dateStr}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+export const meta = () => [
+    { title: "New Tournament — NOPA" },
+    { name: "description", content: "Organise an Americano, Mexicano, or padel tournament in minutes with NOPA." },
+];
 
 export const action = async ({ request }) => {
     const userId = getUserIdFromCookie(request);
@@ -76,14 +91,19 @@ export const action = async ({ request }) => {
         if (name) playerNames.push({ name, gender: "unspecified" });
     }
 
-    if (!isScheduled) {
+    // Public tournaments start now with exactly the roster you type in, so
+    // they need the real minimum up front. Private tournaments can be
+    // created as a shell with however many names you have (even zero) —
+    // add the rest from the host manager before generating rounds, where
+    // generateAllRounds() enforces the same minimum anyway.
+    if (!isScheduled && isPublic) {
         const minPlayers = getMinimumPlayers(type);
         if (playerNames.length < minPlayers) {
             return json({ error: `You need at least ${minPlayers} players to start this tournament.` }, { status: 400 });
         }
-        if ((type === "team_americano" || type === "team_mexicano") && playerNames.length % 2 !== 0) {
-            return json({ error: "Fixed-team formats need an even number of players." }, { status: 400 });
-        }
+    }
+    if (!isScheduled && (type === "team_americano" || type === "team_mexicano") && playerNames.length % 2 !== 0) {
+        return json({ error: "Fixed-team formats need an even number of players." }, { status: 400 });
     }
 
     let courtNames = null;
@@ -473,6 +493,10 @@ export default function NewTournamentPublic() {
     const [dateWarningAcknowledged, setDateWarningAcknowledged] = useState(false);
     const [pendingDate, setPendingDate] = useState("");
     const [duration, setDuration] = useState(90);
+    // Set only after mount so the date input's `min` never depends on the
+    // render-time clock (avoids a server/client hydration mismatch).
+    const [minDate, setMinDate] = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     // Level + description
     const [level, setLevel] = useState(null);
@@ -489,10 +513,14 @@ export default function NewTournamentPublic() {
     const [hostPassword, setHostPassword] = useState("");
     const [hostEmail, setHostEmail] = useState("");
 
-    // Combined datetime for form submission
-    const scheduledAt = scheduledDate
+    // Combined datetime for form submission — only ever a value the server
+    // can parse. A malformed scheduledDate collapses to "" instead of
+    // silently shipping an unparseable string.
+    const scheduledDateTime = parseScheduledDateTime(scheduledDate, scheduledHour, scheduledMinute);
+    const scheduledAt = scheduledDateTime
         ? `${scheduledDate}T${String(scheduledHour).padStart(2, "0")}:${String(scheduledMinute).padStart(2, "0")}`
         : "";
+    const scheduledDateInvalid = Boolean(scheduledDate) && !scheduledDateTime;
 
     const handleMapsUrlBlur = async () => {
         const url = googleMapsUrl.trim();
@@ -542,10 +570,9 @@ export default function NewTournamentPublic() {
     };
 
     const fmtScheduledDisplay = () => {
-        if (!scheduledDate) return null;
-        const d = new Date(`${scheduledDate}T${String(scheduledHour).padStart(2, "0")}:${String(scheduledMinute).padStart(2, "0")}`);
-        return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
-            + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        if (!scheduledDateTime) return null;
+        return scheduledDateTime.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+            + " · " + scheduledDateTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     };
 
     const handleLogoChange = (e) => {
@@ -594,7 +621,10 @@ export default function NewTournamentPublic() {
             const data = await res.json();
             if (data.venue) {
                 setSelectedVenue(data.venue);
-                setCountry(data.venue.country || country);
+                if (data.venue.country) {
+                    setCountry(data.venue.country);
+                    setCurrency(getCurrencyForCountry(data.venue.country));
+                }
                 if (data.venue.city) setCity(data.venue.city);
                 if (data.venue.latitude) setLat(String(data.venue.latitude));
                 if (data.venue.longitude) setLng(String(data.venue.longitude));
@@ -617,7 +647,17 @@ export default function NewTournamentPublic() {
         setMaxStandby(Math.ceil(maxPlayers * 0.1));
     }, [maxPlayers]);
 
+    useEffect(() => {
+        setMinDate(new Date(Date.now() + 3600000).toISOString().slice(0, 10));
+    }, []);
+
     const minPlayers = getMinimumPlayers(selectedType);
+    const filledSlotCount = playerSlots.filter(s => s.trim()).length;
+    // Public "start now" tournaments need the real minimum up front since
+    // the roster you type in is exactly who's playing. Private ones can be
+    // created as a shell with fewer (or zero) names and filled in later —
+    // mirrors the server-side check in the action.
+    const meetsMinimumUpfront = isScheduled || !isPublic || filledSlotCount >= minPlayers;
     const playersForSubmission = playerSlots
         .filter(s => s.trim())
         .map((name, index) => ({
@@ -650,6 +690,47 @@ export default function NewTournamentPublic() {
         </div>
     );
 
+    // Explicit, visible validation for everything the server would otherwise
+    // reject — a required field that fails silently (no message, no request)
+    // is worse than one caught here with a clear reason. Runs instead of
+    // native browser validation (the <Form> below has noValidate) so the
+    // message always shows, even for fields the browser might not flag.
+    const handleSubmit = (e) => {
+        const form = e.currentTarget;
+        const data = new FormData(form);
+        const errors = {};
+
+        if (!(data.get("name") || "").toString().trim()) {
+            errors.name = "Give this event a name.";
+        }
+
+        if (isScheduled) {
+            if (!scheduledDateTime) errors.scheduledDate = "Pick a valid date and time before scheduling.";
+            if (!duration) errors.duration = "Choose an estimated duration.";
+        }
+
+        if (isPublic) {
+            const gmaps = (data.get("googleMapsUrl") || "").toString().trim();
+            const venueName = (data.get("location") || "").toString().trim();
+            const cityVal = (data.get("city") || "").toString().trim();
+            if (!gmaps && (!venueName || !cityVal)) {
+                errors.venue = "Paste a Google Maps link, or fill in both Venue Name and City / District yourself.";
+            }
+            if (!maxPlayers) errors.maxPlayers = "Set a max players count for public tournaments.";
+            if (!hostPassword.trim()) errors.hostPassword = "Set a host password so you can manage this tournament later.";
+        }
+
+        if (Object.keys(errors).length > 0) {
+            e.preventDefault();
+            setFieldErrors(errors);
+            const firstKey = Object.keys(errors)[0];
+            document.getElementById(`field-${firstKey}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+        }
+
+        setFieldErrors({});
+    };
+
     return (
         <>
             <nav className="ios-nav">
@@ -678,7 +759,7 @@ export default function NewTournamentPublic() {
             </div>
 
             <div className="ios-page">
-                <Form method="post" encType="multipart/form-data">
+                <Form method="post" encType="multipart/form-data" noValidate onSubmit={handleSubmit}>
                     {actionData?.error && (
                         <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "var(--r-cell)", padding: "12px 16px", marginBottom: 20, color: "#991b1b", fontSize: "0.88rem" }}>
                             {actionData.error}
@@ -711,12 +792,14 @@ export default function NewTournamentPublic() {
                                 <button type="button" onClick={() => setLogoDataUrl("")} style={{ display: "block", width: "100%", marginTop: 4, background: "none", border: "none", color: "var(--label-3)", fontSize: "0.62rem", cursor: "pointer", textAlign: "center", fontFamily: "inherit" }}>Remove</button>
                             )}
                         </div>
-                        <div style={{ flex: 1 }}>
+                        <div style={{ flex: 1 }} id="field-name">
                             <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Event Name</div>
                             <input
                                 name="name"
                                 placeholder="e.g. NOPA Summer Open"
+                                autoComplete="off"
                                 required
+                                onChange={() => fieldErrors.name && setFieldErrors(prev => ({ ...prev, name: undefined }))}
                                 style={{
                                     width: "100%",
                                     fontSize: "1.25rem",
@@ -724,7 +807,7 @@ export default function NewTournamentPublic() {
                                     fontFamily: "'Cormorant Garamond', serif",
                                     letterSpacing: "0.02em",
                                     border: "none",
-                                    borderBottom: "2px solid var(--green)",
+                                    borderBottom: `2px solid ${fieldErrors.name ? "#dc2626" : "var(--green)"}`,
                                     borderRadius: 0,
                                     background: "transparent",
                                     padding: "6px 0",
@@ -732,6 +815,9 @@ export default function NewTournamentPublic() {
                                     outline: "none",
                                 }}
                             />
+                            {fieldErrors.name && (
+                                <div style={{ fontSize: "0.74rem", color: "#dc2626", marginTop: 6 }}>{fieldErrors.name}</div>
+                            )}
                         </div>
                         <input type="hidden" name="logoUrl" value={logoDataUrl} />
                     </div>
@@ -811,6 +897,9 @@ export default function NewTournamentPublic() {
                             </div>
                             <button
                                 type="button"
+                                role="switch"
+                                aria-checked={isScheduled}
+                                aria-label="Schedule for later"
                                 onClick={() => setIsScheduled(!isScheduled)}
                                 style={{
                                     width: 44, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
@@ -852,10 +941,29 @@ export default function NewTournamentPublic() {
                                         type="date"
                                         value={scheduledDate}
                                         onChange={(e) => handleScheduledDateChange(e.target.value)}
+                                        onClick={(e) => {
+                                            // Chrome only opens the picker when the calendar glyph
+                                            // itself is clicked — clicking the rest of the field just
+                                            // places a text cursor for manual typing. Open the picker
+                                            // on any click so the whole field behaves the same way.
+                                            if (typeof e.target.showPicker === "function") {
+                                                try { e.target.showPicker(); } catch { /* unsupported in this browser */ }
+                                            }
+                                        }}
                                         required={isScheduled}
-                                        min={new Date(Date.now() + 3600000).toISOString().slice(0, 10)}
-                                        style={{ width: "100%", border: "none", background: "transparent", fontSize: "1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
+                                        min={minDate || undefined}
+                                        style={{
+                                            width: "100%", border: scheduledDateInvalid ? "1.5px solid #dc2626" : "none",
+                                            borderRadius: scheduledDateInvalid ? "var(--r-cell)" : 0,
+                                            padding: scheduledDateInvalid ? "6px 8px" : 0,
+                                            background: "transparent", fontSize: "1rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer",
+                                        }}
                                     />
+                                    {scheduledDateInvalid && (
+                                        <div style={{ fontSize: "0.74rem", color: "#dc2626", marginTop: 6 }}>
+                                            That date doesn't look right — please pick it again using the calendar.
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* ── Repeat weekly panel ── */}
@@ -1009,13 +1117,13 @@ export default function NewTournamentPublic() {
                                 </div>
 
                                 {/* Summary line */}
-                                {scheduledDate && (
+                                {scheduledDateTime && (
                                     <div style={{ padding: "10px 16px", background: "rgba(28,79,53,0.05)", borderBottom: "1px solid var(--sep)", display: "flex", alignItems: "center", gap: 8 }}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                                         <span style={{ fontSize: "0.82rem", color: "var(--green)", fontWeight: 600 }}>{fmtScheduledDisplay()}</span>
                                     </div>
                                 )}
-                                <div style={{ padding: "14px 16px" }}>
+                                <div style={{ padding: "14px 16px" }} id="field-maxPlayers">
                                     <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Players</div>
                                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                         {[courts * 4, courts * 4 + 4, courts * 4 + 8].map(n => (
@@ -1030,19 +1138,24 @@ export default function NewTournamentPublic() {
                                                 }}
                                             >{n}</button>
                                         ))}
+                                        <span style={{ fontSize: "0.68rem", color: "var(--label-3)", fontWeight: 600 }}>or</span>
                                         <input
                                             type="number" min="4" max="200"
                                             value={maxPlayers}
                                             onChange={(e) => setMaxPlayers(parseInt(e.target.value, 10) || courts * 4)}
                                             style={{
-                                                width: 68, padding: "8px 10px",
-                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                                width: 68, height: 40, padding: "8px 10px", boxSizing: "border-box",
+                                                border: "1.5px dashed var(--sep-opaque)", borderRadius: "var(--r-cell)",
                                                 fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
-                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
+                                                fontFamily: "inherit", background: "transparent", color: "var(--label)",
                                             }}
                                             placeholder="Custom"
+                                            title="Type a custom max players count"
                                         />
                                     </div>
+                                    {fieldErrors.maxPlayers && (
+                                        <div style={{ fontSize: "0.74rem", color: "#dc2626", marginTop: 6 }}>{fieldErrors.maxPlayers}</div>
+                                    )}
                                 </div>
                                 <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
                                     <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Entry Price</div>
@@ -1053,7 +1166,7 @@ export default function NewTournamentPublic() {
                                             name="currency"
                                             style={{ border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label-3)", outline: "none", cursor: "pointer", flexShrink: 0, fontWeight: 600 }}
                                         >
-                                            {["EUR","USD","GBP","QAR","AED","SAR","CHF","SEK","NOK","DKK"].map(c => (
+                                            {SUPPORTED_CURRENCIES.map(c => (
                                                 <option key={c} value={c}>{c}</option>
                                             ))}
                                         </select>
@@ -1088,32 +1201,34 @@ export default function NewTournamentPublic() {
                                 <div style={{ padding: "14px 16px", borderTop: "1px solid var(--sep)" }}>
                                     <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Max Standby (Waitlist)</div>
                                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                        {[0.1, 0.25, 0.5, 1.0].map(pct => {
-                                            const n = Math.ceil(maxPlayers * pct);
-                                            return (
-                                                <button key={pct} type="button" onClick={() => setMaxStandby(n)}
-                                                    style={{
-                                                        width: 52, height: 40, borderRadius: "var(--r-cell)",
-                                                        border: `2px solid ${maxStandby === n ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                        background: maxStandby === n ? "var(--green)" : "var(--bg-grouped)",
-                                                        color: maxStandby === n ? "white" : "var(--label-2)",
-                                                        fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-                                                        transition: "all 0.15s", fontFamily: "inherit",
-                                                    }}
-                                                >{n}</button>
-                                            );
-                                        })}
+                                        {/* Dedup: at low player counts, e.g. maxPlayers=4, two percentages
+                                            round to the same integer — without this, two pills would show
+                                            the same number. */}
+                                        {[...new Set([0.1, 0.25, 0.5, 1.0].map(pct => Math.ceil(maxPlayers * pct)))].map(n => (
+                                            <button key={n} type="button" onClick={() => setMaxStandby(n)}
+                                                style={{
+                                                    width: 52, height: 40, borderRadius: "var(--r-cell)",
+                                                    border: `2px solid ${maxStandby === n ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                    background: maxStandby === n ? "var(--green)" : "var(--bg-grouped)",
+                                                    color: maxStandby === n ? "white" : "var(--label-2)",
+                                                    fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                                                    transition: "all 0.15s", fontFamily: "inherit",
+                                                }}
+                                            >{n}</button>
+                                        ))}
+                                        <span style={{ fontSize: "0.68rem", color: "var(--label-3)", fontWeight: 600 }}>or</span>
                                         <input
                                             type="number" min="0" max={maxPlayers}
                                             value={maxStandby}
                                             onChange={(e) => setMaxStandby(Math.min(parseInt(e.target.value, 10) || 0, maxPlayers))}
                                             style={{
-                                                width: 68, padding: "8px 10px",
-                                                border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)",
+                                                width: 68, height: 40, padding: "8px 10px", boxSizing: "border-box",
+                                                border: "1.5px dashed var(--sep-opaque)", borderRadius: "var(--r-cell)",
                                                 fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
-                                                fontFamily: "inherit", background: "var(--bg-grouped)", color: "var(--label)",
+                                                fontFamily: "inherit", background: "transparent", color: "var(--label)",
                                             }}
                                             placeholder="0"
+                                            title="Type a custom standby (waitlist) size"
                                         />
                                     </div>
                                     <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 6 }}>Auto-set to 10% of max players. Max = {maxPlayers}.</div>
@@ -1277,12 +1392,25 @@ export default function NewTournamentPublic() {
 
                     {/* ── Location / Venue ── */}
                     {sectionLabel("Location")}
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)", position: "relative" }}>
+                    <div
+                        id="field-venue"
+                        style={{
+                            background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24,
+                            boxShadow: "var(--shadow)", position: "relative",
+                            border: fieldErrors.venue ? "1.5px solid #dc2626" : "1.5px solid transparent",
+                        }}
+                    >
                         {/* Hidden inputs */}
                         <input type="hidden" name="location" value={locationOverride || (selectedVenue ? `${selectedVenue.name}, ${selectedVenue.city || ""}` : venueQuery)} />
                         <input type="hidden" name="venueId" value={selectedVenue?.id || ""} />
                         <input type="hidden" name="latitude" value={lat || selectedVenue?.latitude || ""} />
                         <input type="hidden" name="longitude" value={lng || selectedVenue?.longitude || ""} />
+
+                        {fieldErrors.venue && (
+                            <div style={{ padding: "10px 16px", background: "#fef2f2", color: "#991b1b", fontSize: "0.78rem", fontWeight: 600, borderBottom: "1px solid #fca5a5" }}>
+                                {fieldErrors.venue}
+                            </div>
+                        )}
 
                         {/* Google Maps URL — first, drives everything */}
                         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", background: "rgba(28,79,53,0.03)" }}>
@@ -1293,12 +1421,14 @@ export default function NewTournamentPublic() {
                             </div>
                             <input
                                 value={googleMapsUrl}
-                                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                                onChange={(e) => { setGoogleMapsUrl(e.target.value); if (fieldErrors.venue) setFieldErrors(prev => ({ ...prev, venue: undefined })); }}
                                 onBlur={handleMapsUrlBlur}
-                                placeholder="Paste a Google Maps link — fills venue, city, country, currency"
+                                placeholder="Paste a Google Maps link"
                                 type="url"
+                                className="nopa-input-ellipsis"
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
+                            <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 4 }}>Fills in venue, city, country, and currency below.</div>
                             <input type="hidden" name="googleMapsUrl" value={googleMapsUrl} />
                             {mapsLoading && (
                                 <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 4 }}>Detecting location…</div>
@@ -1319,13 +1449,13 @@ export default function NewTournamentPublic() {
                             )}
                         </div>
 
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)", position: "relative" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
                                 Venue Name {mapsResult?.venueName && <span style={{ color: "var(--green)", textTransform: "none", letterSpacing: 0 }}>✓ auto-filled</span>}
                             </div>
                             <input
                                 value={venueQuery}
-                                onChange={(e) => { setVenueQuery(e.target.value); setLocationOverride(e.target.value); setSelectedVenue(null); }}
+                                onChange={(e) => { setVenueQuery(e.target.value); setLocationOverride(e.target.value); setSelectedVenue(null); if (fieldErrors.venue) setFieldErrors(prev => ({ ...prev, venue: undefined })); }}
                                 placeholder="e.g. Aspire Zone Padel Courts"
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
@@ -1368,7 +1498,7 @@ export default function NewTournamentPublic() {
                             </div>
                             <input
                                 value={city}
-                                onChange={(e) => setCity(e.target.value)}
+                                onChange={(e) => { setCity(e.target.value); if (fieldErrors.venue) setFieldErrors(prev => ({ ...prev, venue: undefined })); }}
                                 placeholder="e.g. Doha — Aspire Zone"
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
@@ -1381,7 +1511,7 @@ export default function NewTournamentPublic() {
                             </div>
                             <select
                                 value={country}
-                                onChange={(e) => setCountry(e.target.value)}
+                                onChange={(e) => { setCountry(e.target.value); setCurrency(getCurrencyForCountry(e.target.value)); }}
                                 name="country"
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
                             >
@@ -1568,23 +1698,28 @@ export default function NewTournamentPublic() {
                             <input
                                 name="organizerName"
                                 placeholder="e.g. Maikel"
+                                autoComplete="name"
                                 value={organizerName}
                                 onChange={(e) => setOrganizerName(e.target.value)}
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
                             />
                         </div>
-                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }}>
+                        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--sep)" }} id="field-hostPassword">
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
                                 Host Password {isPublic && <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.1)", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700, marginLeft: 4 }}>Required</span>} <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--label-3)", fontWeight: 400 }}>— remember this to start the match or make changes</span>
                             </div>
                             <input
                                 name="hostPassword"
                                 type="password"
+                                autoComplete="new-password"
                                 placeholder="Choose a password"
                                 value={hostPassword}
-                                onChange={(e) => setHostPassword(e.target.value)}
-                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}
+                                onChange={(e) => { setHostPassword(e.target.value); if (fieldErrors.hostPassword) setFieldErrors(prev => ({ ...prev, hostPassword: undefined })); }}
+                                style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: fieldErrors.hostPassword ? "#dc2626" : "var(--label)", outline: "none" }}
                             />
+                            {fieldErrors.hostPassword && (
+                                <div style={{ fontSize: "0.74rem", color: "#dc2626", marginTop: 6 }}>{fieldErrors.hostPassword}</div>
+                            )}
                         </div>
                         <div style={{ padding: "14px 16px" }}>
                             <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>
@@ -1593,6 +1728,7 @@ export default function NewTournamentPublic() {
                             <input
                                 name="hostEmail"
                                 type="email"
+                                autoComplete="email"
                                 placeholder="you@example.com"
                                 value={hostEmail}
                                 onChange={(e) => setHostEmail(e.target.value)}
@@ -1641,23 +1777,23 @@ export default function NewTournamentPublic() {
 
                     <button
                         type="submit"
-                        disabled={(!isScheduled && playerSlots.filter(s => s.trim()).length < minPlayers) || isSubmitting}
+                        disabled={(!meetsMinimumUpfront) || isSubmitting}
                         style={{
                             width: "100%", padding: "16px", borderRadius: "var(--r-card)",
-                            background: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "var(--green)" : "var(--sep-opaque)",
+                            background: meetsMinimumUpfront ? "var(--green)" : "var(--sep-opaque)",
                             color: "white", fontWeight: 600, fontSize: "1rem",
-                            border: "none", cursor: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "pointer" : "not-allowed",
+                            border: "none", cursor: meetsMinimumUpfront ? "pointer" : "not-allowed",
                             fontFamily: "inherit", transition: "background 0.2s",
-                            boxShadow: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
+                            boxShadow: meetsMinimumUpfront ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
                         }}
                     >
                         {isSubmitting
                             ? "Creating..."
                             : isScheduled
                                 ? `Schedule Tournament · open for ${maxPlayers} players`
-                                : playerSlots.filter(s => s.trim()).length < minPlayers
-                                    ? `Need ${minPlayers - playerSlots.filter(s => s.trim()).length} more to start · ${courts * 4} for full setup`
-                                    : `Create Tournament · ${playerSlots.filter(s => s.trim()).length} players`}
+                                : !meetsMinimumUpfront
+                                    ? `Need ${minPlayers - filledSlotCount} more to start · ${courts * 4} for full setup`
+                                    : `Create Tournament · ${filledSlotCount} player${filledSlotCount === 1 ? "" : "s"}`}
                     </button>
                 </Form>
             </div>

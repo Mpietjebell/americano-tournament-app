@@ -49,6 +49,11 @@ export const loader = async ({ params, request }) => {
     return json({ tournament });
 };
 
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "Edit Tournament — NOPA" }];
+    return [{ title: `Edit ${data.tournament.name} — NOPA` }];
+};
+
 export const action = async ({ params, request }) => {
     const tournament = await prisma.tournament.findUnique({
         where: { id: params.id },

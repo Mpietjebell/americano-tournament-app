@@ -22,6 +22,11 @@ export const loader = async ({ params, request }) => {
     return json({ tournament, playerId });
 };
 
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "My Matches — NOPA" }];
+    return [{ title: `${data.tournament.name} — My Matches — NOPA` }];
+};
+
 function getPlayerName(id, players) {
     return players.find((p) => p.id === id)?.name || "?";
 }
@@ -31,9 +36,10 @@ export default function PlayerScoreboard() {
     const revalidator = useRevalidator();
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-    // Auto-refresh every 15 seconds
+    // Auto-refresh often enough that scores from other courts and the
+    // host's confirmations feel live, not just "eventually."
     useEffect(() => {
-        const interval = setInterval(() => revalidator.revalidate(), 15000);
+        const interval = setInterval(() => revalidator.revalidate(), 5000);
         return () => clearInterval(interval);
     }, [revalidator]);
 
@@ -115,7 +121,7 @@ export default function PlayerScoreboard() {
                 )}
 
                 {/* Progress bar */}
-                {totalRounds > 0 && (
+                {totalRounds > 0 && allMatches.length > 0 && (
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "16px", marginBottom: 20, boxShadow: "var(--shadow)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "var(--label-3)", marginBottom: 8 }}>
                             <span>{completedMatches.length} / {allMatches.length} matches</span>

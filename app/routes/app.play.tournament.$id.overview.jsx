@@ -11,14 +11,20 @@ import {
     TYPE_LABELS,
 } from "../utils/tournament-helpers";
 import { getHostTokenFromRequest } from "../utils/host-auth.server";
+import { getRequestOrigin } from "../utils/request.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
-    const origin = new URL(request.url).origin;
+    const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     return json({ tournament, origin, isHost });
+};
+
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "Tournament Created — NOPA" }];
+    return [{ title: `${data.tournament.name} — NOPA` }];
 };
 
 export default function TournamentOverview() {

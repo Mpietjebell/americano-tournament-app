@@ -1,27 +1,5 @@
 import { json } from "@remix-run/node";
-
-const COUNTRY_TO_CURRENCY = {
-    QA: "QAR", AE: "AED", SA: "SAR", KW: "KWD", BH: "BHD", OM: "OMR",
-    GB: "GBP", US: "USD", CA: "CAD", AU: "AUD", NZ: "NZD", CH: "CHF",
-    SE: "SEK", NO: "NOK", DK: "DKK",
-    JP: "JPY", CN: "CNY", IN: "INR", BR: "BRL", MX: "MXN",
-    SG: "SGD", HK: "HKD", TH: "THB", MY: "MYR", ID: "IDR",
-    PL: "PLN", CZ: "CZK", HU: "HUF", RO: "RON",
-    ZA: "ZAR", EG: "EGP", NG: "NGN", KE: "KES",
-};
-
-const EUR_COUNTRIES = new Set([
-    "DE","FR","IT","ES","PT","NL","BE","AT","FI","IE","GR",
-    "LU","MT","CY","SK","SI","EE","LV","LT","HR",
-]);
-
-function getCurrency(cc) {
-    if (!cc) return "EUR";
-    const c = cc.toUpperCase();
-    if (COUNTRY_TO_CURRENCY[c]) return COUNTRY_TO_CURRENCY[c];
-    if (EUR_COUNTRIES.has(c)) return "EUR";
-    return "EUR";
-}
+import { getCurrencyForCountry } from "../utils/currency";
 
 function extractCoordsFromUrl(urlStr) {
     try {
@@ -102,7 +80,7 @@ export async function loader({ request }) {
     }
 
     const country = geo?.country || null;
-    const currency = getCurrency(country);
+    const currency = getCurrencyForCountry(country);
     const city = geo?.city || null;
     // URL place name is more accurate than reverse-geocode name
     const venueName = placeName || geo?.venueName || null;

@@ -22,7 +22,11 @@ export async function action({ request, params }) {
 
     if (t.rounds.length > 0) return corsJson(request, { ok: false, error: "Already started" }, { status: 400 });
 
-    await generateAllRounds(t);
+    try {
+        await generateAllRounds(t);
+    } catch (err) {
+        return corsJson(request, { ok: false, error: err.message }, { status: 400 });
+    }
     await prisma.tournament.update({ where: { id: params.id }, data: { status: "active" } });
 
     return corsJson(request, { ok: true, redirectUrl: `https://americano-tournament-app-production.up.railway.app/app/play/tournament/${params.id}` });

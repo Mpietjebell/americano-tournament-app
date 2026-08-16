@@ -1,12 +1,13 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import prisma from "../db.server";
+import { getRequestOrigin } from "../utils/request.server";
 
 const SHOPIFY_JOIN_BASE = "https://nopabrand.com/pages/organise-americano";
 const LABELS = { americano: "Americano", mexicano: "Mexicano", team_americano: "Team Americano", team_mexicano: "Team Mexicano", king_of_the_court: "King of the Court", beat_the_box: "Beat the Box" };
 const LEVEL_TOOLTIP = ["", "Playtomic 0–1 · Beginner", "Playtomic 0–1.5 · Recreational", "Playtomic 2–3 · Intermediate", "Playtomic 3–4 · Advanced", "Playtomic 4+ · Competitive"];
 
-export const loader = async ({ params }) => {
+export const loader = async ({ params, request }) => {
     const code = params.code.toUpperCase();
     const tournament = await prisma.tournament.findUnique({
         where: { joinCode: code },
@@ -58,7 +59,34 @@ export const loader = async ({ params }) => {
         description: tournament.description || null,
         isPast,
         status: tournament.status,
+        origin: getRequestOrigin(request),
     });
+};
+
+export const meta = ({ data }) => {
+    if (!data?.name) return [{ title: "Join an Americano — NOPA" }];
+    const title = `${data.name} — NOPA`;
+    const bits = [
+        LABELS[data.type] || data.type,
+        data.venueName || data.city,
+        `${data.playerCount}${data.maxPlayers ? `/${data.maxPlayers}` : ""} players`,
+    ].filter(Boolean);
+    const desc = data.description?.trim() || `${bits.join(" · ")} — join this Americano on NOPA Padel.`;
+    const image = data.logoUrl && data.logoUrl.startsWith("http") ? data.logoUrl : `${data.origin}/hero-court.png`;
+    const url = `${data.origin}/j/${data.joinCode}`;
+    return [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: image },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: desc },
+        { name: "twitter:image", content: image },
+    ];
 };
 
 function flag(code) {
