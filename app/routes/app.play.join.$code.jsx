@@ -4,6 +4,7 @@ import { useState } from "react";
 import prisma from "../db.server";
 import { DEUCE_LABELS, getCountryDisplay, TYPE_LABELS } from "../utils/tournament-helpers";
 import { sendSignupConfirmation } from "../utils/email.server";
+import { getRequestOrigin } from "../utils/request.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await prisma.tournament.findUnique({
@@ -14,7 +15,30 @@ export const loader = async ({ params, request }) => {
     const cookie = request.headers.get("Cookie") || "";
     const cookieMatch = cookie.match(new RegExp(`nopa_player_${tournament.id}=([^;]+)`));
     const playerIdFromCookie = cookieMatch?.[1] || null;
-    return json({ tournament, playerIdFromCookie });
+    const origin = getRequestOrigin(request);
+    return json({ tournament, playerIdFromCookie, origin });
+};
+
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "Join Tournament — NOPA" }];
+    const t = data.tournament;
+    const title = `Join ${t.name} — NOPA`;
+    const desc = `${TYPE_LABELS[t.type] || t.type}${t.location ? ` · ${t.location}` : ""} · ${t.players.length} players joined so far. Sign up free on NOPA Padel.`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const url = `${data.origin}/app/play/join/${t.joinCode}`;
+    return [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: image },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: desc },
+        { name: "twitter:image", content: image },
+    ];
 };
 
 export const action = async ({ request, params }) => {

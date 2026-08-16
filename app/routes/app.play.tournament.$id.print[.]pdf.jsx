@@ -1,6 +1,7 @@
 import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { DEUCE_LABELS, TYPE_LABELS, buildTeams, getCountryDisplay } from "../utils/tournament-helpers";
+import { getRequestOrigin } from "../utils/request.server";
 
 const MATCHES_PER_COLUMN = 5;
 const COURTS_PER_PAGE = 3;
@@ -481,7 +482,7 @@ export async function loader({ params, request }) {
   const tournament = await loadTournament(params.id);
   if (!tournament) throw new Response("Not Found", { status: 404 });
 
-  const origin = new URL(request.url).origin;
+  const origin = getRequestOrigin(request);
   const buffer = await renderToBuffer(<SchedulePdf tournament={tournament} origin={origin} />);
   const fileName = `${sanitizeFilename(tournament.name)}-insert.pdf`;
 

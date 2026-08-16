@@ -4,11 +4,12 @@ import { useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { buildResultsShareText, buildTeamStandings, getCountryDisplay, getPlacementLabel, getTeamColor } from "../utils/tournament-helpers";
 import { getHostTokenFromRequest } from "../utils/host-auth.server";
+import { getRequestOrigin } from "../utils/request.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
-    const origin = new URL(request.url).origin;
+    const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, params.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     return json({ tournament, origin, isHost });
@@ -21,15 +22,20 @@ export const meta = ({ data }) => {
     const standings = isTeamMode ? buildTeamStandings(t.players) : t.players;
     const top3 = standings.slice(0, 3).map((p, i) => `${i + 1}. ${p.name} (${p.totalPoints} pts)`).join("  ");
     const desc = `${top3} — ${t.rounds.length} rounds · ${t.players.length} players${isTeamMode ? ` · ${standings.length} teams` : ""} · NOPA Padel`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const url = `${data.origin}/app/play/tournament/${t.id}/final`;
     return [
         { title: `${t.name} — Final Results` },
         { name: "description", content: desc },
         { property: "og:title", content: `${t.name} — Final Results` },
         { property: "og:description", content: desc },
         { property: "og:type", content: "website" },
-        { name: "twitter:card", content: "summary" },
+        { property: "og:image", content: image },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: `${t.name} — Final Results` },
         { name: "twitter:description", content: desc },
+        { name: "twitter:image", content: image },
     ];
 };
 

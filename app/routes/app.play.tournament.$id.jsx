@@ -15,6 +15,7 @@ import {
     TYPE_LABELS,
 } from "../utils/tournament-helpers";
 import { getHostTokenFromRequest } from "../utils/host-auth.server";
+import { getRequestOrigin } from "../utils/request.server";
 
 function CancelRegistrationInline({ tournamentId, playerId }) {
     const [showConfirm, setShowConfirm] = React.useState(false);
@@ -51,12 +52,34 @@ function CancelRegistrationInline({ tournamentId, playerId }) {
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
-    const origin = new URL(request.url).origin;
+    const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
     const playerId = playerCookieMatch?.[1] || null;
     return json({ tournament, origin, isHost, playerId });
+};
+
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "Tournament — NOPA" }];
+    const t = data.tournament;
+    const title = `${t.name} — NOPA`;
+    const desc = `${TYPE_LABELS[t.type] || t.type} · ${t.players.length} players · ${t.courtsAvailable} courts on NOPA Padel.`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const url = `${data.origin}/app/play/tournament/${t.id}`;
+    return [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: image },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: desc },
+        { name: "twitter:image", content: image },
+    ];
 };
 
 export const action = async ({ request, params }) => {
@@ -71,7 +94,11 @@ export const action = async ({ request, params }) => {
 
     if (intent === "generate_all_rounds") {
         if (!isHost) return json({ error: "Host access required." }, { status: 403 });
-        await generateAllRounds(tournament);
+        try {
+            await generateAllRounds(tournament);
+        } catch (err) {
+            return json({ error: err.message }, { status: 400 });
+        }
         return json({ success: true });
     }
 
@@ -304,7 +331,7 @@ export default function PublicTournamentView() {
                     <p style={{ fontSize: "0.82rem", color: "var(--label-3)", marginBottom: hasRounds ? 12 : 0 }}>
                         {TYPE_LABELS[tournament.type]} · {players.length} players{isTeamMode ? ` · ${setupTeams.length} teams` : ""} · {tournament.courtsAvailable} courts · {tournament.pointsPerMatch} pts
                     </p>
-                    {hasRounds && (
+                    {hasRounds && allMatches.length > 0 && (
                         <div>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--label-3)", marginBottom: 5 }}>
                                 <span>{completedMatches.length} / {allMatches.length} matches</span>
@@ -483,6 +510,11 @@ export default function PublicTournamentView() {
                                         {fetcher.state !== "idle" ? "Generating..." : generatesRoundsDynamically ? "Start Tournament" : `Generate All ${plannedRounds} Rounds`}
                                     </button>
                                 </fetcher.Form>
+                                {fetcher.data?.error && (
+                                    <div style={{ marginTop: 12, fontSize: "0.82rem", color: "#dc2626", fontWeight: 600 }}>
+                                        {fetcher.data.error}
+                                    </div>
+                                )}
 
                                 <div style={{ marginTop: 24, textAlign: "left" }}>
                                     <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600 }}>
@@ -535,7 +567,10 @@ export default function PublicTournamentView() {
                         )}
 
                         {tournament.rounds.map((round) => {
-                            const roundCompleted = round.matches.every((m) => m.status === "completed");
+                            // .every() on an empty array is vacuously true — a round with
+                            // no match rows would otherwise render as "Done" instead of
+                            // reflecting that it never got any matches.
+                            const roundCompleted = round.matches.length > 0 && round.matches.every((m) => m.status === "completed");
                             const roundActive = round.matches.some((m) => m.status === "completed");
                             return (
                                 <div key={round.id} style={{ marginBottom: 32 }}>
@@ -718,7 +753,7 @@ export default function PublicTournamentView() {
                 {activeTab === "matches" && (
                     <div>
                         {tournament.rounds.map((round) => {
-                            const done = round.matches.every(m => m.status === "completed");
+                            const done = round.matches.length > 0 && round.matches.every(m => m.status === "completed");
                             const active = round.matches.some(m => m.status === "completed");
                             return (
                                 <div key={round.id} style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 14, boxShadow: "var(--shadow)" }}>

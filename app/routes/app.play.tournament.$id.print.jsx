@@ -2,11 +2,12 @@ import { json } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { getCountryDisplay } from "../utils/tournament-helpers";
+import { getRequestOrigin } from "../utils/request.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
-    const origin = new URL(request.url).origin;
+    const origin = getRequestOrigin(request);
     return json({ tournament, origin });
 };
 

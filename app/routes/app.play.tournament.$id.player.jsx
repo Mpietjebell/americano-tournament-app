@@ -115,7 +115,7 @@ export default function PlayerScoreboard() {
                 )}
 
                 {/* Progress bar */}
-                {totalRounds > 0 && (
+                {totalRounds > 0 && allMatches.length > 0 && (
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "16px", marginBottom: 20, boxShadow: "var(--shadow)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "var(--label-3)", marginBottom: 8 }}>
                             <span>{completedMatches.length} / {allMatches.length} matches</span>

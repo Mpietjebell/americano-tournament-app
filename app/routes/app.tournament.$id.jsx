@@ -83,7 +83,7 @@ export default function TournamentView() {
                         {tournament.type.replace("_", " ").toUpperCase()} · {players.length} players · {tournament.courtsAvailable} courts ·{" "}
                         <span className={`nopa-badge nopa-badge-${tournament.status}`}>{tournament.status}</span>
                     </p>
-                    {hasRounds && (
+                    {hasRounds && allMatches.length > 0 && (
                         <div style={{ marginTop: 8 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--nopa-text-muted)", marginBottom: 4 }}>
                                 <span>{completedMatches.length} / {allMatches.length} matches</span>
@@ -119,7 +119,7 @@ export default function TournamentView() {
                         )}
 
                         {tournament.rounds.map((round) => {
-                            const roundCompleted = round.matches.every((m) => m.status === "completed");
+                            const roundCompleted = round.matches.length > 0 && round.matches.every((m) => m.status === "completed");
                             const roundActive = round.matches.some((m) => m.status === "completed");
                             return (
                                 <div key={round.id} style={{ marginBottom: 32 }}>
