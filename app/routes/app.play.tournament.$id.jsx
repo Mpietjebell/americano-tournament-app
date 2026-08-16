@@ -247,6 +247,7 @@ export default function PublicTournamentView() {
     const [activeTab, setActiveTab] = useState("courts");
     const [copied, setCopied] = useState(false);
     const [showShare, setShowShare] = useState(false);
+    const [confirmEarlyStart, setConfirmEarlyStart] = useState(false);
 
     const players = tournament.players;
     const setupPlayers = tournament.setupPlayers || tournament.players;
@@ -266,6 +267,13 @@ export default function PublicTournamentView() {
     const completedMatches = allMatches.filter((m) => m.status === "completed");
     const pendingMatches = allMatches.filter((m) => m.status !== "completed");
     const isFinished = tournament.status === "finished" || (hasRounds && pendingMatches.length === 0 && completedMatches.length > 0);
+
+    // A scheduled public tournament stays open for sign-ups until the host
+    // starts it — but nothing stopped a host from generating rounds the
+    // moment enough players existed to legally start, even if sign-ups
+    // hadn't reached the max players they set. Surface that explicitly
+    // instead of letting one tap silently lock in a partial roster.
+    const spotsOpen = Boolean(tournament.isPublic && tournament.maxPlayers && players.length < tournament.maxPlayers);
 
     const joinUrl = tournament.joinCode ? `${origin}/app/play/join/${tournament.joinCode}` : null;
     const qrUrl = joinUrl ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(joinUrl)}&size=200x200&margin=10&color=1C4F35` : null;
@@ -498,18 +506,39 @@ export default function PublicTournamentView() {
                                         ? `Start the tournament. Rounds will continue automatically until ${plannedRounds} rounds are complete.`
                                         : `Generate all ${plannedRounds} rounds at once.`}
                                 </p>
-                                <fetcher.Form method="post">
-                                    <input type="hidden" name="intent" value="generate_all_rounds" />
-                                    <button type="submit" disabled={fetcher.state !== "idle"} style={{
-                                        padding: "13px 32px", borderRadius: "var(--r-card)",
-                                        background: "var(--green)", color: "white",
-                                        fontWeight: 600, fontSize: "0.95rem", border: "none",
-                                        cursor: "pointer", fontFamily: "inherit",
-                                        boxShadow: "0 4px 16px rgba(28,79,53,0.3)",
-                                    }}>
-                                        {fetcher.state !== "idle" ? "Generating..." : generatesRoundsDynamically ? "Start Tournament" : `Generate All ${plannedRounds} Rounds`}
-                                    </button>
-                                </fetcher.Form>
+                                {spotsOpen && !confirmEarlyStart ? (
+                                    <>
+                                        <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-card)", padding: "12px 16px", marginBottom: 16, color: "#9a3412", fontSize: "0.82rem", lineHeight: 1.5 }}>
+                                            Only {players.length} of {tournament.maxPlayers} spots are filled. Starting now closes sign-ups and locks in the current roster.
+                                        </div>
+                                        <button type="button" onClick={() => setConfirmEarlyStart(true)} style={{
+                                            padding: "13px 32px", borderRadius: "var(--r-card)",
+                                            background: "transparent", color: "#9a3412",
+                                            fontWeight: 600, fontSize: "0.95rem", border: "2px solid #fdba74",
+                                            cursor: "pointer", fontFamily: "inherit",
+                                        }}>
+                                            Start with {players.length} anyway
+                                        </button>
+                                    </>
+                                ) : (
+                                    <fetcher.Form method="post">
+                                        <input type="hidden" name="intent" value="generate_all_rounds" />
+                                        <button type="submit" disabled={fetcher.state !== "idle"} style={{
+                                            padding: "13px 32px", borderRadius: "var(--r-card)",
+                                            background: "var(--green)", color: "white",
+                                            fontWeight: 600, fontSize: "0.95rem", border: "none",
+                                            cursor: "pointer", fontFamily: "inherit",
+                                            boxShadow: "0 4px 16px rgba(28,79,53,0.3)",
+                                        }}>
+                                            {fetcher.state !== "idle" ? "Generating..." : generatesRoundsDynamically ? "Start Tournament" : `Generate All ${plannedRounds} Rounds`}
+                                        </button>
+                                        {spotsOpen && (
+                                            <button type="button" onClick={() => setConfirmEarlyStart(false)} style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "var(--label-3)", fontSize: "0.78rem", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
+                                                Wait for more sign-ups instead
+                                            </button>
+                                        )}
+                                    </fetcher.Form>
+                                )}
                                 {fetcher.data?.error && (
                                     <div style={{ marginTop: 12, fontSize: "0.82rem", color: "#dc2626", fontWeight: 600 }}>
                                         {fetcher.data.error}
