@@ -22,6 +22,11 @@ export const loader = async ({ params, request }) => {
     return json({ tournament, origin, isHost });
 };
 
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "Tournament Created — NOPA" }];
+    return [{ title: `${data.tournament.name} — NOPA` }];
+};
+
 export default function TournamentOverview() {
     const { tournament, origin, isHost } = useLoaderData();
     const [copied, setCopied] = useState(false);

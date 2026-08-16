@@ -91,6 +91,8 @@ export const action = async ({ request, params }) => {
 
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
+    const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
+    const playerId = playerCookieMatch?.[1] || null;
 
     if (intent === "generate_all_rounds") {
         if (!isHost) return json({ error: "Host access required." }, { status: 403 });
@@ -195,6 +197,23 @@ export const action = async ({ request, params }) => {
 
     if (intent === "propose_score") {
         const matchId = formData.get("matchId");
+
+        // A player can only propose a score for a match they're actually
+        // in — without this, anyone with the join link (or another
+        // player's cookie) could submit a score for someone else's court.
+        // The host is exempt: they can already submit/confirm/reset any
+        // score directly, and may be entering a score on a player's behalf.
+        if (!isHost) {
+            const match = tournament.rounds.flatMap((r) => r.matches).find((m) => m.id === matchId);
+            if (!match) return json({ error: "Match not found." }, { status: 404 });
+            const teamAIds = JSON.parse(match.teamAIds);
+            const teamBIds = JSON.parse(match.teamBIds);
+            const isParticipant = Boolean(playerId) && (teamAIds.includes(playerId) || teamBIds.includes(playerId));
+            if (!isParticipant) {
+                return json({ error: "You can only submit a score for your own match." }, { status: 403 });
+            }
+        }
+
         const scoreA = parseInt(formData.get("scoreA"), 10);
         const scoreB = parseInt(formData.get("scoreB"), 10);
         const result = await proposeScore(tournament, matchId, scoreA, scoreB);
@@ -267,6 +286,11 @@ export default function PublicTournamentView() {
     const completedMatches = allMatches.filter((m) => m.status === "completed");
     const pendingMatches = allMatches.filter((m) => m.status !== "completed");
     const isFinished = tournament.status === "finished" || (hasRounds && pendingMatches.length === 0 && completedMatches.length > 0);
+    // The Leaderboard tab's podium/standings/all-results content is the
+    // same "who won" information the host controls via Release Results on
+    // the final-results page — it shouldn't leak here for everyone the
+    // moment the last match completes while that page still gates it.
+    const resultsHidden = isFinished && !isHost && !tournament.resultsPublished;
 
     // A scheduled public tournament stays open for sign-ups until the host
     // starts it — but nothing stopped a host from generating rounds the
@@ -302,9 +326,13 @@ export default function PublicTournamentView() {
 
     useEffect(() => {
         if (isFinished) return;
+        // Scores get proposed/confirmed live from multiple phones on
+        // different courts — poll often enough that a host confirming one
+        // match, or a player proposing a score, shows up for everyone else
+        // within a few seconds rather than up to ten.
         const interval = setInterval(() => {
             revalidate();
-        }, 10000);
+        }, 5000);
         return () => clearInterval(interval);
     }, [isFinished, revalidate]);
 
@@ -617,7 +645,7 @@ export default function PublicTournamentView() {
                                         {round.matches.map((match) => {
                                             const teamA = JSON.parse(match.teamAIds);
                                             const teamB = JSON.parse(match.teamBIds);
-                                            return <CourtCard key={match.id} match={match} teamA={teamA} teamB={teamB} players={players} pointsPerMatch={tournament.pointsPerMatch} isHost={isHost} />;
+                                            return <CourtCard key={match.id} match={match} teamA={teamA} teamB={teamB} players={players} pointsPerMatch={tournament.pointsPerMatch} isHost={isHost} playerId={playerId} />;
                                         })}
                                     </div>
                                 </div>
@@ -642,7 +670,17 @@ export default function PublicTournamentView() {
                 )}
 
                 {/* ──────── LEADERBOARD TAB ──────── */}
-                {activeTab === "leaderboard" && (
+                {activeTab === "leaderboard" && (resultsHidden ? (
+                    <div style={{
+                        background: "linear-gradient(135deg, var(--green-dark), var(--green))",
+                        color: "white", borderRadius: "var(--r-card)", padding: "40px 20px",
+                        textAlign: "center", marginBottom: 20, boxShadow: "0 6px 24px rgba(28,79,53,0.3)",
+                    }}>
+                        <div style={{ fontSize: "2.4rem", marginBottom: 12 }}>⏳</div>
+                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", marginBottom: 8 }}>Results not released yet</div>
+                        <div style={{ fontSize: "0.82rem", opacity: 0.75 }}>{completedMatches.length} matches · {tournament.rounds.length} rounds played. The host will share the final standings shortly.</div>
+                    </div>
+                ) : (
                     <>
                         {isFinished && (() => {
                             const mvp = isTeamMode ? teamStandings[0] : players[0];
@@ -776,7 +814,7 @@ export default function PublicTournamentView() {
                             </div>
                         )}
                     </>
-                )}
+                ))}
 
                 {/* ──────── MATCHES TAB ──────── */}
                 {activeTab === "matches" && (
@@ -1298,7 +1336,7 @@ function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
     );
 }
 
-function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost }) {
+function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playerId }) {
     const fetcher = useFetcher();
     const [scoreA, setScoreA] = useState(match.scoreA ?? "");
     const [scoreB, setScoreB] = useState(match.scoreB ?? "");
@@ -1326,6 +1364,7 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost }) {
     const setupTeams = buildTeams(players);
     const teamAEntry = findTeamEntry(teamA, setupTeams);
     const teamBEntry = findTeamEntry(teamB, setupTeams);
+    const isParticipant = Boolean(playerId) && (teamA.includes(playerId) || teamB.includes(playerId));
 
     return (
         <div style={{
@@ -1399,12 +1438,18 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost }) {
                         handleScoreBChange={handleScoreBChange}
                         totalValid={totalValid}
                     />
-                ) : (
+                ) : isParticipant ? (
                     <PlayerProposalForm
                         match={match}
                         pointsPerMatch={pointsPerMatch}
                         fetcher={fetcher}
                     />
+                ) : (
+                    <div style={{ textAlign: "center", padding: "10px 0 4px", fontSize: "0.78rem", color: "var(--label-3)" }}>
+                        {match.proposedScoreA != null && match.proposedScoreB != null
+                            ? `${match.proposedScoreA} — ${match.proposedScoreB} · awaiting host confirmation`
+                            : "Waiting for these players to enter a score"}
+                    </div>
                 )}
             </div>
         </div>

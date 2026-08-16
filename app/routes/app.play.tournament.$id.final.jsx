@@ -1,6 +1,7 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, Link, useFetcher } from "@remix-run/react";
 import { useState } from "react";
+import { toPng } from "html-to-image";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { buildResultsShareText, buildTeamStandings, getCountryDisplay, getPlacementLabel, getTeamColor } from "../utils/tournament-helpers";
 import { getHostTokenFromRequest } from "../utils/host-auth.server";
@@ -60,6 +61,7 @@ export default function FinalLeaderboard() {
     const { tournament, origin, isHost } = useLoaderData();
     const [copied, setCopied] = useState(false);
     const [released, setReleased] = useState(tournament.resultsPublished);
+    const [imageState, setImageState] = useState("idle"); // idle | generating | error
     const releaseFetcher = useFetcher();
 
     const players = tournament.players;
@@ -102,6 +104,45 @@ export default function FinalLeaderboard() {
     const handleReleaseResults = () => {
         releaseFetcher.submit({}, { method: "post", action: `/api/tournament/${tournament.id}/release-results` });
         setReleased(true);
+    };
+
+    // Renders the branded scorecard (#final-card) to a PNG so it can go
+    // straight into WhatsApp as an image, not just a link — using the
+    // native share sheet with the file attached where the browser
+    // supports it (most mobile browsers), and falling back to a plain
+    // download the host can attach manually otherwise.
+    const handleShareImage = async () => {
+        const node = document.getElementById("final-card");
+        if (!node) return;
+        setImageState("generating");
+        try {
+            const dataUrl = await toPng(node, { pixelRatio: 2 });
+            const fileName = `${tournament.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "nopa-results"}.png`;
+
+            if (navigator.canShare && navigator.share) {
+                const blob = await (await fetch(dataUrl)).blob();
+                const file = new File([blob], fileName, { type: "image/png" });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: `${tournament.name} — Results`, text: shareText });
+                    setImageState("idle");
+                    return;
+                }
+            }
+
+            // No file-sharing support — download the image, then hand off
+            // to WhatsApp so it's one tap away to attach.
+            const link = document.createElement("a");
+            link.href = dataUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.open(waUrl, "_blank");
+            setImageState("idle");
+        } catch {
+            setImageState("error");
+            setTimeout(() => setImageState("idle"), 3000);
+        }
     };
 
     if (!isHost && !released) {
@@ -204,11 +245,6 @@ export default function FinalLeaderboard() {
                     )}
                 </div>
 
-                {/* ── Screenshot hint ── */}
-                <div style={{ textAlign: "center", fontSize: "0.72rem", color: "var(--label-3)", marginBottom: 20 }}>
-                    Screenshot the card above to share as an image
-                </div>
-
                 {/* ── Host: Release Results button ── */}
                 {isHost && !released && (
                     <button
@@ -233,15 +269,36 @@ export default function FinalLeaderboard() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
                     <button
                         type="button"
-                        onClick={handleNativeShare}
+                        onClick={handleShareImage}
+                        disabled={imageState === "generating"}
                         style={{
                             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                             background: "#25D366", borderRadius: "var(--r-card)", padding: "15px 20px",
-                            color: "white", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer",
-                            border: "none", fontFamily: "inherit", width: "100%",
+                            color: "white", fontWeight: 600, fontSize: "0.95rem",
+                            cursor: imageState === "generating" ? "wait" : "pointer",
+                            border: "none", fontFamily: "inherit", width: "100%", opacity: imageState === "generating" ? 0.7 : 1,
                         }}
                     >
-                        📤 Share Results
+                        {imageState === "generating" ? "Preparing image…" : "📸 Share Scorecard on WhatsApp"}
+                    </button>
+                    {imageState === "error" && (
+                        <div style={{ textAlign: "center", fontSize: "0.76rem", color: "#dc2626" }}>
+                            Couldn't generate the image — try the text share below instead.
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleNativeShare}
+                        style={{
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                            background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "14px 20px",
+                            color: "var(--label)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
+                            border: "1.5px solid var(--sep-opaque)", fontFamily: "inherit", width: "100%",
+                            boxShadow: "var(--shadow)",
+                        }}
+                    >
+                        📤 Share Results Link
                     </button>
 
                     <button

@@ -22,6 +22,11 @@ export const loader = async ({ params, request }) => {
     return json({ tournament, playerId });
 };
 
+export const meta = ({ data }) => {
+    if (!data?.tournament) return [{ title: "My Matches — NOPA" }];
+    return [{ title: `${data.tournament.name} — My Matches — NOPA` }];
+};
+
 function getPlayerName(id, players) {
     return players.find((p) => p.id === id)?.name || "?";
 }
@@ -31,9 +36,10 @@ export default function PlayerScoreboard() {
     const revalidator = useRevalidator();
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-    // Auto-refresh every 15 seconds
+    // Auto-refresh often enough that scores from other courts and the
+    // host's confirmations feel live, not just "eventually."
     useEffect(() => {
-        const interval = setInterval(() => revalidator.revalidate(), 15000);
+        const interval = setInterval(() => revalidator.revalidate(), 5000);
         return () => clearInterval(interval);
     }, [revalidator]);
 

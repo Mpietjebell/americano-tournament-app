@@ -5,6 +5,7 @@ import prisma from "../db.server";
 import { createHostCookie } from "../utils/host-auth.server";
 import { buildTeams, getMinimumPlayers, getTournamentStats } from "../utils/tournament-helpers";
 import { GAME_MODE_BUTTON_IMAGES } from "../utils/game-mode-icons";
+import { getCurrencyForCountry, SUPPORTED_CURRENCIES } from "../utils/currency";
 
 function getUserIdFromCookie(request) {
     const cookie = request.headers.get("Cookie") || "";
@@ -90,14 +91,19 @@ export const action = async ({ request }) => {
         if (name) playerNames.push({ name, gender: "unspecified" });
     }
 
-    if (!isScheduled) {
+    // Public tournaments start now with exactly the roster you type in, so
+    // they need the real minimum up front. Private tournaments can be
+    // created as a shell with however many names you have (even zero) —
+    // add the rest from the host manager before generating rounds, where
+    // generateAllRounds() enforces the same minimum anyway.
+    if (!isScheduled && isPublic) {
         const minPlayers = getMinimumPlayers(type);
         if (playerNames.length < minPlayers) {
             return json({ error: `You need at least ${minPlayers} players to start this tournament.` }, { status: 400 });
         }
-        if ((type === "team_americano" || type === "team_mexicano") && playerNames.length % 2 !== 0) {
-            return json({ error: "Fixed-team formats need an even number of players." }, { status: 400 });
-        }
+    }
+    if (!isScheduled && (type === "team_americano" || type === "team_mexicano") && playerNames.length % 2 !== 0) {
+        return json({ error: "Fixed-team formats need an even number of players." }, { status: 400 });
     }
 
     let courtNames = null;
@@ -615,7 +621,10 @@ export default function NewTournamentPublic() {
             const data = await res.json();
             if (data.venue) {
                 setSelectedVenue(data.venue);
-                setCountry(data.venue.country || country);
+                if (data.venue.country) {
+                    setCountry(data.venue.country);
+                    setCurrency(getCurrencyForCountry(data.venue.country));
+                }
                 if (data.venue.city) setCity(data.venue.city);
                 if (data.venue.latitude) setLat(String(data.venue.latitude));
                 if (data.venue.longitude) setLng(String(data.venue.longitude));
@@ -643,6 +652,12 @@ export default function NewTournamentPublic() {
     }, []);
 
     const minPlayers = getMinimumPlayers(selectedType);
+    const filledSlotCount = playerSlots.filter(s => s.trim()).length;
+    // Public "start now" tournaments need the real minimum up front since
+    // the roster you type in is exactly who's playing. Private ones can be
+    // created as a shell with fewer (or zero) names and filled in later —
+    // mirrors the server-side check in the action.
+    const meetsMinimumUpfront = isScheduled || !isPublic || filledSlotCount >= minPlayers;
     const playersForSubmission = playerSlots
         .filter(s => s.trim())
         .map((name, index) => ({
@@ -926,6 +941,15 @@ export default function NewTournamentPublic() {
                                         type="date"
                                         value={scheduledDate}
                                         onChange={(e) => handleScheduledDateChange(e.target.value)}
+                                        onClick={(e) => {
+                                            // Chrome only opens the picker when the calendar glyph
+                                            // itself is clicked — clicking the rest of the field just
+                                            // places a text cursor for manual typing. Open the picker
+                                            // on any click so the whole field behaves the same way.
+                                            if (typeof e.target.showPicker === "function") {
+                                                try { e.target.showPicker(); } catch { /* unsupported in this browser */ }
+                                            }
+                                        }}
                                         required={isScheduled}
                                         min={minDate || undefined}
                                         style={{
@@ -1142,7 +1166,7 @@ export default function NewTournamentPublic() {
                                             name="currency"
                                             style={{ border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label-3)", outline: "none", cursor: "pointer", flexShrink: 0, fontWeight: 600 }}
                                         >
-                                            {["EUR","USD","GBP","QAR","AED","SAR","CHF","SEK","NOK","DKK"].map(c => (
+                                            {SUPPORTED_CURRENCIES.map(c => (
                                                 <option key={c} value={c}>{c}</option>
                                             ))}
                                         </select>
@@ -1487,7 +1511,7 @@ export default function NewTournamentPublic() {
                             </div>
                             <select
                                 value={country}
-                                onChange={(e) => setCountry(e.target.value)}
+                                onChange={(e) => { setCountry(e.target.value); setCurrency(getCurrencyForCountry(e.target.value)); }}
                                 name="country"
                                 style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none", cursor: "pointer" }}
                             >
@@ -1753,23 +1777,23 @@ export default function NewTournamentPublic() {
 
                     <button
                         type="submit"
-                        disabled={(!isScheduled && playerSlots.filter(s => s.trim()).length < minPlayers) || isSubmitting}
+                        disabled={(!meetsMinimumUpfront) || isSubmitting}
                         style={{
                             width: "100%", padding: "16px", borderRadius: "var(--r-card)",
-                            background: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "var(--green)" : "var(--sep-opaque)",
+                            background: meetsMinimumUpfront ? "var(--green)" : "var(--sep-opaque)",
                             color: "white", fontWeight: 600, fontSize: "1rem",
-                            border: "none", cursor: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "pointer" : "not-allowed",
+                            border: "none", cursor: meetsMinimumUpfront ? "pointer" : "not-allowed",
                             fontFamily: "inherit", transition: "background 0.2s",
-                            boxShadow: (isScheduled || playerSlots.filter(s => s.trim()).length >= minPlayers) ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
+                            boxShadow: meetsMinimumUpfront ? "0 4px 16px rgba(28,79,53,0.3)" : "none",
                         }}
                     >
                         {isSubmitting
                             ? "Creating..."
                             : isScheduled
                                 ? `Schedule Tournament · open for ${maxPlayers} players`
-                                : playerSlots.filter(s => s.trim()).length < minPlayers
-                                    ? `Need ${minPlayers - playerSlots.filter(s => s.trim()).length} more to start · ${courts * 4} for full setup`
-                                    : `Create Tournament · ${playerSlots.filter(s => s.trim()).length} players`}
+                                : !meetsMinimumUpfront
+                                    ? `Need ${minPlayers - filledSlotCount} more to start · ${courts * 4} for full setup`
+                                    : `Create Tournament · ${filledSlotCount} player${filledSlotCount === 1 ? "" : "s"}`}
                     </button>
                 </Form>
             </div>
