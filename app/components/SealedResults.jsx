@@ -56,15 +56,29 @@ export function SealedResults({ tournament, yourScore }) {
     );
 }
 
+/** A simply drawn NOPA racquet: white frame, green stripes, tan grip. */
 function Paddle({ side }) {
+    const clip = `sealed-face-${side}`;
+    const holes = [[14, 12], [21, 12], [28, 12], [10.5, 19], [17.5, 19], [24.5, 19], [31.5, 19], [14, 26], [21, 26], [28, 26], [17.5, 33], [24.5, 33]];
     return (
-        <svg className={`sealed-paddle sealed-paddle-${side}`} width="34" height="62" viewBox="0 0 34 62" fill="none">
-            <ellipse cx="17" cy="19" rx="15" ry="18" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M12 35.5 L15 44 M22 35.5 L19 44" stroke="currentColor" strokeWidth="1.2" />
-            <rect x="14.5" y="44" width="5" height="16" stroke="currentColor" strokeWidth="1.2" />
-            {[[11, 13], [17, 13], [23, 13], [8, 20], [14, 20], [20, 20], [26, 20], [11, 27], [17, 27], [23, 27]].map(([x, y]) => (
-                <circle key={`${x}-${y}`} cx={x} cy={y} r="1.1" fill="currentColor" />
-            ))}
+        <svg className={`sealed-paddle sealed-paddle-${side}`} width="42" height="78" viewBox="0 0 42 78" fill="none">
+            <defs>
+                <clipPath id={clip}><ellipse cx="21" cy="22" rx="16.5" ry="19.5" /></clipPath>
+            </defs>
+            {/* throat and frame */}
+            <path d="M12 38 L18.5 54 H23.5 L30 38 Z" fill="#F5F0E8" />
+            <path d="M17.5 41 L21 50 L24.5 41 Z" fill="#1C4F35" />
+            <ellipse cx="21" cy="22" rx="19" ry="22" fill="#F5F0E8" />
+            {/* striped face */}
+            <g clipPath={`url(#${clip})`}>
+                <rect x="0" y="0" width="42" height="44" fill="#FFFFFF" />
+                {[8, 15.5, 23, 30.5].map((y) => <rect key={y} x="0" y={y} width="42" height="4.2" fill="#2A6B49" />)}
+            </g>
+            {holes.map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.15" fill="#143A28" opacity="0.55" />)}
+            {/* grip */}
+            <rect x="18.2" y="54" width="5.6" height="21" fill="#C9743F" />
+            <path d="M18.2 59 L23.8 57 M18.2 64 L23.8 62 M18.2 69 L23.8 67" stroke="#A55A2C" strokeWidth="0.8" />
+            <rect x="17.6" y="74.5" width="6.8" height="2.5" fill="#F5F0E8" />
         </svg>
     );
 }
