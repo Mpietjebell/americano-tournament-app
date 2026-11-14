@@ -58,8 +58,8 @@ export function SealedResults({ tournament, yourScore }) {
 
 /**
  * A simply drawn NOPA racquet, after the real one: a round white head,
- * green bands running the length of the face and cut square above the
- * throat, large holes, an open white throat and a terracotta grip.
+ * green bands running the full length of the face, large holes, an
+ * open white throat and a terracotta grip.
  */
 function Paddle({ side }) {
     const clip = `sealed-face-${side}`;
@@ -83,9 +83,9 @@ function Paddle({ side }) {
             {/* head */}
             <ellipse cx="26" cy="25" rx="23.4" ry="24.4" fill="#FBFAF7" />
             <ellipse cx="26" cy="25" rx="23.4" ry="24.4" stroke="#E4DFD6" strokeWidth="0.6" />
-            {/* green bands along the face, cut square above the throat */}
+            {/* green bands running the full length of the face */}
             <g clipPath={`url(#${clip})`}>
-                {[7.5, 18, 28.5, 39].map((x) => <rect key={x} x={x} y="0" width="5.5" height="39" fill="#1F5A3D" />)}
+                {[7.5, 18, 28.5, 39].map((x) => <rect key={x} x={x} y="0" width="5.5" height="50" fill="#1F5A3D" />)}
             </g>
             {holes.map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.35" fill="#EFECE6" />)}
             {/* collar and grip */}
