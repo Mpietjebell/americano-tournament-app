@@ -2,8 +2,8 @@ import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import prisma from "../db.server";
 import { getRequestOrigin } from "../utils/request.server";
+import { getRoster } from "../utils/registration.server";
 
-const SHOPIFY_JOIN_BASE = "https://nopabrand.com/pages/organise-americano";
 const LABELS = { americano: "Americano", mexicano: "Mexicano", team_americano: "Team Americano", team_mexicano: "Team Mexicano", king_of_the_court: "King of the Court", beat_the_box: "Beat the Box" };
 const LEVEL_TOOLTIP = ["", "Playtomic 0–1 · Beginner", "Playtomic 0–1.5 · Recreational", "Playtomic 2–3 · Intermediate", "Playtomic 3–4 · Advanced", "Playtomic 4+ · Competitive"];
 
@@ -12,25 +12,22 @@ export const loader = async ({ params, request }) => {
     const tournament = await prisma.tournament.findUnique({
         where: { joinCode: code },
         include: {
-            players: { select: { name: true } },
-            participants: { select: { name: true, standbyPosition: true }, orderBy: { createdAt: "asc" } },
+            players: { select: { id: true, name: true } },
+            participants: { select: { name: true, playerId: true, standbyPosition: true }, orderBy: { createdAt: "asc" } },
             venue: true,
         },
     });
 
-    if (!tournament || !tournament.isPublic) {
+    // Private tournaments are "only via link/code" — this link is that
+    // invitation, so it has to work for them too. They just aren't listed.
+    if (!tournament) {
         throw new Response("Not Found", { status: 404 });
     }
 
-    const activeParticipants = tournament.participants.filter(p => p.standbyPosition == null);
-    const standbyParticipants = tournament.participants.filter(p => p.standbyPosition != null);
-    const playerCount = tournament.players.length + activeParticipants.length;
-    const standbyCount = standbyParticipants.length;
-
-    const allNames = [
-        ...tournament.players.map(p => p.name),
-        ...activeParticipants.map(p => p.name),
-    ].filter(n => n && !n.includes("@"));
+    const roster = getRoster(tournament);
+    const playerCount = roster.activeCount;
+    const standbyCount = roster.standbyCount;
+    const allNames = roster.activePlayers.map(p => p.name).filter(n => n && !n.includes("@"));
 
     const isPast = tournament.status === "finished" ||
         (tournament.scheduledAt && new Date(tournament.scheduledAt) < new Date());
@@ -111,10 +108,12 @@ export default function ShareLanding() {
     const spotsLeft = t.maxPlayers ? Math.max(0, t.maxPlayers - t.playerCount) : null;
     const isFull = t.maxPlayers && t.playerCount >= t.maxPlayers;
     const hasWaitlist = t.standbyCount > 0;
-    const joinUrl = `${SHOPIFY_JOIN_BASE}?join=${t.joinCode}`;
+    // Sign-up happens inside the app itself, not on the shop website.
+    const joinUrl = `/app/play/join/${t.joinCode}`;
+    const standbyFull = isFull && t.maxStandby != null && t.standbyCount >= t.maxStandby;
 
-    const btnText = t.isPast ? "Tournament Finished" : isFull && !t.maxStandby ? "Tournament Full" : isFull ? "Join Waitlist" : "🎾 Join Tournament";
-    const btnDisabled = t.isPast || (isFull && !t.maxStandby);
+    const btnText = t.isPast ? "Tournament Finished" : standbyFull ? "Tournament Full" : isFull ? "Join Waitlist" : "🎾 Join Tournament";
+    const btnDisabled = t.isPast || standbyFull;
     const btnBg = isFull && !btnDisabled ? "#ea580c" : "#1C4F35";
 
     const rows = [];

@@ -4,7 +4,7 @@ import { useState } from "react";
 import prisma from "../db.server";
 import { validateHostToken } from "../utils/host-auth.server";
 import { sendLocationChanged, sendPriceChanged } from "../utils/email.server";
-import { TYPE_LABELS, DEUCE_LABELS } from "../utils/tournament-helpers";
+import { viewerTournament, TYPE_LABELS, DEUCE_LABELS } from "../utils/tournament-helpers";
 
 const COUNTRIES = [
     { code: "AF", name: "Afghanistan" }, { code: "AL", name: "Albania" }, { code: "DZ", name: "Algeria" },
@@ -46,7 +46,7 @@ export const loader = async ({ params, request }) => {
         return redirect(`/app/play/tournament/${params.id}/overview`);
     }
 
-    return json({ tournament });
+    return json({ tournament: viewerTournament(tournament) });
 };
 
 export const meta = ({ data }) => {

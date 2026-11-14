@@ -46,8 +46,12 @@ export async function action({ request, params }) {
     );
 
     if (firstStandby) {
-        // Create a real Player record for them
-        const promotedPlayer = await prisma.player.create({
+        // Give them a confirmed spot. Older standby sign-ups already have a
+        // Player row — reuse it instead of creating a duplicate.
+        const existingPlayer = firstStandby.playerId
+            ? await prisma.player.findUnique({ where: { id: firstStandby.playerId } })
+            : null;
+        const promotedPlayer = existingPlayer || await prisma.player.create({
             data: { name: firstStandby.name, gender: "unspecified", tournamentId: params.id },
         });
 

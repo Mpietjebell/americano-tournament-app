@@ -860,3 +860,94 @@ input:not([type])::placeholder,
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ─── Clubhouse home (mobile first) ──────────────────────── */
+.nopa-topbar-btn {
+  font: inherit; font-size: 0.8rem; font-weight: 600; color: white;
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22);
+  border-radius: var(--r-pill); padding: 6px 14px; cursor: pointer; white-space: nowrap;
+}
+.nopa-topbar-btn:hover { background: rgba(255,255,255,0.24); }
+
+.nopa-home-bar {
+  background: var(--green); color: white; min-height: 52px;
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  position: sticky; top: 0; z-index: 50;
+}
+.nopa-home-brand { font-family: 'Cormorant Garamond', serif; letter-spacing: 0.2em; font-size: 1.05rem; font-weight: 500; }
+.nopa-home-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nopa-home-user span { font-size: 0.78rem; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+
+.nopa-home-hero {
+  height: clamp(190px, 34vh, 320px); position: relative;
+  background: url(/hero-court.png) center 40% / cover;
+}
+.nopa-home-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.55)); }
+.nopa-home-hero-title {
+  position: absolute; left: 0; right: 0; bottom: 22px; z-index: 1; text-align: center; color: white;
+  font-family: 'Cormorant Garamond', serif; font-style: italic; line-height: 0.95;
+  text-shadow: 0 2px 24px rgba(0,0,0,0.35);
+}
+.nopa-home-hero-title span { display: block; font-weight: 300; font-size: clamp(2.6rem, 11vw, 4.6rem); }
+.nopa-home-hero-title strong { display: block; font-weight: 600; font-size: clamp(2.2rem, 9.5vw, 4rem); }
+
+.nopa-home-main { max-width: 680px; margin: 0 auto; padding: 16px 16px calc(64px + env(safe-area-inset-bottom, 0px)); }
+.nopa-home-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.nopa-home-cta a { text-decoration: none; }
+.nopa-home-cta .nopa-btn { width: 100%; justify-content: center; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.86rem; padding: 14px 10px; }
+.nopa-home-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.nopa-home-secondary a {
+  display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;
+  background: var(--bg-card); color: var(--label-2); border: 1px solid var(--sep-opaque);
+  border-radius: var(--r-cell); padding: 11px 10px; font-size: 0.84rem; font-weight: 600;
+}
+
+.nopa-segmented { display: flex; background: var(--bg-fill); border-radius: var(--r-cell); padding: 3px; gap: 2px; margin-bottom: 12px; }
+.nopa-seg-btn {
+  flex: 1; font: inherit; font-size: 0.78rem; font-weight: 500; color: var(--label-3);
+  background: transparent; border: none; border-radius: calc(var(--r-cell) - 3px);
+  padding: 8px 4px; cursor: pointer; white-space: nowrap;
+}
+.nopa-seg-btn.active { background: var(--bg-card); color: var(--label); font-weight: 600; box-shadow: var(--shadow); }
+
+.nopa-feed { background: var(--bg-card); border-radius: var(--r-card); overflow: hidden; box-shadow: var(--shadow); }
+.nopa-feed-empty { padding: 40px 20px; text-align: center; color: var(--label-3); font-size: 0.84rem; }
+.nopa-feed > a:last-child > div { border-bottom: none !important; }
+
+/* ─── NOPA banner ────────────────────────────────────────── */
+.nopa-banner {
+  display: flex; align-items: center; gap: 12px; text-decoration: none;
+  background: var(--bg-card); border: 1px solid rgba(28,79,53,0.18); border-radius: var(--r-card);
+  padding: 12px 14px; margin: 18px 0; box-shadow: var(--shadow);
+}
+.nopa-banner img { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
+.nopa-banner-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nopa-banner-eyebrow { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--label-3); font-weight: 600; }
+.nopa-banner-title { font-size: 0.86rem; font-weight: 600; color: var(--label); line-height: 1.3; }
+.nopa-banner-cta { flex-shrink: 0; font-size: 0.78rem; font-weight: 700; color: white; background: var(--green); border-radius: var(--r-pill); padding: 7px 14px; }
+
+/* ─── Install hint ───────────────────────────────────────── */
+.nopa-install {
+  display: flex; align-items: center; gap: 10px; background: var(--green-dark); color: white;
+  border-radius: var(--r-card); padding: 12px 14px; margin-bottom: 14px;
+}
+.nopa-install-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.78rem; line-height: 1.4; }
+.nopa-install-copy strong { font-size: 0.88rem; }
+.nopa-install-copy span { opacity: 0.85; }
+.nopa-install-btn { font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--green-dark); background: white; border: none; border-radius: var(--r-pill); padding: 8px 14px; cursor: pointer; }
+.nopa-install-close { font: inherit; font-size: 1.2rem; line-height: 1; color: white; background: none; border: none; opacity: 0.7; cursor: pointer; padding: 4px 6px; }
+
+/* Installed (standalone) on a notched phone: keep the nav clear of the status bar */
+.ios-nav { height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+
+/* ─── Club leaderboard ───────────────────────────────────── */
+.nopa-club-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.nopa-club-table th { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--label-3); font-weight: 700; padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--sep); }
+.nopa-club-table td { padding: 11px 6px; text-align: center; border-bottom: 1px solid var(--sep); color: var(--label-2); font-variant-numeric: tabular-nums; }
+.nopa-club-table tr:last-child td { border-bottom: none; }
+.nopa-club-table th:first-child, .nopa-club-table td.rank { padding-left: 14px; width: 34px; color: var(--label-3); font-weight: 700; }
+.nopa-club-table td.name { text-align: left; font-weight: 600; color: var(--label); max-width: 0; width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nopa-club-table td.pts { font-weight: 800; color: var(--green); }
+.nopa-club-table .titles { color: var(--gold); font-weight: 700; }
+.nopa-club-table th:last-child, .nopa-club-table td:last-child { padding-right: 14px; }

@@ -2,12 +2,13 @@ import { json } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
-import { buildJoinInviteText } from "../utils/tournament-helpers";
+import { viewerTournament, buildJoinInviteText } from "../utils/tournament-helpers";
+import { getRequestOrigin } from "../utils/request.server";
 
-export const loader = async ({ params }) => {
+export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
-    return json({ tournament });
+    return json({ tournament: viewerTournament(tournament), origin: getRequestOrigin(request) });
 };
 
 export const meta = ({ data }) => {
@@ -16,10 +17,10 @@ export const meta = ({ data }) => {
 };
 
 export default function SharePage() {
-    const { tournament } = useLoaderData();
+    const { tournament, origin } = useLoaderData();
     const [copied, setCopied] = useState(false);
 
-    const joinUrl = `https://play.nopabrand.com/j/${tournament.joinCode}`;
+    const joinUrl = `${origin}/j/${tournament.joinCode}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(joinUrl)}&size=240x240&margin=12&color=1C4F35`;
 
     const waText = encodeURIComponent(buildJoinInviteText(tournament, joinUrl));

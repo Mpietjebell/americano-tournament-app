@@ -1,10 +1,10 @@
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useActionData, Form } from "@remix-run/react";
+import { useLoaderData, useActionData, Form, Link } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
-import { DEUCE_LABELS, getCountryDisplay, TYPE_LABELS } from "../utils/tournament-helpers";
-import { sendSignupConfirmation } from "../utils/email.server";
+import { DEUCE_LABELS, getCountryDisplay, viewerTournament, TYPE_LABELS } from "../utils/tournament-helpers";
 import { getRequestOrigin } from "../utils/request.server";
+import { getRoster, registerPlayer } from "../utils/registration.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await prisma.tournament.findUnique({
@@ -16,7 +16,23 @@ export const loader = async ({ params, request }) => {
     const cookieMatch = cookie.match(new RegExp(`nopa_player_${tournament.id}=([^;]+)`));
     const playerIdFromCookie = cookieMatch?.[1] || null;
     const origin = getRequestOrigin(request);
-    return json({ tournament, playerIdFromCookie, origin });
+    const roster = getRoster(tournament);
+    const standbyNotice = parseInt(new URL(request.url).searchParams.get("standby") || "", 10) || null;
+    return json({
+        // Only confirmed players are pickable; waitlisted people are not on the list.
+        tournament: { ...viewerTournament(tournament), players: roster.activePlayers.map((p) => ({ id: p.id, name: p.name, gender: p.gender })) },
+        roster: {
+            activeCount: roster.activeCount,
+            standbyCount: roster.standbyCount,
+            maxPlayers: roster.maxPlayers,
+            spotsLeft: roster.spotsLeft,
+            isFull: roster.isFull,
+            standbyFull: roster.standbyFull,
+        },
+        playerIdFromCookie,
+        origin,
+        standbyNotice,
+    });
 };
 
 export const meta = ({ data }) => {
@@ -49,36 +65,31 @@ export const action = async ({ request, params }) => {
 
     const tournament = await prisma.tournament.findUnique({
         where: { joinCode: params.code.toUpperCase() },
-        include: { players: { select: { id: true } } },
+        include: { players: { select: { id: true } }, participants: { select: { playerId: true, standbyPosition: true } } },
     });
     if (!tournament) return json({ error: "Tournament not found." }, { status: 404 });
     if (!email || !email.includes("@")) return json({ error: "Please enter a valid email address." }, { status: 400 });
 
-    // New player path — create player + participant
+    // New player path — confirmed spot while there is room, standby once full
     if (customName) {
-        if (customName.length < 2) return json({ error: "Please enter your full name." }, { status: 400 });
+        const result = await registerPlayer({ tournamentId: tournament.id, name: customName, email });
+        if (!result.ok) return json({ error: result.error }, { status: result.status });
 
-        let newPlayer;
-        try {
-            newPlayer = await prisma.player.create({
-                data: { name: customName, gender: "unspecified", tournamentId: tournament.id },
-            });
-            await prisma.tournamentParticipant.create({
-                data: { email, name: customName, tournamentId: tournament.id, playerId: newPlayer.id },
-            });
-        } catch {
-            return json({ error: "Could not create player. Try again." }, { status: 500 });
+        if (result.standby) {
+            return redirect(`/app/play/join/${tournament.joinCode}?standby=${result.position}`);
         }
-        sendSignupConfirmation({ to: email, name: customName, tournament, position: tournament.players.length + 1 }).catch(() => {});
-        return redirect(`/app/play/tournament/${tournament.id}/player?playerId=${newPlayer.id}`, {
+        return redirect(`/app/play/tournament/${tournament.id}/player?playerId=${result.playerId}`, {
             headers: {
-                "Set-Cookie": `nopa_player_${tournament.id}=${newPlayer.id}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
+                "Set-Cookie": `nopa_player_${tournament.id}=${result.playerId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
             },
         });
     }
 
     // Existing player path
     if (!playerId) return json({ error: "Please select your name or add yourself below." }, { status: 400 });
+    if (!getRoster(tournament).activePlayers.some((p) => p.id === playerId)) {
+        return json({ error: "That player is not on this tournament's list." }, { status: 400 });
+    }
 
     // Save participant email — non-critical, don't block on failure
     try {
@@ -107,12 +118,14 @@ export const action = async ({ request, params }) => {
 };
 
 export default function JoinCode() {
-    const { tournament, playerIdFromCookie } = useLoaderData();
+    const { tournament, roster, playerIdFromCookie, standbyNotice } = useLoaderData();
+    const started = tournament.status !== "setup";
+    const canAddName = !started && !roster.standbyFull;
     const actionData = useActionData();
     const [selectedPlayer, setSelectedPlayer] = useState("");
     const [customName, setCustomName] = useState("");
     // "new" = type own name, "list" = pick from pre-registered list (default)
-    const [nameMode, setNameMode] = useState("list");
+    const [nameMode, setNameMode] = useState(tournament.players.length > 0 ? "list" : "new");
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState("");
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -123,10 +136,10 @@ export default function JoinCode() {
     return (
         <>
             <nav className="ios-nav">
-                <a href="https://nopabrand.com/pages/organise-americano" className="ios-nav-back">
+                <Link to="/app/play" className="ios-nav-back">
                     <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Home
-                </a>
+                </Link>
                 <span className="ios-nav-brand">NOPA</span>
                 <span style={{ minWidth: 60 }} />
             </nav>
@@ -177,6 +190,34 @@ export default function JoinCode() {
                         }}>{label}</span>
                     ))}
                 </div>
+
+                {/* Where sign-ups stand */}
+                {standbyNotice ? (
+                    <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-card)", padding: "16px 18px", marginBottom: 20, color: "#9a3412" }}>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 4 }}>You're on the standby list — position {standbyNotice}</div>
+                        <div style={{ fontSize: "0.82rem", lineHeight: 1.5 }}>The tournament is full. If a player drops out, the first person on standby gets the spot and an email.</div>
+                    </div>
+                ) : (
+                    <div style={{
+                        background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "14px 18px", marginBottom: 20,
+                        boxShadow: "var(--shadow)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                    }}>
+                        <div>
+                            <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", fontWeight: 600, marginBottom: 2 }}>Players</div>
+                            <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--green)" }}>
+                                {roster.activeCount}{roster.maxPlayers ? ` / ${roster.maxPlayers}` : ""}
+                                {roster.standbyCount > 0 && <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--label-3)" }}> · {roster.standbyCount} on standby</span>}
+                            </div>
+                        </div>
+                        <div style={{
+                            fontSize: "0.74rem", fontWeight: 700, padding: "5px 12px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap",
+                            background: started || roster.isFull ? "#fff7ed" : "rgba(28,79,53,0.1)",
+                            color: started || roster.isFull ? "#9a3412" : "var(--green)",
+                        }}>
+                            {started ? "Already started" : roster.standbyFull ? "Full" : roster.isFull ? "Full · standby open" : roster.spotsLeft != null ? `${roster.spotsLeft} spot${roster.spotsLeft === 1 ? "" : "s"} left` : "Open"}
+                        </div>
+                    </div>
+                )}
 
                 {/* Step indicator */}
                 <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 24 }}>
@@ -268,7 +309,17 @@ export default function JoinCode() {
                             <div style={{ fontSize: "1.15rem", fontWeight: 600, color: "var(--label)", marginBottom: 6 }}>Who are you?</div>
 
                             {/* Mode toggle — only show if there are pre-registered players */}
-                            {hasPreregistered && (
+                            {started && (
+                                <p style={{ fontSize: "0.83rem", color: "var(--label-3)", margin: "0 0 14px", lineHeight: 1.5 }}>
+                                    This tournament has started, so new sign-ups are closed. Already playing? Pick your name to follow your matches.
+                                </p>
+                            )}
+                            {!started && !canAddName && (
+                                <p style={{ fontSize: "0.83rem", color: "#9a3412", margin: "0 0 14px", lineHeight: 1.5 }}>
+                                    This tournament and its standby list are full, so new sign-ups are closed. Already on the list? Pick your name below.
+                                </p>
+                            )}
+                            {hasPreregistered && canAddName && (
                                 <div style={{ display: "flex", gap: 0, border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)", overflow: "hidden", marginBottom: 20 }}>
                                     {[
                                         { id: "new", label: "Enter my name" },
@@ -291,7 +342,12 @@ export default function JoinCode() {
                             )}
 
                             {/* Enter my name (default) */}
-                            {nameMode === "new" && (
+                            {nameMode === "new" && !canAddName && (
+                                <p style={{ fontSize: "0.86rem", color: "#9a3412", marginBottom: 20 }}>
+                                    {started ? "New sign-ups are closed." : "This tournament and its standby list are full."}
+                                </p>
+                            )}
+                            {nameMode === "new" && canAddName && (
                                 <div style={{ marginBottom: 20 }}>
                                     <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 8, fontWeight: 600 }}>Your full name</div>
                                     <input
@@ -340,7 +396,7 @@ export default function JoinCode() {
                                             </button>
                                         ))}
                                         {/* Empty slot — tap to enter own name */}
-                                        <button
+                                        {canAddName && <button
                                             type="button"
                                             onClick={() => { setNameMode("new"); setSelectedPlayer(""); setCustomName(""); }}
                                             style={{
@@ -354,8 +410,8 @@ export default function JoinCode() {
                                             }}
                                         >
                                             <div style={{ fontSize: "1.4rem", lineHeight: 1 }}>+</div>
-                                            <div style={{ fontSize: "0.78rem" }}>Add your name</div>
-                                        </button>
+                                            <div style={{ fontSize: "0.78rem" }}>{roster.isFull ? "Join standby" : "Add your name"}</div>
+                                        </button>}
                                     </div>
                                 </div>
                             )}
@@ -386,7 +442,7 @@ export default function JoinCode() {
                                         fontFamily: "inherit", transition: "background 0.2s",
                                     }}
                                 >
-                                    {(nameMode === "new" ? customName.trim().length >= 2 : !!selectedPlayer) ? "Join Tournament" : nameMode === "new" ? "Enter your name above" : "Select your name above"}
+                                    {(nameMode === "new" ? customName.trim().length >= 2 : !!selectedPlayer) ? (nameMode === "new" && roster.isFull ? "Join Standby List" : "Join Tournament") : nameMode === "new" ? "Enter your name above" : "Select your name above"}
                                 </button>
                             </div>
                         </div>

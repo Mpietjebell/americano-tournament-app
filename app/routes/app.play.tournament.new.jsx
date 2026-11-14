@@ -1,5 +1,5 @@
 import { json, redirect } from "@remix-run/node";
-import { useActionData, useNavigation, Form, Link } from "@remix-run/react";
+import { useActionData, useLoaderData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
 import { createHostCookie } from "../utils/host-auth.server";
@@ -7,11 +7,22 @@ import { buildTeams, getMinimumPlayers, getTournamentStats } from "../utils/tour
 import { GAME_MODE_BUTTON_IMAGES } from "../utils/game-mode-icons";
 import { getCurrencyForCountry, SUPPORTED_CURRENCIES } from "../utils/currency";
 
-function getUserIdFromCookie(request) {
-    const cookie = request.headers.get("Cookie") || "";
-    const match = cookie.match(/nopa_user=([^;]+)/);
-    return match ? match[1] : null;
-}
+import { getUserIdFromRequest as getUserIdFromCookie } from "../utils/user.server";
+
+/** Clubs the signed-in host belongs to, so a tournament can count towards a club leaderboard. */
+export const loader = async ({ request }) => {
+    const userId = getUserIdFromCookie(request);
+    const url = new URL(request.url);
+    if (!userId) return json({ clubs: [], preselectedClubId: "" });
+    const memberships = await prisma.clubMember.findMany({
+        where: { userId },
+        include: { club: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" },
+    });
+    const clubs = memberships.map((m) => m.club);
+    const wanted = url.searchParams.get("club") || "";
+    return json({ clubs, preselectedClubId: clubs.some((c) => c.id === wanted) ? wanted : "" });
+};
 
 function generateJoinCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -67,6 +78,15 @@ export const action = async ({ request }) => {
     const latitude = formData.get("latitude") ? parseFloat(formData.get("latitude")) : null;
     const longitude = formData.get("longitude") ? parseFloat(formData.get("longitude")) : null;
     const isScheduled = !!scheduledAtStr;
+
+    // A tournament only counts for a club the host is actually a member of.
+    let clubId = (formData.get("clubId") || "").toString() || null;
+    if (clubId) {
+        const membership = userId
+            ? await prisma.clubMember.findUnique({ where: { clubId_userId: { clubId, userId } } })
+            : null;
+        if (!membership) clubId = null;
+    }
 
     if (!name || !location || !type) {
         return json({ error: "Please fill in all required fields." }, { status: 400 });
@@ -149,6 +169,7 @@ export const action = async ({ request }) => {
             hostEmail: hostEmail || null,
             level: level || null,
             description: description || null,
+            clubId,
             players: {
                 create: playerNames.map((p, index) => ({
                     name: p.name,
@@ -186,6 +207,7 @@ export const action = async ({ request }) => {
                     organizerName: organizerName || null,
                     hostPassword: hostPassword || null, hostEmail: hostEmail || null,
                     level: level || null, description: description || null,
+                    clubId,
                 },
             });
         }
@@ -450,6 +472,7 @@ const COUNTRIES = [
 
 export default function NewTournamentPublic() {
     const actionData = useActionData();
+    const { clubs, preselectedClubId } = useLoaderData();
     const navigation = useNavigation();
     const isSubmitting = navigation.state === "submitting";
 
@@ -849,6 +872,21 @@ export default function NewTournamentPublic() {
                         ))}
                         <input type="hidden" name="isPublic" value={String(isPublic)} />
                     </div>
+
+                    {clubs.length > 0 && (
+                        <>
+                            {sectionLabel("Club")}
+                            <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "14px 16px", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                    Count towards a club leaderboard <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400 }}>— optional</span>
+                                </div>
+                                <select name="clubId" defaultValue={preselectedClubId} style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}>
+                                    <option value="">No club</option>
+                                    {clubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                        </>
+                    )}
 
                     {/* ── Schedule ── */}
                     {sectionLabel("Schedule")}

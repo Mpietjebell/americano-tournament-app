@@ -1,10 +1,11 @@
 import prisma from "../db.server";
+import { getRequestOrigin } from "../utils/request.server";
 
 function fmtIcs(d) {
     return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 }
 
-export async function loader({ params }) {
+export async function loader({ params, request }) {
     const t = await prisma.tournament.findUnique({
         where: { id: params.id },
         include: { venue: true },
@@ -16,7 +17,7 @@ export async function loader({ params }) {
     const venueName = t.venue?.name || (t.location && !t.location.startsWith("http") ? t.location : "") || "";
     const city = t.city || t.venue?.city || "";
     const location = [venueName, city].filter(Boolean).join(", ");
-    const url = `https://nopabrand.com/pages/organise-americano?join=${t.joinCode}`;
+    const url = `${getRequestOrigin(request)}/j/${t.joinCode}`;
 
     const ics = [
         "BEGIN:VCALENDAR",

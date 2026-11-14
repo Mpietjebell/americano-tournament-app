@@ -2,7 +2,7 @@ import { json, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
-import { getCountryDisplay, getPlacementLabel } from "../utils/tournament-helpers";
+import { viewerTournament, getCountryDisplay, getPlacementLabel } from "../utils/tournament-helpers";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
@@ -19,7 +19,7 @@ export const loader = async ({ params, request }) => {
         return redirect(`/app/play/join/${tournament.joinCode}`);
     }
 
-    return json({ tournament, playerId });
+    return json({ tournament: viewerTournament(tournament, { keepPlayerId: playerId }), playerId });
 };
 
 export const meta = ({ data }) => {
@@ -54,7 +54,8 @@ export default function PlayerScoreboard() {
     // Suspense: blank leaderboard for last 2 rounds
     const suspenseThreshold = Math.max(0, totalRounds - 2);
     const completedRounds = tournament.rounds.filter(r => r.status === "completed").length;
-    const inSuspense = !isFinished && completedRounds >= suspenseThreshold && totalRounds > 2;
+    const resultsWithheld = Boolean(tournament.resultsWithheld);
+    const inSuspense = resultsWithheld || (!isFinished && completedRounds >= suspenseThreshold && totalRounds > 2);
 
     // My upcoming matches (not yet completed, I'm in)
     const myUpcoming = allMatches.filter(m => {
@@ -168,6 +169,12 @@ export default function PlayerScoreboard() {
                                             <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", marginTop: 3 }}>Opponents</div>
                                         </div>
                                     </div>
+                                    <Link to={`/app/play/tournament/${tournament.id}`} style={{ textDecoration: "none", display: "block", marginTop: 14 }}>
+                                        <button type="button" style={{ width: "100%", padding: "12px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                            Enter the score
+                                        </button>
+                                    </Link>
+                                    <div style={{ fontSize: "0.7rem", color: "var(--label-3)", textAlign: "center", marginTop: 6 }}>The host confirms it before it counts.</div>
                                 </div>
                             );
                         })()}
@@ -178,21 +185,22 @@ export default function PlayerScoreboard() {
                 <div style={{ marginBottom: 20 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingLeft: 4 }}>
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", fontWeight: 600 }}>
-                            {isFinished ? "Final Leaderboard" : "Live Standings"}
+                            {resultsWithheld ? "Final Results" : isFinished ? "Final Leaderboard" : "Live Standings"}
                         </div>
-                        {inSuspense && !isFinished && (
+                        {inSuspense && !isFinished && !resultsWithheld && (
                             <span style={{ background: "var(--gold)", color: "white", fontSize: "0.65rem", fontWeight: 700, padding: "3px 10px", borderRadius: "var(--r-pill)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                 Suspense Mode
                             </span>
                         )}
                     </div>
 
-                    {inSuspense && !isFinished ? (
+                    {inSuspense ? (
                         <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", textAlign: "center", padding: "32px 20px", boxShadow: "var(--shadow)" }}>
                             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Standings Hidden</div>
                             <p style={{ color: "var(--label-3)", fontSize: "0.85rem", maxWidth: 300, margin: "0 auto 20px", lineHeight: 1.6 }}>
-                                Leaderboard locked for the final {totalRounds - suspenseThreshold} round(s).
-                                Revealed when the host finishes.
+                                {resultsWithheld
+                                    ? "All matches are played. The host will release the final results — this page updates by itself."
+                                    : `Leaderboard locked for the final ${totalRounds - suspenseThreshold} round(s). Revealed when the host finishes.`}
                             </p>
                             <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "14px 24px", display: "inline-block" }}>
                                 <div style={{ fontSize: "0.7rem", color: "var(--label-3)", marginBottom: 4 }}>Your score</div>
@@ -264,7 +272,7 @@ export default function PlayerScoreboard() {
                 )}
 
                 {/* Final reveal */}
-                {isFinished && (
+                {isFinished && !resultsWithheld && (
                     <div style={{ background: "linear-gradient(135deg, var(--green-dark), var(--green))", color: "white", borderRadius: "var(--r-card)", padding: "28px 24px", textAlign: "center", boxShadow: "0 6px 24px rgba(28,79,53,0.35)" }}>
                         <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.5rem", marginBottom: 4 }}>Tournament Complete!</div>
                         <p style={{ opacity: 0.8, fontSize: "0.85rem", marginBottom: 16 }}>The final results are published.</p>

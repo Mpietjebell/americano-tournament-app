@@ -176,7 +176,14 @@ async function buildNextDynamicRound(tournament, roundNumber, completedRound, fr
 }
 
 export async function generateAllRounds(tournament) {
-    const players = tournament.setupPlayers || tournament.players;
+    // Only confirmed spots get scheduled. Older sign-ups gave standby
+    // (waitlist) people a Player row as well; leave those out.
+    const standbyRows = await prisma.tournamentParticipant.findMany({
+        where: { tournamentId: tournament.id, standbyPosition: { not: null }, playerId: { not: null } },
+        select: { playerId: true },
+    });
+    const standbyIds = new Set(standbyRows.map((row) => row.playerId));
+    const players = (tournament.setupPlayers || tournament.players).filter((player) => !standbyIds.has(player.id));
     const numCourts = tournament.courtsAvailable;
 
     // Scheduled public tournaments start with 0 sign-ups and only get

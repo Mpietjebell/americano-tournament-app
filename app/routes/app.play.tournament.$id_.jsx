@@ -3,7 +3,7 @@ import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, useRevalidator, Link, Form } from "@remix-run/react";
 import prisma from "../db.server";
 import { loadTournament, generateAllRounds, submitScore, proposeScore, confirmScore, resetScore } from "../utils/tournament-actions.server";
-import {
+import { viewerTournament,
     buildTeams,
     buildTeamStandings,
     buildJoinInviteText,
@@ -14,7 +14,7 @@ import {
     getTournamentStats,
     TYPE_LABELS,
 } from "../utils/tournament-helpers";
-import { getHostTokenFromRequest } from "../utils/host-auth.server";
+import { createHostCookie, getHostTokenFromRequest } from "../utils/host-auth.server";
 import { getRequestOrigin } from "../utils/request.server";
 
 function CancelRegistrationInline({ tournamentId, playerId }) {
@@ -57,7 +57,7 @@ export const loader = async ({ params, request }) => {
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
     const playerId = playerCookieMatch?.[1] || null;
-    return json({ tournament, origin, isHost, playerId });
+    return json({ tournament: viewerTournament(tournament, { isHost, keepPlayerId: playerId }), origin, isHost, playerId, canHostLogin: Boolean(tournament.hostPassword) });
 };
 
 export const meta = ({ data }) => {
@@ -93,6 +93,20 @@ export const action = async ({ request, params }) => {
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
     const playerId = playerCookieMatch?.[1] || null;
+
+    // The host cookie is set on the device that created the tournament. On
+    // any other phone (or after clearing the browser) the host proves who
+    // they are with the host password they chose at creation.
+    if (intent === "host_login") {
+        const password = (formData.get("password") || "").toString();
+        if (!tournament.hostPassword) {
+            return json({ loginError: "This tournament has no host password — it can only be managed from the device that created it." }, { status: 400 });
+        }
+        if (!password || password !== tournament.hostPassword) {
+            return json({ loginError: "That's not the host password for this tournament." }, { status: 401 });
+        }
+        return json({ success: true }, { headers: { "Set-Cookie": createHostCookie(tournament.id, tournament.hostToken) } });
+    }
 
     if (intent === "generate_all_rounds") {
         if (!isHost) return json({ error: "Host access required." }, { status: 403 });
@@ -260,7 +274,7 @@ function fallbackCopy(text, onSuccess) {
 }
 
 export default function PublicTournamentView() {
-    const { tournament, origin, isHost, playerId } = useLoaderData();
+    const { tournament, origin, isHost, playerId, canHostLogin } = useLoaderData();
     const fetcher = useFetcher();
     const { revalidate } = useRevalidator();
     const [activeTab, setActiveTab] = useState("courts");
@@ -395,11 +409,7 @@ export default function PublicTournamentView() {
                             </span>
                         </div>
                     )}
-                    {!isHost && (
-                        <div style={{ marginRight: "auto", fontSize: "0.72rem", color: "var(--label-3)" }}>
-                            Read-only spectator view
-                        </div>
-                    )}
+                    {!isHost && <HostLogin canHostLogin={canHostLogin} />}
                     <a
                         href={`/app/play/tournament/${tournament.id}/print.pdf`}
                         download
@@ -1332,6 +1342,36 @@ function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
             >
                 {fetcher.state !== "idle" ? "Submitting..." : hasProposal ? "Update Proposal" : "Propose Score"}
             </button>
+        </fetcher.Form>
+    );
+}
+
+function HostLogin({ canHostLogin }) {
+    const fetcher = useFetcher();
+    const [open, setOpen] = useState(false);
+    if (!canHostLogin) {
+        return <div style={{ marginRight: "auto", fontSize: "0.72rem", color: "var(--label-3)" }}>Spectator view</div>;
+    }
+    if (!open) {
+        return (
+            <button type="button" onClick={() => setOpen(true)} style={{ marginRight: "auto", fontSize: "0.74rem", color: "var(--green)", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
+                Host? Log in
+            </button>
+        );
+    }
+    return (
+        <fetcher.Form method="post" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", width: "100%", order: 5 }}>
+            <input type="hidden" name="intent" value="host_login" />
+            <input
+                name="password" type="password" autoComplete="current-password" placeholder="Host password" autoFocus
+                style={{ flex: 1, minWidth: 140, padding: "9px 12px", border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)", fontSize: "0.9rem", fontFamily: "inherit", outline: "none" }}
+            />
+            <button type="submit" disabled={fetcher.state !== "idle"} style={{ padding: "9px 16px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>
+                {fetcher.state !== "idle" ? "Checking…" : "Log in as host"}
+            </button>
+            {fetcher.data?.loginError && (
+                <div style={{ width: "100%", fontSize: "0.76rem", color: "#dc2626" }}>{fetcher.data.loginError}</div>
+            )}
         </fetcher.Form>
     );
 }

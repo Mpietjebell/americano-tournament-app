@@ -33,6 +33,33 @@ model TournamentUser {
   username    String
   createdAt   DateTime     @default(now())
   tournaments Tournament[]
+  ownedClubs  Club[]
+  memberships ClubMember[]
+}
+
+model Club {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  city        String?
+  isPublic    Boolean        @default(true)
+  joinCode    String         @unique
+  ownerId     String
+  createdAt   DateTime       @default(now())
+  owner       TournamentUser @relation(fields: [ownerId], references: [id])
+  members     ClubMember[]
+  tournaments Tournament[]
+}
+
+model ClubMember {
+  id        String         @id @default(uuid())
+  clubId    String
+  userId    String
+  createdAt DateTime       @default(now())
+  club      Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      TournamentUser @relation(fields: [userId], references: [id])
+
+  @@unique([clubId, userId])
 }
 
 model Venue {
@@ -93,6 +120,8 @@ model Tournament {
   hostEmail       String?
   level           Int?
   description     String?
+  clubId          String?
+  club            Club?                   @relation(fields: [clubId], references: [id], onDelete: SetNull)
   players         Player[]
   rounds          Round[]
   createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])

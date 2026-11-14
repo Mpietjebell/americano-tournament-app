@@ -1,9 +1,10 @@
 import { json } from "@remix-run/node";
+import { NopaBanner } from "../components/NopaBanner";
 import { useLoaderData, Link, useFetcher } from "@remix-run/react";
 import { useState } from "react";
 import { toPng } from "html-to-image";
 import { loadTournament } from "../utils/tournament-actions.server";
-import { buildResultsShareText, buildTeamStandings, getCountryDisplay, getPlacementLabel, getTeamColor } from "../utils/tournament-helpers";
+import { viewerTournament, buildResultsShareText, buildTeamStandings, getCountryDisplay, getPlacementLabel, getTeamColor } from "../utils/tournament-helpers";
 import { getHostTokenFromRequest } from "../utils/host-auth.server";
 import { getRequestOrigin } from "../utils/request.server";
 
@@ -13,7 +14,7 @@ export const loader = async ({ params, request }) => {
     const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, params.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
-    return json({ tournament, origin, isHost });
+    return json({ tournament: viewerTournament(tournament, { isHost }), origin, isHost });
 };
 
 export const meta = ({ data }) => {
@@ -351,6 +352,7 @@ export default function FinalLeaderboard() {
                         })}
                     </div>
                 </div>
+                <NopaBanner />
             </div>
         </>
     );

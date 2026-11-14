@@ -2,7 +2,7 @@ import { json } from "@remix-run/node";
 import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
-import {
+import { viewerTournament,
     buildTeams,
     buildJoinInviteText,
     DEUCE_LABELS,
@@ -19,7 +19,7 @@ export const loader = async ({ params, request }) => {
     const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
-    return json({ tournament, origin, isHost });
+    return json({ tournament: viewerTournament(tournament), origin, isHost });
 };
 
 export const meta = ({ data }) => {
@@ -48,7 +48,7 @@ export default function TournamentOverview() {
     });
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";
     const teams = isTeamMode ? buildTeams(setupPlayers) : [];
-    const publicJoinUrl = `https://play.nopabrand.com/j/${tournament.joinCode}`;
+    const publicJoinUrl = `${origin}/j/${tournament.joinCode}`;
     const venueJoinUrl = `${origin}/app/play/join/${tournament.joinCode}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(venueJoinUrl)}&size=220x220&margin=10&color=1C4F35`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(buildJoinInviteText(tournament, publicJoinUrl))}`;
@@ -95,7 +95,7 @@ export default function TournamentOverview() {
                     </div>
                 </div>
 
-                <div style={{ display: "grid", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20 }}>
                     <section style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: 18, boxShadow: "var(--shadow)" }}>
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 14, fontWeight: 600 }}>
                             Format
@@ -178,10 +178,10 @@ export default function TournamentOverview() {
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 14, fontWeight: 600 }}>
                             Share
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "stretch" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, alignItems: "stretch" }}>
                             <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-card)", padding: "16px 18px" }}>
                                 <div style={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Join Code</div>
-                                <div style={{ fontFamily: "monospace", fontSize: "2rem", letterSpacing: "0.22em", fontWeight: 800, color: "var(--green)", marginBottom: 8 }}>
+                                <div style={{ fontFamily: "monospace", fontSize: "clamp(1.25rem, 6vw, 2rem)", letterSpacing: "0.14em", fontWeight: 800, color: "var(--green)", marginBottom: 8 }}>
                                     {tournament.joinCode}
                                 </div>
                                 <div style={{ fontSize: "0.76rem", color: "var(--label-3)", lineHeight: 1.5 }}>
@@ -189,7 +189,7 @@ export default function TournamentOverview() {
                                 </div>
                             </div>
                             <div style={{ background: "white", borderRadius: "var(--r-card)", padding: 12, border: "1px solid var(--sep)" }}>
-                                <img src={qrUrl} alt="Tournament join QR code" style={{ width: 132, height: 132, display: "block", borderRadius: "var(--r-cell)" }} />
+                                <img src={qrUrl} alt="Tournament join QR code" style={{ width: 108, height: 108, display: "block", borderRadius: "var(--r-cell)" }} />
                             </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
