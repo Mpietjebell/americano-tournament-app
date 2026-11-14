@@ -211,7 +211,7 @@ export default function EditTournament() {
                             onChange={e => setNewPlayerName(e.target.value)}
                             style={{ flex: 1, padding: "9px 12px", border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)", fontSize: "0.9rem", fontFamily: "inherit", color: "var(--label)", background: "var(--bg-grouped)", outline: "none" }}
                         />
-                        <button type="submit" style={{ padding: "9px 16px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}>
+                        <button className="club-btn" type="submit" style={{ padding: "9px 16px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" }}>
                             Add
                         </button>
                     </Form>
@@ -345,11 +345,11 @@ export default function EditTournament() {
 
                     <div style={{ display: "flex", gap: 10, marginTop: 32, marginBottom: 48 }}>
                         <Link to={`/app/play/tournament/${tournament.id}/overview`} style={{ flex: 1, textDecoration: "none" }}>
-                            <button type="button" style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--bg-card)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
+                            <button className="club-btn" type="button" style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--bg-card)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
                                 Cancel
                             </button>
                         </Link>
-                        <button type="submit" disabled={isSubmitting}
+                        <button className="club-btn" type="submit" disabled={isSubmitting}
                             style={{ flex: 2, padding: "14px", borderRadius: "var(--r-card)", background: isSubmitting ? "var(--sep-opaque)" : "var(--green)", color: "white", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: isSubmitting ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: isSubmitting ? "none" : "0 4px 16px rgba(28,79,53,0.3)" }}>
                             {isSubmitting ? "Saving..." : "Save Changes"}
                         </button>

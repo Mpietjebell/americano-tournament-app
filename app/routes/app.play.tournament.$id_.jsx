@@ -32,11 +32,11 @@ function CancelRegistrationInline({ tournamentId, playerId }) {
             <Form method="post" action={`/api/tournament/${tournamentId}/deregister`}>
                 <input type="hidden" name="playerId" value={playerId} />
                 <div style={{ display: "flex", gap: 10 }}>
-                    <button type="button" onClick={() => setShowConfirm(false)}
+                    <button className="club-btn" type="button" onClick={() => setShowConfirm(false)}
                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "var(--bg-fill)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                         No, keep my spot
                     </button>
-                    <button type="submit"
+                    <button className="club-btn" type="submit"
                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "#dc2626", border: "none", color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                         Yes, deregister
                     </button>
@@ -474,7 +474,7 @@ export default function PublicTournamentView() {
                                 )}
                                 {waText && (
                                     <a href={`https://wa.me/?text=${waText}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
-                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "13px 16px", background: "#25D366", borderRadius: "var(--r-cell)", color: "white", fontWeight: 600, fontSize: "0.9rem" }}>
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "13px 16px", background: "var(--green)", borderRadius: "var(--r-cell)", color: "white", fontWeight: 600, fontSize: "0.9rem" }}>
                                             Share on WhatsApp
                                         </div>
                                     </a>
@@ -563,7 +563,7 @@ export default function PublicTournamentView() {
                                 ) : (
                                     <fetcher.Form method="post">
                                         <input type="hidden" name="intent" value="generate_all_rounds" />
-                                        <button type="submit" disabled={fetcher.state !== "idle"} style={{
+                                        <button className="club-btn" type="submit" disabled={fetcher.state !== "idle"} style={{
                                             padding: "13px 32px", borderRadius: "var(--r-card)",
                                             background: "var(--green)", color: "white",
                                             fontWeight: 600, fontSize: "0.95rem", border: "none",
@@ -673,7 +673,7 @@ export default function PublicTournamentView() {
                             }}>
                                 <div style={{ fontFamily: "var(--font-display)", fontSize: "1.6rem", marginBottom: 4 }}>Tournament Complete</div>
                                 <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: 16 }}>{completedMatches.length} matches played</p>
-                                <button style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setActiveTab("leaderboard")}>
+                                <button className="club-btn" style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setActiveTab("leaderboard")}>
                                     View Leaderboard
                                 </button>
                             </div>
@@ -744,7 +744,7 @@ export default function PublicTournamentView() {
                                         {(isHost || tournament.resultsPublished) ? (
                                             <>
                                                 <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
-                                                    <button style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.88rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                                    <button className="club-btn" style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.88rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                                                         {isHost ? "Share Results" : "View Results"}
                                                     </button>
                                                 </Link>
@@ -948,7 +948,7 @@ function PlayerSetupEditor({ player, index, isTeamMode, teamOptions }) {
                 </select>
             )}
             {!isTeamMode && <input type="hidden" name="teamId" value={player.teamId || ""} />}
-            <button
+            <button className="club-btn"
                 type="submit"
                 disabled={isSaving || name.trim() === "" || (name.trim() === player.name && teamId === (player.teamId || fallbackTeam))}
                 style={{
@@ -1132,7 +1132,7 @@ function DragTeamBoard({ players }) {
                 <div style={{ fontSize: "0.72rem", color: "var(--label-3)", lineHeight: 1.5 }}>
                     Drag players to reorder on desktop, or use the arrow controls on mobile. Every two adjacent rows become one fixed team.
                 </div>
-                <button
+                <button className="club-btn"
                     type="submit"
                     disabled={isSaving}
                     style={{
@@ -1173,7 +1173,7 @@ function HostScoreEntry({ match, pointsPerMatch, fetcher, scoreA, scoreB, handle
                     <fetcher.Form method="post" style={{ marginBottom: 8 }}>
                         <input type="hidden" name="intent" value="confirm_score" />
                         <input type="hidden" name="matchId" value={match.id} />
-                        <button
+                        <button className="club-btn"
                             type="submit"
                             disabled={fetcher.state !== "idle"}
                             style={{
@@ -1227,7 +1227,7 @@ function HostScoreEntry({ match, pointsPerMatch, fetcher, scoreA, scoreB, handle
                     }}
                 />
             </div>
-            <button
+            <button className="club-btn"
                 type="submit"
                 disabled={fetcher.state !== "idle" || !totalValid}
                 style={{
@@ -1331,7 +1331,7 @@ function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
                     }}
                 />
             </div>
-            <button
+            <button className="club-btn"
                 type="submit"
                 disabled={fetcher.state !== "idle" || !totalValid}
                 style={{
@@ -1369,7 +1369,7 @@ function HostLogin({ canHostLogin }) {
                 name="password" type="password" autoComplete="current-password" placeholder="Host password" autoFocus
                 style={{ flex: 1, minWidth: 140, padding: "9px 12px", border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)", fontSize: "0.9rem", fontFamily: "inherit", outline: "none" }}
             />
-            <button type="submit" disabled={fetcher.state !== "idle"} style={{ padding: "9px 16px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>
+            <button className="club-btn" type="submit" disabled={fetcher.state !== "idle"} style={{ padding: "9px 16px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>
                 {fetcher.state !== "idle" ? "Checking…" : "Log in as host"}
             </button>
             {fetcher.data?.loginError && (

@@ -300,7 +300,7 @@ export default function ClubPage() {
                         <div className="nopa-card" style={{ textAlign: "center" }}>
                             <div style={{ fontSize: "2rem", fontWeight: 800, letterSpacing: "0.28em", color: "var(--green)", fontFamily: "monospace", marginBottom: 12 }}>{club.joinCode}</div>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                <a href={`https://wa.me/?text=${inviteText}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none", background: "#25D366", color: "white", borderRadius: "var(--r-pill)", padding: "11px 10px", fontWeight: 600, fontSize: "0.84rem" }}>WhatsApp</a>
+                                <a className="club-btn" href={`https://wa.me/?text=${inviteText}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none", background: "var(--green)", color: "white", borderRadius: "var(--r-pill)", padding: "11px 10px", fontWeight: 600, fontSize: "0.84rem" }}>WhatsApp</a>
                                 <button type="button" onClick={copyInvite} className="nopa-btn nopa-btn-ghost" style={{ padding: "11px 10px", fontSize: "0.84rem" }}>{copied ? "Copied" : "Copy link"}</button>
                             </div>
                         </div>

@@ -70,7 +70,7 @@ export default function JoinPage() {
                                 }}
                             />
                         </div>
-                        <button type="submit" style={{ width: "100%", justifyContent: "center", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
+                        <button className="club-btn" type="submit" style={{ width: "100%", justifyContent: "center", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
                             Find Tournament
                         </button>
                     </Form>

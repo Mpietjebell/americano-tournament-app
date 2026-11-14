@@ -25,7 +25,7 @@ export function ClubHero({ eyebrow, title, sub, photo, photoPosition = "center 6
                 </div>
                 {frame && (
                     <div className="club-hero-frame" aria-hidden="true">
-                        <img src={BRAND_PHOTOS[frame]} alt="" />
+                        <img src={BRAND_PHOTOS[frame]} alt="" style={frame === "table" ? { objectPosition: "58% 100%" } : undefined} />
                     </div>
                 )}
             </div>

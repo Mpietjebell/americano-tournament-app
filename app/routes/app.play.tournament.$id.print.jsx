@@ -271,7 +271,6 @@ export default function PrintView() {
             {courtPages.length === 0 && (
                 <div className="pp-page" style={{ alignItems: "center", justifyContent: "center" }}>
                     <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: "3rem", marginBottom: 16 }}>📋</div>
                         <h2 style={{ color: "#1C4F35", marginBottom: 8 }}>{tournament.name}</h2>
                         <p style={{ color: "#666" }}>No courts configured. Go back and set up courts.</p>
                     </div>

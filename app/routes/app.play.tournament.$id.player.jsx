@@ -89,6 +89,7 @@ export default function PlayerScoreboard() {
             </nav>
 
             <ClubHero
+                frame="table"
                 eyebrow="Player card"
                 title={tournament.name}
                 sub={[tournament.location, getCountryDisplay(tournament.country)].filter(Boolean).join(" · ")}
@@ -161,7 +162,7 @@ export default function PlayerScoreboard() {
                                         </div>
                                     </div>
                                     <Link to={`/app/play/tournament/${tournament.id}`} style={{ textDecoration: "none", display: "block", marginTop: 14 }}>
-                                        <button type="button" style={{ width: "100%", padding: "12px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                        <button className="club-btn" type="button" style={{ width: "100%", padding: "12px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                                             Enter the score
                                         </button>
                                     </Link>
@@ -269,7 +270,7 @@ export default function PlayerScoreboard() {
                         <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", marginBottom: 4 }}>Tournament Complete!</div>
                         <p style={{ opacity: 0.8, fontSize: "0.85rem", marginBottom: 16 }}>The final results are published.</p>
                         <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
-                            <button style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                            <button className="club-btn" style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                                 View Final Leaderboard
                             </button>
                         </Link>
@@ -290,11 +291,11 @@ export default function PlayerScoreboard() {
                             <Form method="post" action={`/api/tournament/${tournament.id}/deregister`}>
                                 <input type="hidden" name="playerId" value={playerId} />
                                 <div style={{ display: "flex", gap: 10 }}>
-                                    <button type="button" onClick={() => setShowCancelConfirm(false)}
+                                    <button className="club-btn" type="button" onClick={() => setShowCancelConfirm(false)}
                                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "var(--bg-fill)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                                         No, keep my spot
                                     </button>
-                                    <button type="submit"
+                                    <button className="club-btn" type="submit"
                                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "#dc2626", border: "none", color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                                         Yes, deregister
                                     </button>

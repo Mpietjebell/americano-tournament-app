@@ -174,7 +174,7 @@ export default function ShareLanding() {
                         {t.organizerName && <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,.45)", marginTop: 2, fontWeight: 500 }}>by {t.organizerName}</div>}
                         {t.venueName && t.googleMapsUrl && (
                             <a href={t.googleMapsUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "0.75rem", color: "rgba(255,255,255,.8)", textDecoration: "none", fontWeight: 600, marginTop: 4 }}>
-                                📍 {t.venueName}
+                                {t.venueName}
                             </a>
                         )}
                         {t.type && (
@@ -255,7 +255,7 @@ export default function ShareLanding() {
                         {btnText}
                     </div>
                 ) : (
-                    <a href={joinUrl} style={{ display: "block", maxWidth: 480, margin: "0 auto", padding: "15px", borderRadius: 14, background: btnBg, color: "white", fontWeight: 700, fontSize: "1rem", textAlign: "center", textDecoration: "none", letterSpacing: "0.02em" }}>
+                    <a className="club-btn" href={joinUrl} style={{ display: "block", maxWidth: 480, margin: "0 auto", padding: "15px", borderRadius: 14, background: btnBg, color: "white", fontWeight: 700, fontSize: "1rem", textAlign: "center", textDecoration: "none", letterSpacing: "0.02em" }}>
                         {btnText}
                     </a>
                 )}

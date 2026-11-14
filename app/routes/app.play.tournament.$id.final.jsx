@@ -187,7 +187,6 @@ export default function FinalLeaderboard() {
                     <span style={{ minWidth: 60 }} />
                 </nav>
                 <div className="ios-page" style={{ maxWidth: 640, textAlign: "center", paddingTop: 80 }}>
-                    <div className="nopa-pulse" style={{ fontSize: "3rem", marginBottom: 16 }}>⏳</div>
                     <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--label)", marginBottom: 8 }}>Results not released yet</div>
                     <div style={{ fontSize: "0.88rem", color: "var(--label-3)" }}>All matches are played. The results appear here by themselves as soon as the host releases them.</div>
                 </div>
@@ -271,7 +270,6 @@ export default function FinalLeaderboard() {
                             background: "rgba(197,165,90,0.18)", border: "1px solid rgba(197,165,90,0.45)",
                             borderRadius: 0, padding: "16px 22px", marginBottom: 0, display: "inline-block", maxWidth: "100%",
                         }}>
-                            <div className="nopa-congrats-trophy" style={{ fontSize: "1.9rem", lineHeight: 1, marginBottom: 6 }}>🏆</div>
                             <div style={{ fontSize: "0.65rem", letterSpacing: "0.16em", opacity: 0.85, textTransform: "uppercase", marginBottom: 4 }}>{isTeamMode ? "Congratulations, champions" : "Congratulations"}</div>
                             <div className="nopa-congrats-name" style={{ overflowWrap: "anywhere" }}>{mvp.name}</div>
                             <div style={{ fontSize: "0.78rem", opacity: 0.75, marginTop: 4 }}>{isTeamMode ? "Champion team" : "Tournament winner"} · {mvp.totalPoints} points</div>
@@ -281,7 +279,7 @@ export default function FinalLeaderboard() {
 
                 {/* ── Host: Release Results button ── */}
                 {isHost && !released && (
-                    <button
+                    <button className="club-btn"
                         type="button"
                         onClick={handleReleaseResults}
                         style={{
@@ -290,30 +288,30 @@ export default function FinalLeaderboard() {
                             fontWeight: 700, fontSize: "1rem", cursor: "pointer", fontFamily: "inherit",
                         }}
                     >
-                        🏆 Release Results to Players
+                        Release Results to Players
                     </button>
                 )}
                 {isHost && released && (
                     <div style={{ textAlign: "center", fontSize: "0.82rem", color: "var(--green)", marginBottom: 12, fontWeight: 600 }}>
-                        ✅ Results are visible to all players
+                        Results are visible to all players
                     </div>
                 )}
 
                 {/* ── Share actions ── */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
-                    <button
+                    <button className="club-btn"
                         type="button"
                         onClick={handleShareImage}
                         disabled={imageState === "generating"}
                         style={{
                             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                            background: "#25D366", borderRadius: "var(--r-card)", padding: "15px 20px",
+                            background: "var(--green)", borderRadius: "var(--r-card)", padding: "15px 20px",
                             color: "white", fontWeight: 600, fontSize: "0.95rem",
                             cursor: imageState === "generating" ? "wait" : "pointer",
                             border: "none", fontFamily: "inherit", width: "100%", opacity: imageState === "generating" ? 0.7 : 1,
                         }}
                     >
-                        {imageState === "generating" ? "Preparing image…" : "📸 Share Scorecard on WhatsApp"}
+                        {imageState === "generating" ? "Preparing image…" : "Share Scorecard on WhatsApp"}
                     </button>
                     {imageState === "error" && (
                         <div style={{ textAlign: "center", fontSize: "0.76rem", color: "#dc2626" }}>
@@ -321,7 +319,7 @@ export default function FinalLeaderboard() {
                         </div>
                     )}
 
-                    <button
+                    <button className="club-btn"
                         type="button"
                         onClick={handleNativeShare}
                         style={{
@@ -332,7 +330,7 @@ export default function FinalLeaderboard() {
                             boxShadow: "var(--shadow)",
                         }}
                     >
-                        📤 Share Results Link
+                        Share Results Link
                     </button>
 
                     <button
@@ -358,7 +356,7 @@ export default function FinalLeaderboard() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingLeft: 4 }}>
                         <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", fontWeight: 600 }}>Full Standings</div>
                         {released && (
-                            <button type="button" onClick={() => setCelebrate((n) => n + 1)} style={{ background: "none", border: "none", color: "var(--green)", fontSize: "0.76rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>🎉 Replay</button>
+                            <button type="button" onClick={() => setCelebrate((n) => n + 1)} style={{ background: "none", border: "none", color: "var(--green)", fontSize: "0.76rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Replay</button>
                         )}
                     </div>
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow)" }}>

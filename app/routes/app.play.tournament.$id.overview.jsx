@@ -75,6 +75,7 @@ export default function TournamentOverview() {
                 <ClubHero
                     card
                     as="h1"
+                    frame="table"
                     eyebrow="Tournament created"
                     title={tournament.name}
                     sub={`${tournament.location || "Venue TBC"} · ${getCountryDisplay(tournament.country)}`}
@@ -179,11 +180,11 @@ export default function TournamentOverview() {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
                             <a href={whatsappUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 16px", background: "#25D366", color: "white", borderRadius: "var(--r-card)", fontWeight: 600, fontSize: "0.92rem" }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 16px", background: "var(--green)", color: "white", borderRadius: "var(--r-card)", fontWeight: 600, fontSize: "0.92rem" }}>
                                     Share on WhatsApp
                                 </div>
                             </a>
-                            <button type="button" onClick={handleCopy} style={{ padding: "14px 16px", borderRadius: "var(--r-card)", background: copied ? "rgba(28,79,53,0.06)" : "var(--bg-fill-2)", color: copied ? "var(--green)" : "var(--label)", border: `1px solid ${copied ? "var(--green)" : "var(--sep)"}`, fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
+                            <button className="club-btn" type="button" onClick={handleCopy} style={{ padding: "14px 16px", borderRadius: "var(--r-card)", background: copied ? "rgba(28,79,53,0.06)" : "var(--bg-fill-2)", color: copied ? "var(--green)" : "var(--label)", border: `1px solid ${copied ? "var(--green)" : "var(--sep)"}`, fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
                                 {copied ? "Link Copied" : "Copy Join Link"}
                             </button>
                             <div style={{ fontSize: "0.74rem", color: "var(--label-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{publicJoinUrl}</div>
@@ -192,19 +193,19 @@ export default function TournamentOverview() {
 
                     {isHost && tournament.status === "setup" && (
                         <Link to={`/app/play/tournament/${tournament.id}/edit`} style={{ textDecoration: "none", flex: 1 }}>
-                            <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "#1C4F35", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
+                            <button className="club-btn" style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "#1C4F35", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
                                 Edit Tournament
                             </button>
                         </Link>
                     )}
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <a href={`/app/play/tournament/${tournament.id}/print.pdf`} download style={{ textDecoration: "none", flex: 1 }}>
-                            <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--bg-card)", color: "var(--label)", border: "1px solid var(--sep)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "var(--shadow)" }}>
+                            <button className="club-btn" style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--bg-card)", color: "var(--label)", border: "1px solid var(--sep)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "var(--shadow)" }}>
                                 Download Schedule PDF
                             </button>
                         </a>
                         <Link to={`/app/play/tournament/${tournament.id}`} style={{ textDecoration: "none", flex: 1 }}>
-                            <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
+                            <button className="club-btn" style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
                                 Open Match Manager
                             </button>
                         </Link>

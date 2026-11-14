@@ -1039,3 +1039,10 @@ input:not([type])::placeholder,
 .club-hero--graphic .club-hero-body { min-height: 132px; }
 .club-hero--card { margin-bottom: 20px; border: 1px solid var(--green-dark); }
 .club-hero-chip { display: inline-block; margin-top: 10px; background: var(--cream); color: var(--green); font-family: var(--font-display); font-size: 13px; letter-spacing: 0.14em; padding: 5px 12px; }
+
+/* Inline-styled action buttons share the Clubhouse button lettering */
+.club-btn, .nopa-topbar-btn {
+  font-family: var(--font-body) !important; text-transform: uppercase; letter-spacing: 0.15em !important;
+  font-size: 0.7rem !important; font-weight: 600 !important; border-radius: 0 !important; line-height: 1.4 !important;
+}
+.nopa-topbar-btn { background: transparent; border: 1px solid rgba(245,240,232,0.45); color: var(--cream); padding: 8px 12px; font-size: 0.64rem !important; }

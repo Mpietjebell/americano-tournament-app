@@ -766,7 +766,7 @@ export default function NewTournamentPublic() {
                 <span style={{ minWidth: 60 }} />
             </nav>
 
-            <ClubHero eyebrow="Host" title="New Tournament" sub="Set the format, courts and players." as="h1" />
+            <ClubHero frame="table" eyebrow="Host" title="New Tournament" sub="Set the format, courts and players." as="h1" />
 
             <div className="ios-page">
                 <Form method="post" encType="multipart/form-data" noValidate onSubmit={handleSubmit}>
@@ -883,11 +883,10 @@ export default function NewTournamentPublic() {
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}>
                             <div style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}>
                                 <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
-                                <div style={{ fontSize: "1.5rem", marginBottom: 12, textAlign: "center" }}>📅</div>
                                 <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10, textAlign: "center" }}>Before you confirm this date</div>
                                 <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-cell)", padding: "14px 16px", marginBottom: 16 }}>
                                     <p style={{ fontSize: "0.88rem", color: "#92400e", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-                                        ⚠️ Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
+                                        Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
                                     </p>
                                 </div>
                                 <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "12px 14px", marginBottom: 20 }}>
@@ -895,7 +894,7 @@ export default function NewTournamentPublic() {
                                         This system does <strong>not</strong> check for public holidays, national days, or local events that may affect venue availability.
                                     </p>
                                 </div>
-                                <button
+                                <button className="club-btn"
                                     type="button"
                                     onClick={confirmDateWarning}
                                     style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}
@@ -995,7 +994,7 @@ export default function NewTournamentPublic() {
                                 {repeatWeekly && (
                                     <div style={{ borderBottom: "1px solid var(--sep)", background: "#fffbeb", padding: "14px 16px" }}>
                                         <div style={{ background: "#fef3c7", border: "1px solid #fbbf24", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
-                                            <div style={{ fontSize: "0.82rem", color: "#92400e", fontWeight: 600, marginBottom: 4 }}>⚠️ Check venue availability</div>
+                                            <div style={{ fontSize: "0.82rem", color: "#92400e", fontWeight: 600, marginBottom: 4 }}>Check venue availability</div>
                                             <div style={{ fontSize: "0.75rem", color: "#92400e", lineHeight: 1.55 }}>Make sure you check availability with the venue to create this event weekly. Each week will create a new tournament with the same settings.</div>
                                         </div>
                                         {!repeatWeeklyConfirmed ? (
@@ -1281,7 +1280,7 @@ export default function NewTournamentPublic() {
                                 <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
                                 <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10 }}>{infoModal.name}</div>
                                 <p style={{ fontSize: "0.88rem", color: "var(--label-2)", lineHeight: 1.6, margin: 0 }}>{infoModal.info}</p>
-                                <button
+                                <button className="club-btn"
                                     type="button"
                                     onClick={() => setInfoModal(null)}
                                     style={{ marginTop: 20, width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit" }}
@@ -1800,7 +1799,7 @@ export default function NewTournamentPublic() {
                         </div>
                     )}
 
-                    <button
+                    <button className="club-btn"
                         type="submit"
                         disabled={(!meetsMinimumUpfront) || isSubmitting}
                         style={{

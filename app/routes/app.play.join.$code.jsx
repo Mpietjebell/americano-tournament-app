@@ -263,7 +263,7 @@ export default function JoinCode() {
                                 onFocus={e => e.target.style.borderColor = "var(--green)"}
                                 onBlur={e => e.target.style.borderColor = "var(--sep-opaque)"}
                             />
-                            <button
+                            <button className="club-btn"
                                 type="button"
                                 disabled={!emailValid}
                                 onClick={() => setStep(2)}
@@ -411,7 +411,7 @@ export default function JoinCode() {
                                 >
                                     Back
                                 </button>
-                                <button
+                                <button className="club-btn"
                                     type="submit"
                                     disabled={nameMode === "new" ? customName.trim().length < 2 : !selectedPlayer}
                                     style={{
@@ -447,11 +447,11 @@ export default function JoinCode() {
                                 <Form method="post" action={`/api/tournament/${tournament.id}/deregister`}>
                                     <input type="hidden" name="playerId" value={playerIdFromCookie} />
                                     <div style={{ display: "flex", gap: 10 }}>
-                                        <button type="button" onClick={() => setShowCancelConfirm(false)}
+                                        <button className="club-btn" type="button" onClick={() => setShowCancelConfirm(false)}
                                             style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "var(--bg-fill)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                                             No, keep my spot
                                         </button>
-                                        <button type="submit"
+                                        <button className="club-btn" type="submit"
                                             style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "#dc2626", border: "none", color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                                             Yes, deregister
                                         </button>
