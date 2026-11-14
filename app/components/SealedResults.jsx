@@ -56,29 +56,43 @@ export function SealedResults({ tournament, yourScore }) {
     );
 }
 
-/** A simply drawn NOPA racquet: white frame, green stripes, tan grip. */
+/**
+ * A simply drawn NOPA racquet, after the real one: a round white head,
+ * green bands running the length of the face and cut square above the
+ * throat, large holes, an open white throat and a terracotta grip.
+ */
 function Paddle({ side }) {
     const clip = `sealed-face-${side}`;
-    const holes = [[14, 12], [21, 12], [28, 12], [10.5, 19], [17.5, 19], [24.5, 19], [31.5, 19], [14, 26], [21, 26], [28, 26], [17.5, 33], [24.5, 33]];
+    const holes = [];
+    for (let row = 0; row < 5; row++) {
+        const y = 10 + row * 7.4;
+        const offset = row % 2 ? 5.25 : 0;
+        for (let x = 10.25 + offset; x <= 45; x += 10.5) {
+            const dx = (x - 26) / 18, dy = (y - 25) / 19.5;
+            if (dx * dx + dy * dy <= 1) holes.push([x, y]);
+        }
+    }
     return (
-        <svg className={`sealed-paddle sealed-paddle-${side}`} width="42" height="78" viewBox="0 0 42 78" fill="none">
+        <svg className={`sealed-paddle sealed-paddle-${side}`} width="52" height="100" viewBox="0 0 52 100" fill="none">
             <defs>
-                <clipPath id={clip}><ellipse cx="21" cy="22" rx="16.5" ry="19.5" /></clipPath>
+                <clipPath id={clip}><ellipse cx="26" cy="25" rx="20.6" ry="21.6" /></clipPath>
             </defs>
-            {/* throat and frame */}
-            <path d="M12 38 L18.5 54 H23.5 L30 38 Z" fill="#F5F0E8" />
-            <path d="M17.5 41 L21 50 L24.5 41 Z" fill="#1C4F35" />
-            <ellipse cx="21" cy="22" rx="19" ry="22" fill="#F5F0E8" />
-            {/* striped face */}
+            {/* open throat */}
+            <path d="M8 38 C13 50 20 56 22.4 66 H29.6 C32 56 39 50 44 38 Z" fill="#FBFAF7" />
+            <path d="M19.5 50.5 H32.5 L26 61.5 Z" fill="#1C4F35" />
+            {/* head */}
+            <ellipse cx="26" cy="25" rx="23.4" ry="24.4" fill="#FBFAF7" />
+            <ellipse cx="26" cy="25" rx="23.4" ry="24.4" stroke="#E4DFD6" strokeWidth="0.6" />
+            {/* green bands along the face, cut square above the throat */}
             <g clipPath={`url(#${clip})`}>
-                <rect x="0" y="0" width="42" height="44" fill="#FFFFFF" />
-                {[8, 15.5, 23, 30.5].map((y) => <rect key={y} x="0" y={y} width="42" height="4.2" fill="#2A6B49" />)}
+                {[7.5, 18, 28.5, 39].map((x) => <rect key={x} x={x} y="0" width="5.5" height="39" fill="#1F5A3D" />)}
             </g>
-            {holes.map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.15" fill="#143A28" opacity="0.55" />)}
-            {/* grip */}
-            <rect x="18.2" y="54" width="5.6" height="21" fill="#C9743F" />
-            <path d="M18.2 59 L23.8 57 M18.2 64 L23.8 62 M18.2 69 L23.8 67" stroke="#A55A2C" strokeWidth="0.8" />
-            <rect x="17.6" y="74.5" width="6.8" height="2.5" fill="#F5F0E8" />
+            {holes.map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.35" fill="#EFECE6" />)}
+            {/* collar and grip */}
+            <rect x="21.8" y="65" width="8.4" height="5" fill="#FBFAF7" />
+            <rect x="22.4" y="70" width="7.2" height="27" fill="#C96A43" />
+            <path d="M22.4 76 L29.6 73.5 M22.4 82 L29.6 79.5 M22.4 88 L29.6 85.5 M22.4 94 L29.6 91.5" stroke="#A9542F" strokeWidth="0.7" />
+            <rect x="21.6" y="96" width="8.8" height="3" fill="#C96A43" />
         </svg>
     );
 }
