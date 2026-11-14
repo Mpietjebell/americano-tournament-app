@@ -91,7 +91,7 @@ export default function PlayerScoreboard() {
             {/* Hero */}
             <div style={{
                 height: 180,
-                backgroundImage: heroImage("duskSilhouette", "/player-portal.png"),
+                backgroundImage: heroImage("duskSilhouette"),
                 backgroundSize: "cover",
                 backgroundPosition: "center 15%",
                 position: "relative",

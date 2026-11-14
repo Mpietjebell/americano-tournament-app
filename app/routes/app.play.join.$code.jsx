@@ -148,7 +148,7 @@ export default function JoinCode() {
             {/* Hero strip */}
             <div style={{
                 height: 200,
-                backgroundImage: heroImage("duskSilhouette", "/player-portal.png"),
+                backgroundImage: heroImage("duskSilhouette"),
                 backgroundSize: "cover",
                 backgroundPosition: "center 25%",
                 position: "relative",

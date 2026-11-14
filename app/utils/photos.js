@@ -10,7 +10,6 @@ export const PHOTOS = {
     duskSilhouette: file("hero-duskSilhouette"), // player in silhouette on a green court at dusk
     nightCourt: file("hero-nightCourt"),         // racquet against the glass under floodlights
     villaCourt: file("hero-villaCourt"),         // court among pines beside a villa at twilight
-    womanCourt: file("lifestyle-womanCourt"),    // player resting courtside at golden hour
     lockerRoom: file("detail-lockerRoom"),       // racquet on a bench in a walnut locker room
     overheadCircle: file("hero-overheadCircle"), // eight racquets in a circle on linen
 };

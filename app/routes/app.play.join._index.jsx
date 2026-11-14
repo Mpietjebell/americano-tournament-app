@@ -31,7 +31,7 @@ export default function JoinPage() {
             {/* Hero strip */}
             <div style={{
                 height: 220,
-                backgroundImage: heroImage("womanCourt", "/player-portal.png"),
+                backgroundImage: heroImage("sunsetCourt"),
                 backgroundSize: "cover",
                 backgroundPosition: "center 20%",
                 position: "relative",
