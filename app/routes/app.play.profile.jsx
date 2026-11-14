@@ -69,7 +69,7 @@ export default function Profile() {
             </nav>
 
             <div className="ios-page" style={{ maxWidth: 480 }}>
-                <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "2rem", fontWeight: 400, textAlign: "center", marginBottom: 18 }}>My profile</h1>
+                <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 400, textAlign: "center", marginBottom: 18 }}>My profile</h1>
 
                 {actionData?.error && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 12, color: "#991b1b", fontSize: "0.82rem" }}>{actionData.error}</div>}
                 {actionData?.saved && <div style={{ background: "rgba(28,79,53,0.08)", border: "1px solid rgba(28,79,53,0.25)", borderRadius: 8, padding: "10px 14px", marginBottom: 12, color: "var(--green)", fontSize: "0.82rem", fontWeight: 600 }}>{actionData.saved}</div>}

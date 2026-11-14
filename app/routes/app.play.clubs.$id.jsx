@@ -154,7 +154,7 @@ export default function ClubPage() {
                 <Nav />
                 <div className="ios-page" style={{ maxWidth: 460 }}>
                     <div className="nopa-card" style={{ textAlign: "center" }}>
-                        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.7rem", fontWeight: 400, marginBottom: 6 }}>{club.name}</h1>
+                        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.7rem", fontWeight: 400, marginBottom: 6 }}>{club.name}</h1>
                         <p style={{ color: "var(--label-3)", fontSize: "0.86rem", marginBottom: 16, lineHeight: 1.5 }}>
                             This is a private club. Its tournaments and leaderboard are only visible to members.
                         </p>
@@ -197,7 +197,7 @@ export default function ClubPage() {
                     <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--label-3)", fontWeight: 700, marginBottom: 6 }}>
                         {club.isPublic ? "Public club" : "Private club"}{club.city ? ` · ${club.city}` : ""}
                     </div>
-                    <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "2rem", fontWeight: 400, color: "var(--label)", marginBottom: 6, overflowWrap: "anywhere" }}>{club.name}</h1>
+                    <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 400, color: "var(--label)", marginBottom: 6, overflowWrap: "anywhere" }}>{club.name}</h1>
                     {club.description && <p style={{ color: "var(--label-3)", fontSize: "0.86rem", lineHeight: 1.5 }}>{club.description}</p>}
                 </div>
 

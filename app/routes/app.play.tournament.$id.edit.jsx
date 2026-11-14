@@ -176,7 +176,7 @@ export default function EditTournament() {
             </div>
 
             <div className="ios-page">
-                <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.8rem", fontWeight: 400, color: "var(--label)", marginBottom: 4 }}>
+                <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", fontWeight: 400, color: "var(--label)", marginBottom: 4 }}>
                     Edit Tournament
                 </h1>
                 <p style={{ fontSize: "0.82rem", color: "var(--label-3)", marginBottom: 8 }}>{tournament.name}</p>

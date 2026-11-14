@@ -72,7 +72,7 @@ function CourtColumn({ courtNumber, courtName, rounds, players }) {
 
 const PRINT_STYLES = `
     .pp-root * { box-sizing: border-box; }
-    .pp-root { font-family: 'Inter', -apple-system, sans-serif; color: #111; }
+    .pp-root { font-family: 'Libre Franklin', Helvetica, Arial, sans-serif; color: #111; }
 
     .pp-toolbar {
         background: #1C4F35; color: white;

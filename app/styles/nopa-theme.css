@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   NOPA — iOS-inspired Design System
-   Accent: NOPA Green #1C4F35 | Background: Cream #F8F0E4
-   Typography: Cormorant Garamond (hero) · Inter (UI)
+   NOPA — Clubhouse Design System
+   Accent: NOPA Green #1C4F35 | Background: Cream #F5F0E8
+   Typography: Bodoni Moda (display) · Libre Franklin (UI) · flat corners, hairline rules
    ═══════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600&family=Libre+Franklin:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,18 +12,23 @@
   /* NOPA brand */
   --green:          #1C4F35;
   --green-light:    #2A6B49;
-  --green-dark:     #153D29;
+  --green-dark:     #143A28;
+  --cream:          #F5F0E8;
+  --mute:           #D9D0C7;
+  --line:           rgba(15,29,61,0.2);
+  --font-display:   'Bodoni Moda', Georgia, 'Times New Roman', serif;
+  --font-body:      'Libre Franklin', Helvetica, Arial, sans-serif;
   --gold:           #C5A55A;
 
   /* iOS system backgrounds */
-  --bg:             #F2EDE4;
-  --bg-grouped:     #F2EDE4;
+  --bg:             #F5F0E8;
+  --bg-grouped:     #F5F0E8;
   --bg-card:        #FFFFFF;
   --bg-fill:        rgba(120,120,128,0.12);
   --bg-fill-2:      rgba(120,120,128,0.08);
 
   /* Text */
-  --label:          #1C1C1E;
+  --label:          #1C1C1A;
   --label-2:        #3C3C43;
   --label-3:        rgba(60,60,67,0.6);
   --label-4:        rgba(60,60,67,0.3);
@@ -36,14 +41,14 @@
   --accent:         var(--green);
 
   /* Shape */
-  --r-card:         16px;
-  --r-cell:         12px;
-  --r-sm:           8px;
-  --r-pill:         100px;
+  --r-card:         0px;
+  --r-cell:         0px;
+  --r-sm:           0px;
+  --r-pill:         0px;
 
   /* Shadow */
-  --shadow:         0 1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06);
-  --shadow-md:      0 4px 24px rgba(0,0,0,0.08);
+  --shadow:         0 0 0 1px rgba(15,29,61,0.16);
+  --shadow-md:      0 0 0 1px rgba(15,29,61,0.18), 0 8px 22px rgba(15,29,61,0.10);
 
   /* Motion */
   --ease:           cubic-bezier(0.4,0,0.2,1);
@@ -56,7 +61,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 .nopa-app {
   background: var(--bg-grouped);
   min-height: 100vh;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body);
   color: var(--label);
 }
 
@@ -77,7 +82,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 }
 
 .ios-nav-brand {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 500;
   letter-spacing: 0.2em;
@@ -148,7 +153,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 
 /* ─── Large title ────────────────────────────────────────── */
 .ios-large-title {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-display);
   font-size: 2.2rem;
   font-weight: 400;
   letter-spacing: 0.03em;
@@ -797,9 +802,9 @@ input:not([type])::placeholder,
 .nopa-label { display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--label-3); margin-bottom: 6px; }
 .nopa-form-group { margin-bottom: 18px; }
 .nopa-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
-.nopa-title { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 500; letter-spacing: 0.04em; }
+.nopa-title { font-family: var(--font-display); font-size: 1.6rem; font-weight: 500; letter-spacing: 0.04em; }
 .nopa-page-header { margin-bottom: 24px; }
-.nopa-page-header h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 500; color: var(--green); margin-bottom: 4px; }
+.nopa-page-header h2 { font-family: var(--font-display); font-size: 1.7rem; font-weight: 500; color: var(--green); margin-bottom: 4px; }
 .nopa-page-header p { color: var(--label-3); font-size: 0.88rem; }
 .nopa-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: var(--r-pill); font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .nopa-badge-active { background: rgba(28,79,53,0.1); color: var(--green); }
@@ -875,22 +880,9 @@ input:not([type])::placeholder,
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   position: sticky; top: 0; z-index: 50;
 }
-.nopa-home-brand { font-family: 'Cormorant Garamond', serif; letter-spacing: 0.2em; font-size: 1.05rem; font-weight: 500; }
+.nopa-home-brand { font-family: var(--font-display); letter-spacing: 0.2em; font-size: 1.05rem; font-weight: 500; }
 .nopa-home-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .nopa-home-user span { font-size: 0.78rem; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
-
-.nopa-home-hero {
-  height: clamp(190px, 34vh, 320px); position: relative;
-  background: url("https://cdn.shopify.com/s/files/1/0878/5277/7636/files/nopa-email-hero-sunsetCourt.jpg?v=1793631322&width=1400") center 55% / cover, url(/hero-court.png) center 40% / cover;
-}
-.nopa-home-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.55)); }
-.nopa-home-hero-title {
-  position: absolute; left: 0; right: 0; bottom: 22px; z-index: 1; text-align: center; color: white;
-  font-family: 'Cormorant Garamond', serif; font-style: italic; line-height: 0.95;
-  text-shadow: 0 2px 24px rgba(0,0,0,0.35);
-}
-.nopa-home-hero-title span { display: block; font-weight: 300; font-size: clamp(2.6rem, 11vw, 4.6rem); }
-.nopa-home-hero-title strong { display: block; font-weight: 600; font-size: clamp(2.2rem, 9.5vw, 4rem); }
 
 .nopa-home-main { max-width: 680px; margin: 0 auto; padding: 16px 16px calc(64px + env(safe-area-inset-bottom, 0px)); }
 .nopa-home-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
@@ -982,7 +974,7 @@ input:not([type])::placeholder,
 .nopa-celebrate .nopa-congrats-trophy { display: inline-block; animation: nopa-trophy 0.9s cubic-bezier(.2,.8,.2,1) both; animation-delay: 2.1s; }
 .nopa-celebrate .nopa-row-in { animation: nopa-fade-up 0.4s ease both; animation-delay: calc(2.5s + var(--i) * 0.07s); }
 .nopa-congrats-name {
-  font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 600; font-size: 1.7rem; line-height: 1.1;
+  font-family: var(--font-display); font-weight: 500; font-size: 1.6rem; line-height: 1.1;
   background: linear-gradient(100deg, #E8D49A 20%, #FFFFFF 40%, #C5A55A 60%, #E8D49A 80%); background-size: 200% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
@@ -993,3 +985,57 @@ input:not([type])::placeholder,
 }
 @keyframes nopa-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 .nopa-pulse { animation: nopa-pulse 1.6s ease-in-out infinite; }
+
+
+/* ═══ Clubhouse design system layer ═══════════════════════════
+   Flat corners, hairline rules, tracked-caps labels, Bodoni display. */
+.nopa-app { font-family: var(--font-body); }
+.ios-nav-brand, .nopa-home-brand {
+  font-size: 0 !important; display: inline-block; width: 62px; height: 30px;
+  background: url(/images/brand/nopa-wordmark-white.png) center / contain no-repeat;
+}
+.ios-nav, .nopa-home-bar { border-bottom: 1px solid var(--green-dark); }
+.ios-nav-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+.ios-nav-action { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.66rem; font-weight: 600; background: transparent; border-color: rgba(245,240,232,0.45); color: var(--cream); padding: 7px 12px; }
+.ios-large-title, .nopa-title, .nopa-page-header h2 { font-style: normal; font-weight: 500; letter-spacing: 0.01em; }
+
+.nopa-btn { border-radius: 0; text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.72rem; font-weight: 600; padding: 14px 22px; line-height: 1.35; text-align: center; }
+.nopa-btn-small { padding: 9px 14px; font-size: 0.66rem; letter-spacing: 0.14em; }
+.nopa-btn-primary { background: var(--green); color: var(--cream); }
+.nopa-btn-primary:hover { opacity: 1; background: var(--green-dark); }
+.nopa-btn-secondary { border: 1px solid var(--green); }
+.nopa-btn-ghost { background: transparent; border: 1px solid var(--line); }
+.nopa-home-cta .nopa-btn { letter-spacing: 0.16em; font-size: 0.72rem; }
+.nopa-input, .nopa-select { border-width: 1px; border-color: var(--line); background: #fff; }
+.nopa-label { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.2em; }
+.nopa-badge { letter-spacing: 0.14em; font-weight: 600; }
+.nopa-court-header { letter-spacing: 0.2em; font-weight: 600; }
+
+/* Eyebrow: thin rule + tracked caps label */
+.club-eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-body); font-size: 11px; line-height: 14px; font-weight: 600;
+  letter-spacing: 0.3em; text-transform: uppercase; color: var(--mute);
+}
+.club-eyebrow::before { content: ""; width: 26px; height: 1px; background: currentColor; opacity: 0.7; flex: none; }
+
+/* Hero */
+.club-hero { background: var(--green); color: var(--cream); position: relative; overflow: hidden; border-bottom: 1px solid var(--green-dark); }
+.club-hero-photo { display: block; width: 100%; height: clamp(190px, 34vh, 340px); object-fit: cover; border-bottom: 1px solid var(--green-dark); }
+.club-hero-body { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 22px 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.club-hero-text { min-width: 0; flex: 1; }
+.club-hero-title { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.6rem, 7.2vw, 2.4rem); line-height: 1.1; letter-spacing: 0.01em; margin: 10px 0 0; color: var(--cream); overflow-wrap: anywhere; }
+.club-hero-sub { font-size: 13px; line-height: 20px; color: rgba(245,240,232,0.78); margin-top: 6px; }
+.club-hero-frame { flex: none; width: 88px; background: var(--cream); padding: 4px; border: 1px solid var(--green-dark); box-shadow: 0 10px 26px rgba(0,0,0,0.28); }
+.club-hero-frame img { display: block; width: 100%; aspect-ratio: 6 / 7; object-fit: cover; border: 1px solid rgba(29,79,53,0.35); }
+/* Graphic cover: deep strip on the right with three hairline rules */
+.club-hero--graphic::before { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 26%; max-width: 180px; background: var(--green-dark); }
+.club-hero--graphic::after {
+  content: ""; position: absolute; top: 16px; right: calc(min(26%, 180px) - 44px); width: 32px; height: 17px;
+  background: linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) top / 100% 1px no-repeat,
+              linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) center / 100% 1px no-repeat,
+              linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) bottom / 100% 1px no-repeat;
+}
+.club-hero--graphic .club-hero-body { min-height: 132px; }
+.club-hero--card { margin-bottom: 20px; border: 1px solid var(--green-dark); }
+.club-hero-chip { display: inline-block; margin-top: 10px; background: var(--cream); color: var(--green); font-family: var(--font-display); font-size: 13px; letter-spacing: 0.14em; padding: 5px 12px; }

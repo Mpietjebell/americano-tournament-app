@@ -1,7 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import { Avatar } from "../components/Avatar";
 import { getPlayerAvatars } from "../utils/avatar.server";
-import { heroImage } from "../utils/photos";
+import { ClubHero } from "../components/ClubHero";
 import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
@@ -88,32 +88,20 @@ export default function PlayerScoreboard() {
                 <span style={{ minWidth: 60 }} />
             </nav>
 
-            {/* Hero */}
-            <div style={{
-                height: 180,
-                backgroundImage: heroImage("duskSilhouette"),
-                backgroundSize: "cover",
-                backgroundPosition: "center 15%",
-                position: "relative",
-            }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(28,79,53,0.25) 0%, rgba(0,0,0,0.6) 100%)" }} />
-                <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, textAlign: "center", padding: "0 20px" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.8rem", fontWeight: 400, color: "white", lineHeight: 1.1, textShadow: "0 2px 16px rgba(0,0,0,0.35)" }}>
-                        {tournament.name}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                        {[tournament.location, getCountryDisplay(tournament.country)].filter(Boolean).join(" · ")}
-                        {myPlayer && <span style={{ marginLeft: 10, background: "rgba(255,255,255,0.18)", padding: "2px 10px", borderRadius: 50, backdropFilter: "blur(4px)" }}>{myPlayer.name}</span>}
-                    </div>
-                </div>
-            </div>
+            <ClubHero
+                eyebrow="Player card"
+                title={tournament.name}
+                sub={[tournament.location, getCountryDisplay(tournament.country)].filter(Boolean).join(" · ")}
+            >
+                {myPlayer && <span className="club-hero-chip">{myPlayer.name}</span>}
+            </ClubHero>
 
             <div className="ios-page">
 
                 {/* Not started yet */}
                 {notStarted && (
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", textAlign: "center", padding: "36px 24px", marginBottom: 20, boxShadow: "var(--shadow)" }}>
-                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Waiting to start</div>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Waiting to start</div>
                         <p style={{ color: "var(--label-3)", fontSize: "0.85rem", maxWidth: 280, margin: "0 auto 20px", lineHeight: 1.6 }}>
                             The host hasn't activated rounds yet. This page refreshes automatically.
                         </p>
@@ -199,7 +187,7 @@ export default function PlayerScoreboard() {
 
                     {inSuspense ? (
                         <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", textAlign: "center", padding: "32px 20px", boxShadow: "var(--shadow)" }}>
-                            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Standings Hidden</div>
+                            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Standings Hidden</div>
                             <p style={{ color: "var(--label-3)", fontSize: "0.85rem", maxWidth: 300, margin: "0 auto 20px", lineHeight: 1.6 }}>
                                 {resultsWithheld
                                     ? "All matches are played. The host will release the final results — this page updates by itself."
@@ -278,7 +266,7 @@ export default function PlayerScoreboard() {
                 {/* Final reveal */}
                 {isFinished && !resultsWithheld && (
                     <div style={{ background: "linear-gradient(135deg, var(--green-dark), var(--green))", color: "white", borderRadius: "var(--r-card)", padding: "28px 24px", textAlign: "center", boxShadow: "0 6px 24px rgba(28,79,53,0.35)" }}>
-                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.5rem", marginBottom: 4 }}>Tournament Complete!</div>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", marginBottom: 4 }}>Tournament Complete!</div>
                         <p style={{ opacity: 0.8, fontSize: "0.85rem", marginBottom: 16 }}>The final results are published.</p>
                         <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
                             <button style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>

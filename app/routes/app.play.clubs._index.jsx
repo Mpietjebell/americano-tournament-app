@@ -121,7 +121,7 @@ export default function ClubsIndex() {
 
             <div className="ios-page" style={{ maxWidth: 560 }}>
                 <div style={{ textAlign: "center", marginBottom: 18 }}>
-                    <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "2rem", fontWeight: 400, color: "var(--label)", marginBottom: 6 }}>Clubs</h1>
+                    <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 400, color: "var(--label)", marginBottom: 6 }}>Clubs</h1>
                     <p style={{ color: "var(--label-3)", fontSize: "0.86rem", lineHeight: 1.5 }}>
                         Your own group, your own tournaments, one shared leaderboard.
                     </p>

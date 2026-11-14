@@ -45,7 +45,7 @@ export default function SharePage() {
 
             <div className="ios-page" style={{ maxWidth: 560 }}>
                 <div style={{ textAlign: "center", marginBottom: 24 }}>
-                    <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.8rem", fontWeight: 400, color: "var(--label)", marginBottom: 6 }}>
+                    <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", fontWeight: 400, color: "var(--label)", marginBottom: 6 }}>
                         Share with Players
                     </h1>
                     <p style={{ color: "var(--label-3)", fontSize: "0.86rem" }}>{tournament.name}</p>

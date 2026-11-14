@@ -69,7 +69,7 @@ export const meta = ({ data }) => {
         `${data.playerCount}${data.maxPlayers ? `/${data.maxPlayers}` : ""} players`,
     ].filter(Boolean);
     const desc = data.description?.trim() || `${bits.join(" · ")} — join this Americano on NOPA Padel.`;
-    const image = data.logoUrl && data.logoUrl.startsWith("http") ? data.logoUrl : `${data.origin}/hero-court.png`;
+    const image = data.logoUrl && data.logoUrl.startsWith("http") ? data.logoUrl : `${data.origin}/images/brand/clubhouse-table.jpg`;
     const url = `${data.origin}/j/${data.joinCode}`;
     return [
         { title },
@@ -186,7 +186,7 @@ export default function ShareLanding() {
 
                     {/* Description */}
                     {t.description && (
-                        <div style={{ padding: "8px 16px 4px", fontSize: "0.72rem", color: "rgba(255,255,255,.7)", fontStyle: "italic", borderTop: "1px solid rgba(255,255,255,.08)", lineHeight: 1.5 }}>
+                        <div style={{ padding: "8px 16px 4px", fontSize: "0.72rem", color: "rgba(255,255,255,.7)", borderTop: "1px solid rgba(255,255,255,.08)", lineHeight: 1.5 }}>
                             {t.description}
                         </div>
                     )}

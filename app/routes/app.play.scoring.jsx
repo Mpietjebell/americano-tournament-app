@@ -39,7 +39,7 @@ export default function Scoring() {
                 <span style={{ minWidth: 60 }} />
             </nav>
             <div className="ios-page" style={{ maxWidth: 560 }}>
-                <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "2rem", fontWeight: 400, textAlign: "center", marginBottom: 6 }}>How scoring works</h1>
+                <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 400, textAlign: "center", marginBottom: 6 }}>How scoring works</h1>
                 <p style={{ textAlign: "center", color: "var(--label-3)", fontSize: "0.86rem", marginBottom: 18 }}>Every point counts, for everyone, all evening.</p>
 
                 <Block step="1" title="A match is a fixed number of points">

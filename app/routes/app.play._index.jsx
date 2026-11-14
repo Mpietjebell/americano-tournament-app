@@ -8,6 +8,7 @@ import { getUser, publicUser, userCookie, clearUserCookie } from "../utils/user.
 import { NopaBanner } from "../components/NopaBanner";
 import { InstallHint } from "../components/InstallHint";
 import { Avatar } from "../components/Avatar";
+import { ClubHero } from "../components/ClubHero";
 
 export const meta = () => [
     { title: "NOPA Clubhouse — Host & join padel Americano tournaments" },
@@ -186,12 +187,7 @@ export default function PlayHome() {
                 </div>
             </div>
 
-            <div className="nopa-home-hero">
-                <h1 className="nopa-home-hero-title">
-                    <span>Clubhouse</span>
-                    <strong>Americano</strong>
-                </h1>
-            </div>
+            <ClubHero photo="table" eyebrow="The Clubhouse" title="Americano" sub="Host a tournament, join one, follow the scores." as="h1" />
 
             <main className="nopa-home-main">
                 <InstallHint />
@@ -248,7 +244,7 @@ export default function PlayHome() {
                 <div className="login-overlay" onClick={() => setShowLogin(false)}>
                     <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: 20, padding: "28px 24px", width: "100%", maxWidth: 370, boxShadow: "0 24px 64px rgba(0,0,0,0.22)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                            <h3 style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontSize: "1.4rem", fontWeight: 500, letterSpacing: "0.04em", color: "var(--green)" }}>
+                            <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.4rem", fontWeight: 500, letterSpacing: "0.04em", color: "var(--green)" }}>
                                 Sign in to the Clubhouse
                             </h3>
                             <button type="button" aria-label="Close" onClick={() => setShowLogin(false)} style={{ background: "var(--bg-fill)", border: "none", width: 28, height: 28, borderRadius: "50%", cursor: "pointer", color: "var(--label-3)", fontSize: "1rem" }}>×</button>

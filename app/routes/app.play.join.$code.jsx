@@ -1,5 +1,5 @@
 import { json, redirect } from "@remix-run/node";
-import { heroImage } from "../utils/photos";
+import { ClubHero } from "../components/ClubHero";
 import { useLoaderData, useActionData, Form, Link } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
@@ -41,7 +41,7 @@ export const meta = ({ data }) => {
     const t = data.tournament;
     const title = `Join ${t.name} — NOPA`;
     const desc = `${TYPE_LABELS[t.type] || t.type}${t.location ? ` · ${t.location}` : ""} · ${t.players.length} players joined so far. Sign up free on NOPA Padel.`;
-    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/images/brand/clubhouse-table.jpg`;
     const url = `${data.origin}/app/play/join/${t.joinCode}`;
     return [
         { title },
@@ -145,33 +145,12 @@ export default function JoinCode() {
                 <span style={{ minWidth: 60 }} />
             </nav>
 
-            {/* Hero strip */}
-            <div style={{
-                height: 200,
-                backgroundImage: heroImage("duskSilhouette"),
-                backgroundSize: "cover",
-                backgroundPosition: "center 25%",
-                position: "relative",
-            }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(28,79,53,0.25) 0%, rgba(0,0,0,0.65) 100%)" }} />
-                <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, textAlign: "center", padding: "0 20px" }}>
-                    <div style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontStyle: "italic",
-                        fontSize: "1.5rem",
-                        fontWeight: 400,
-                        color: "white",
-                        letterSpacing: "0.02em",
-                        textShadow: "0 2px 16px rgba(0,0,0,0.4)",
-                        lineHeight: 1.2,
-                    }}>
-                        {tournament.name}
-                    </div>
-                    <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.75)", marginTop: 4 }}>
-                        {tournament.location} · {getCountryDisplay(tournament.country)}
-                    </div>
-                </div>
-            </div>
+            <ClubHero
+                eyebrow="You're invited"
+                title={tournament.name}
+                sub={`${tournament.location} · ${getCountryDisplay(tournament.country)}`}
+                frame="locker"
+            />
 
             <div className="ios-page" style={{ maxWidth: 560 }}>
 

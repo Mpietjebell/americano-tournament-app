@@ -1,5 +1,5 @@
 import { json, redirect } from "@remix-run/node";
-import { heroImage } from "../utils/photos";
+import { ClubHero } from "../components/ClubHero";
 import { useActionData, useLoaderData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
@@ -766,21 +766,7 @@ export default function NewTournamentPublic() {
                 <span style={{ minWidth: 60 }} />
             </nav>
 
-            {/* Hero */}
-            <div style={{
-                height: 160,
-                backgroundImage: heroImage("villaCourt"),
-                backgroundSize: "cover",
-                backgroundPosition: "center 35%",
-                position: "relative",
-            }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(28,79,53,0.3) 0%, rgba(0,0,0,0.6) 100%)" }} />
-                <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, textAlign: "center" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "2rem", fontWeight: 400, color: "white", letterSpacing: "0.02em", textShadow: "0 2px 16px rgba(0,0,0,0.4)" }}>
-                        New Tournament
-                    </div>
-                </div>
-            </div>
+            <ClubHero eyebrow="Host" title="New Tournament" sub="Set the format, courts and players." as="h1" />
 
             <div className="ios-page">
                 <Form method="post" encType="multipart/form-data" noValidate onSubmit={handleSubmit}>
@@ -828,7 +814,7 @@ export default function NewTournamentPublic() {
                                     width: "100%",
                                     fontSize: "1.25rem",
                                     fontWeight: 600,
-                                    fontFamily: "'Cormorant Garamond', serif",
+                                    fontFamily: "var(--font-display)",
                                     letterSpacing: "0.02em",
                                     border: "none",
                                     borderBottom: `2px solid ${fieldErrors.name ? "#dc2626" : "var(--green)"}`,

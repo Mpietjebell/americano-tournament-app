@@ -67,7 +67,7 @@ export const meta = ({ data }) => {
     const t = data.tournament;
     const title = `${t.name} — NOPA`;
     const desc = `${TYPE_LABELS[t.type] || t.type} · ${t.players.length} players · ${t.courtsAvailable} courts on NOPA Padel.`;
-    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/images/brand/clubhouse-table.jpg`;
     const url = `${data.origin}/app/play/tournament/${t.id}`;
     return [
         { title },
@@ -377,7 +377,7 @@ export default function PublicTournamentView() {
                             <img src={tournament.logoUrl} alt={`${tournament.name} logo`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                         </div>
                     )}
-                    <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.9rem", fontWeight: 400, color: "var(--label)", marginBottom: 4 }}>
+                    <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.9rem", fontWeight: 400, color: "var(--label)", marginBottom: 4 }}>
                         {tournament.name}
                     </h1>
                     <p style={{ fontSize: "0.82rem", color: "var(--label-3)", marginBottom: hasRounds ? 12 : 0 }}>
@@ -540,7 +540,7 @@ export default function PublicTournamentView() {
                     <>
                         {!hasRounds && isHost && (
                             <div style={{ marginBottom: 24, background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "28px 20px", textAlign: "center", boxShadow: "var(--shadow)" }}>
-                                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.3rem", color: "var(--label-2)", marginBottom: 8 }}>Ready to play?</div>
+                                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", color: "var(--label-2)", marginBottom: 8 }}>Ready to play?</div>
                                 <p style={{ fontSize: "0.83rem", color: "var(--label-3)", marginBottom: 20 }}>
                                     {generatesRoundsDynamically
                                         ? `Start the tournament. Rounds will continue automatically until ${plannedRounds} rounds are complete.`
@@ -671,7 +671,7 @@ export default function PublicTournamentView() {
                                 padding: "28px 24px", textAlign: "center", marginTop: 8,
                                 boxShadow: "0 6px 24px rgba(28,79,53,0.35)",
                             }}>
-                                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.6rem", marginBottom: 4 }}>Tournament Complete</div>
+                                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.6rem", marginBottom: 4 }}>Tournament Complete</div>
                                 <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: 16 }}>{completedMatches.length} matches played</p>
                                 <button style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setActiveTab("leaderboard")}>
                                     View Leaderboard
@@ -689,7 +689,7 @@ export default function PublicTournamentView() {
                         textAlign: "center", marginBottom: 20, boxShadow: "0 6px 24px rgba(28,79,53,0.3)",
                     }}>
                         <div style={{ fontSize: "2.4rem", marginBottom: 12 }}>⏳</div>
-                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", marginBottom: 8 }}>Results not released yet</div>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", marginBottom: 8 }}>Results not released yet</div>
                         <div style={{ fontSize: "0.82rem", opacity: 0.75 }}>{completedMatches.length} matches · {tournament.rounds.length} rounds played. The host will share the final standings shortly.</div>
                     </div>
                 ) : (
@@ -704,7 +704,7 @@ export default function PublicTournamentView() {
                                     textAlign: "center", marginBottom: 20,
                                     boxShadow: "0 6px 24px rgba(28,79,53,0.3)",
                                 }}>
-                                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.5rem", marginBottom: 4 }}>Final Results</div>
+                                    <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", marginBottom: 4 }}>Final Results</div>
                                     <div style={{ fontSize: "0.78rem", opacity: 0.7, marginBottom: 20 }}>{completedMatches.length} matches · {tournament.rounds.length} rounds</div>
 
                                     <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 10, marginBottom: 20 }}>

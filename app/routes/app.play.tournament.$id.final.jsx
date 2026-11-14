@@ -27,7 +27,7 @@ export const meta = ({ data }) => {
     const standings = isTeamMode ? buildTeamStandings(t.players) : t.players;
     const top3 = standings.slice(0, 3).map((p, i) => `${i + 1}. ${p.name} (${p.totalPoints} pts)`).join("  ");
     const desc = `${top3} — ${t.rounds.length} rounds · ${t.players.length} players${isTeamMode ? ` · ${standings.length} teams` : ""} · NOPA Padel`;
-    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/images/brand/clubhouse-table.jpg`;
     const url = `${data.origin}/app/play/tournament/${t.id}/final`;
     return [
         { title: `${t.name} — Final Results` },
@@ -212,14 +212,14 @@ export default function FinalLeaderboard() {
                 {/* ── Shareable result card ── */}
                 <div id="final-card" className="nopa-reveal-card" style={{
                     background: "linear-gradient(145deg, var(--green-dark), var(--green))",
-                    borderRadius: 20, padding: "40px 32px", color: "white", textAlign: "center", marginBottom: 8,
+                    borderRadius: 0, padding: "40px 32px", color: "white", textAlign: "center", marginBottom: 8,
                     boxShadow: "0 8px 40px rgba(28,79,53,0.35)",
                 }}>
                     {/* NOPA branding */}
                     <div style={{ fontSize: "0.65rem", letterSpacing: "0.25em", opacity: 0.55, textTransform: "uppercase", marginBottom: 16 }}>by NOPA Padel</div>
 
                     <div style={{ fontSize: "0.7rem", letterSpacing: "0.2em", opacity: 0.7, textTransform: "uppercase", marginBottom: 4 }}>Tournament Complete</div>
-                    <h1 style={{ fontSize: "1.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4, fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: "italic" }}>
+                    <h1 style={{ fontSize: "1.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4, fontFamily: "var(--font-display)" }}>
                         {tournament.name}
                     </h1>
                     <div style={{ fontSize: "0.8rem", opacity: 0.65, marginBottom: 6 }}>
@@ -245,7 +245,7 @@ export default function FinalLeaderboard() {
                                     </div>
                                     <div className={`nopa-podium-bar ${isFirst ? "first" : ""}`} style={{
                                         background: isTeamMode ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.1)",
-                                        borderRadius: isFirst ? "14px 14px 0 0" : "10px 10px 0 0",
+                                        borderRadius: 0,
                                         padding: isFirst ? "20px 14px 18px" : "14px 10px 12px",
                                         border: `1px solid ${isTeamMode ? teamTone.border : "rgba(255,255,255,0.18)"}`,
                                         minHeight: heights[rank],
@@ -269,7 +269,7 @@ export default function FinalLeaderboard() {
                     {mvp && (
                         <div className="nopa-congrats" style={{
                             background: "rgba(197,165,90,0.18)", border: "1px solid rgba(197,165,90,0.45)",
-                            borderRadius: 14, padding: "16px 22px", marginBottom: 0, display: "inline-block", maxWidth: "100%",
+                            borderRadius: 0, padding: "16px 22px", marginBottom: 0, display: "inline-block", maxWidth: "100%",
                         }}>
                             <div className="nopa-congrats-trophy" style={{ fontSize: "1.9rem", lineHeight: 1, marginBottom: 6 }}>🏆</div>
                             <div style={{ fontSize: "0.65rem", letterSpacing: "0.16em", opacity: 0.85, textTransform: "uppercase", marginBottom: 4 }}>{isTeamMode ? "Congratulations, champions" : "Congratulations"}</div>

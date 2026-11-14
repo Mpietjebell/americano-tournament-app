@@ -1,5 +1,5 @@
 import { json } from "@remix-run/node";
-import { heroImage } from "../utils/photos";
+import { ClubHero } from "../components/ClubHero";
 import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
@@ -72,29 +72,13 @@ export default function TournamentOverview() {
             </nav>
 
             <div className="ios-page">
-                <div style={{
-                    height: 190,
-                    borderRadius: "var(--r-card)",
-                    overflow: "hidden",
-                    position: "relative",
-                    marginBottom: 20,
-                    backgroundImage: `linear-gradient(to bottom, rgba(28,79,53,0.18), rgba(21,61,41,0.74)), ${heroImage("nightCourt")}`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    boxShadow: "var(--shadow-md)",
-                }}>
-                    <div style={{ position: "absolute", left: 20, right: 20, bottom: 20 }}>
-                        <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(255,255,255,0.72)", fontWeight: 600, marginBottom: 8 }}>
-                            Tournament Created
-                        </div>
-                        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400, fontSize: "2rem", color: "white", lineHeight: 1, marginBottom: 6 }}>
-                            {tournament.name}
-                        </h1>
-                        <div style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.8)" }}>
-                            {tournament.location || "Venue TBC"} · {getCountryDisplay(tournament.country)}
-                        </div>
-                    </div>
-                </div>
+                <ClubHero
+                    card
+                    as="h1"
+                    eyebrow="Tournament created"
+                    title={tournament.name}
+                    sub={`${tournament.location || "Venue TBC"} · ${getCountryDisplay(tournament.country)}`}
+                />
 
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20 }}>
                     <section style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: 18, boxShadow: "var(--shadow)" }}>
