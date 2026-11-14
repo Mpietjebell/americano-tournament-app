@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { RoundCurtain, useFlipList, useJustChanged, Tick, ScoreStamp } from "../components/Motion";
 import { Avatar } from "../components/Avatar";
 import { getPlayerAvatars } from "../utils/avatar.server";
 import { json } from "@remix-run/node";
@@ -285,6 +286,7 @@ export default function PublicTournamentView() {
     const [confirmEarlyStart, setConfirmEarlyStart] = useState(false);
 
     const players = tournament.players;
+    const flipRef = useFlipList(tournament.players.map((p) => `${p.id}:${p.totalPoints}`));
     const setupPlayers = tournament.setupPlayers || tournament.players;
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";
     const setupTeams = buildTeams(setupPlayers);
@@ -354,6 +356,7 @@ export default function PublicTournamentView() {
 
     return (
         <>
+            <RoundCurtain rounds={tournament.rounds} finished={isFinished} />
             <nav className="ios-nav">
                 <Link to="/app/play" className="ios-nav-back">
                     <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -767,12 +770,12 @@ export default function PublicTournamentView() {
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600, paddingLeft: 4 }}>
                             {isFinished ? "Final Standings" : "Live Leaderboard"}
                         </div>
-                        <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div ref={flipRef} style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
                             {(isTeamMode ? teamStandings : players).map((entry, i, list) => {
                                 const losses = entry.matchesPlayed - entry.matchesWon - (entry.matchesDrawn || 0);
                                 const teamTone = isTeamMode ? getTeamColor(i) : null;
                                 return (
-                                    <div key={entry.id} style={{
+                                    <div key={entry.id} data-flip={entry.id} style={{
                                         display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
                                         borderBottom: i < list.length - 1 ? "1px solid var(--sep)" : "none",
                                         background: isTeamMode ? teamTone.bg : i === 0 && isFinished ? "rgba(197,165,90,0.05)" : undefined,
@@ -787,7 +790,7 @@ export default function PublicTournamentView() {
                                                 <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 2 }}>{entry.label}</div>
                                             )}
                                         </div>
-                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: isTeamMode ? teamTone.accent : "var(--green)", minWidth: 32, textAlign: "right" }}>{entry.totalPoints}</div>
+                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: isTeamMode ? teamTone.accent : "var(--green)", minWidth: 32, textAlign: "right" }}><Tick value={entry.totalPoints} /></div>
                                         <div style={{ fontSize: "0.7rem", color: "var(--label-3)", minWidth: 80, textAlign: "right" }}>
                                             {entry.matchesPlayed}P · {entry.matchesWon}W · {losses}L
                                         </div>
@@ -1384,6 +1387,8 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playe
     const [scoreA, setScoreA] = useState(match.scoreA ?? "");
     const [scoreB, setScoreB] = useState(match.scoreB ?? "");
     const isCompleted = match.status === "completed";
+    const justScored = useJustChanged(isCompleted, 2200) && isCompleted;
+    const busy = fetcher.state !== "idle";
 
     const handleScoreAChange = (e) => {
         const val = e.target.value;
@@ -1410,7 +1415,7 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playe
     const isParticipant = Boolean(playerId) && (teamA.includes(playerId) || teamB.includes(playerId));
 
     return (
-        <div style={{
+        <div className={`club-court${justScored ? " is-scored" : ""}${busy ? " is-busy" : ""}`} style={{
             background: "var(--bg-card)",
             borderRadius: "var(--r-card)", overflow: "hidden",
             boxShadow: isCompleted ? "var(--shadow)" : "var(--shadow-md)",
@@ -1444,7 +1449,8 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playe
 
                 {isCompleted ? (
                     <div style={{ textAlign: "center", padding: "4px 0" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+                        {justScored && <ScoreStamp />}
+                        <div className="club-court-score" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
                             <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--green)" }}>{match.scoreA}</span>
                             <span style={{ color: "var(--label-4)", fontWeight: 700 }}>—</span>
                             <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--green)" }}>{match.scoreB}</span>

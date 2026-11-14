@@ -4,6 +4,7 @@ import { getPlayerAvatars } from "../utils/avatar.server";
 import { ClubHero } from "../components/ClubHero";
 import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
 import { useEffect, useState } from "react";
+import { RoundCurtain, useFlipList, Tick } from "../components/Motion";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { viewerTournament, getCountryDisplay, getPlacementLabel } from "../utils/tournament-helpers";
 
@@ -47,6 +48,7 @@ export default function PlayerScoreboard() {
     }, [revalidator]);
 
     const players = tournament.players;
+    const flipRef = useFlipList(players.map((p) => `${p.id}:${p.totalPoints}`));
     const myPlayer = players.find(p => p.id === playerId);
 
     const allMatches = tournament.rounds.flatMap(r => r.matches.map(m => ({ ...m, roundNumber: r.roundNumber })));
@@ -80,6 +82,7 @@ export default function PlayerScoreboard() {
 
     return (
         <>
+            <RoundCurtain rounds={tournament.rounds} finished={isFinished} />
             <nav className="ios-nav">
                 <span className="ios-nav-brand">NOPA</span>
                 <span style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", fontSize: "0.72rem", opacity: 0.7, fontWeight: 500 }}>
@@ -136,7 +139,7 @@ export default function PlayerScoreboard() {
 
                 {/* My next match */}
                 {myUpcoming.length > 0 && (
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "16px", marginBottom: 20, border: "2px solid var(--green)", boxShadow: "var(--shadow-md)" }}>
+                    <div key={myUpcoming[0].id} className="club-next" style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "16px", marginBottom: 20, border: "2px solid var(--green)", boxShadow: "var(--shadow-md)" }}>
                         <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--green)", marginBottom: 12, fontWeight: 700 }}>
                             Your Next Match
                         </div>
@@ -200,11 +203,11 @@ export default function PlayerScoreboard() {
                             </div>
                         </div>
                     ) : (
-                        <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow)" }}>
+                        <div ref={flipRef} style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow)" }}>
                             {players.map((p, i) => {
                                 const isMe = p.id === playerId;
                                 return (
-                                    <div key={p.id} style={{
+                                    <div key={p.id} data-flip={p.id} style={{
                                         display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
                                         borderBottom: i < players.length - 1 ? "1px solid var(--sep)" : "none",
                                         background: isMe ? "rgba(28,79,53,0.06)" : undefined,
@@ -217,7 +220,7 @@ export default function PlayerScoreboard() {
                                             {p.name}
                                             {isMe && <span style={{ fontSize: "0.6rem", background: "var(--green)", color: "white", padding: "2px 6px", borderRadius: "var(--r-pill)", marginLeft: 6, fontWeight: 700 }}>You</span>}
                                         </div>
-                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--green)", minWidth: 32, textAlign: "right" }}>{p.totalPoints}</div>
+                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--green)", minWidth: 32, textAlign: "right" }}><Tick value={p.totalPoints} /></div>
                                         <div style={{ fontSize: "0.7rem", color: "var(--label-3)", minWidth: 60, textAlign: "right" }}>
                                             {p.matchesPlayed}P · {p.matchesWon}W
                                         </div>
