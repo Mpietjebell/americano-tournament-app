@@ -1,4 +1,7 @@
 import { json, redirect } from "@remix-run/node";
+import { Avatar } from "../components/Avatar";
+import { getPlayerAvatars } from "../utils/avatar.server";
+import { heroImage } from "../utils/photos";
 import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
@@ -19,7 +22,7 @@ export const loader = async ({ params, request }) => {
         return redirect(`/app/play/join/${tournament.joinCode}`);
     }
 
-    return json({ tournament: viewerTournament(tournament, { keepPlayerId: playerId }), playerId });
+    return json({ tournament: viewerTournament(tournament, { keepPlayerId: playerId }), playerId, avatars: await getPlayerAvatars(tournament.id) });
 };
 
 export const meta = ({ data }) => {
@@ -32,7 +35,7 @@ function getPlayerName(id, players) {
 }
 
 export default function PlayerScoreboard() {
-    const { tournament, playerId } = useLoaderData();
+    const { tournament, playerId, avatars } = useLoaderData();
     const revalidator = useRevalidator();
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
@@ -88,7 +91,7 @@ export default function PlayerScoreboard() {
             {/* Hero */}
             <div style={{
                 height: 180,
-                backgroundImage: "url(/player-portal.png)",
+                backgroundImage: heroImage("duskSilhouette", "/player-portal.png"),
                 backgroundSize: "cover",
                 backgroundPosition: "center 15%",
                 position: "relative",
@@ -220,7 +223,8 @@ export default function PlayerScoreboard() {
                                         <div style={{ width: 22, textAlign: "center", fontSize: "0.82rem", flexShrink: 0, color: "var(--label-3)", fontWeight: 700 }}>
                                             {getPlacementLabel(i)}
                                         </div>
-                                        <div style={{ flex: 1, fontWeight: isMe ? 700 : 500, fontSize: "0.9rem", color: isMe ? "var(--green)" : "var(--label)" }}>
+                                        <Avatar name={p.name} src={avatars[p.id]} size={28} />
+                                        <div style={{ flex: 1, minWidth: 0, fontWeight: isMe ? 700 : 500, fontSize: "0.9rem", color: isMe ? "var(--green)" : "var(--label)" }}>
                                             {p.name}
                                             {isMe && <span style={{ fontSize: "0.6rem", background: "var(--green)", color: "white", padding: "2px 6px", borderRadius: "var(--r-pill)", marginLeft: 6, fontWeight: 700 }}>You</span>}
                                         </div>

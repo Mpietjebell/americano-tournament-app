@@ -15,7 +15,7 @@ export async function getUser(request) {
 
 /** What the browser may know about the signed-in user (never the id — it is the login cookie). */
 export function publicUser(user) {
-    return user ? { username: user.username, email: user.email } : null;
+    return user ? { username: user.username, email: user.email, city: user.city || null, avatar: user.avatarKey ? `/app/play/avatar/${user.avatarKey}` : null } : null;
 }
 
 export function userCookie(userId) {

@@ -1,4 +1,7 @@
 import prisma from "../db.server";
+import { FORM_WINDOW, MIN_MATCHES } from "./scoring-rules";
+
+export { FORM_WINDOW, MIN_MATCHES };
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -12,28 +15,15 @@ export async function generateClubCode() {
     throw new Error("Could not generate a club code. Please try again.");
 }
 
-const normalise = (name) => (name || "").trim().toLowerCase().replace(/\s+/g, " ");
+export const normaliseName = (name) => (name || "").trim().toLowerCase().replace(/\s+/g, " ");
 
-/**
- * Club leaderboard: every player's results added up across the club's
- * finished tournaments.
- *
- * Players have no account — a Player row belongs to one tournament — so the
- * same person is recognised across tournaments by name. Only tournaments
- * whose host has released the results count, so the club table never
- * reveals an outcome the host is still holding back.
- */
-export function buildClubLeaderboard(tournaments) {
+
+const when = (t) => new Date(t.scheduledAt || t.createdAt).getTime();
+
+function tally(tournaments) {
     const table = new Map();
-    let counted = 0;
-    let awaitingRelease = 0;
-
     for (const t of tournaments) {
-        if (t.status !== "finished") continue;
-        if (!t.resultsPublished) { awaitingRelease++; continue; }
-        counted++;
-
-        const totals = new Map(t.players.map((p) => [p.id, { name: p.name, points: 0, played: 0, won: 0 }]));
+        const totals = new Map(t.players.map((p) => [p.id, { name: p.name, points: 0, against: 0, played: 0, won: 0 }]));
         for (const round of t.rounds) {
             for (const m of round.matches) {
                 if (m.status !== "completed" || m.scoreA == null || m.scoreB == null) continue;
@@ -43,20 +33,21 @@ export function buildClubLeaderboard(tournaments) {
                         const row = totals.get(id);
                         if (!row) continue;
                         row.points += own;
+                        row.against += other;
                         row.played += 1;
                         if (own > other) row.won += 1;
                     }
                 }
             }
         }
-
         const rows = [...totals.values()].filter((r) => r.played > 0);
         const best = rows.reduce((max, r) => Math.max(max, r.points), 0);
         for (const r of rows) {
-            const key = normalise(r.name);
+            const key = normaliseName(r.name);
             if (!key) continue;
-            const entry = table.get(key) || { name: r.name.trim(), points: 0, played: 0, won: 0, tournaments: 0, titles: 0 };
+            const entry = table.get(key) || { name: r.name.trim(), points: 0, against: 0, played: 0, won: 0, tournaments: 0, titles: 0 };
             entry.points += r.points;
+            entry.against += r.against;
             entry.played += r.played;
             entry.won += r.won;
             entry.tournaments += 1;
@@ -64,8 +55,49 @@ export function buildClubLeaderboard(tournaments) {
             table.set(key, entry);
         }
     }
+    return [...table.values()].map((r) => ({
+        ...r,
+        // Share of all points played that this player's side won: 50 is an even record.
+        share: r.points + r.against > 0 ? Math.round((r.points / (r.points + r.against)) * 1000) / 10 : 0,
+    }));
+}
 
-    const standings = [...table.values()].sort((a, b) =>
+/**
+ * Club leaderboard, two ways.
+ *
+ * Players have no account — a Player row belongs to one tournament — so the
+ * same person is recognised across tournaments by name. Only tournaments
+ * whose host has released the results count, so the club table never
+ * reveals an outcome the host is still holding back.
+ *
+ * `form` is the fair ranking: the share of points a player won per match
+ * over the club's last FORM_WINDOW tournaments. It is an average, so turning
+ * up more often does not by itself move you up, and old results roll off.
+ * Players with fewer than MIN_MATCHES in the window are listed after the
+ * ranked players as provisional — two lucky matches cannot top the table.
+ *
+ * `allTime` is the simple one: every point ever scored, added up. It rewards
+ * showing up, which is what a "most active" table should do.
+ */
+export function buildClubLeaderboard(tournaments) {
+    const finished = tournaments.filter((t) => t.status === "finished");
+    const released = finished.filter((t) => t.resultsPublished).sort((a, b) => when(b) - when(a));
+
+    const allTime = tally(released).sort((a, b) =>
         b.points - a.points || b.won - a.won || b.titles - a.titles || a.name.localeCompare(b.name));
-    return { standings, counted, awaitingRelease };
+
+    const byShare = (a, b) => b.share - a.share || b.won - a.won || b.points - a.points || a.name.localeCompare(b.name);
+    const recent = tally(released.slice(0, FORM_WINDOW));
+    const form = [
+        ...recent.filter((r) => r.played >= MIN_MATCHES).sort(byShare).map((r) => ({ ...r, provisional: false })),
+        ...recent.filter((r) => r.played < MIN_MATCHES).sort(byShare).map((r) => ({ ...r, provisional: true })),
+    ];
+
+    return {
+        form,
+        allTime,
+        counted: released.length,
+        inWindow: Math.min(released.length, FORM_WINDOW),
+        awaitingRelease: finished.length - released.length,
+    };
 }

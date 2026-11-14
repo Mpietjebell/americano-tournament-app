@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Avatar } from "../components/Avatar";
+import { getPlayerAvatars } from "../utils/avatar.server";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, useRevalidator, Link, Form } from "@remix-run/react";
 import prisma from "../db.server";
@@ -57,7 +59,7 @@ export const loader = async ({ params, request }) => {
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
     const playerId = playerCookieMatch?.[1] || null;
-    return json({ tournament: viewerTournament(tournament, { isHost, keepPlayerId: playerId }), origin, isHost, playerId, canHostLogin: Boolean(tournament.hostPassword) });
+    return json({ tournament: viewerTournament(tournament, { isHost, keepPlayerId: playerId }), origin, isHost, playerId, canHostLogin: Boolean(tournament.hostPassword), avatars: await getPlayerAvatars(tournament.id) });
 };
 
 export const meta = ({ data }) => {
@@ -274,7 +276,7 @@ function fallbackCopy(text, onSuccess) {
 }
 
 export default function PublicTournamentView() {
-    const { tournament, origin, isHost, playerId, canHostLogin } = useLoaderData();
+    const { tournament, origin, isHost, playerId, canHostLogin, avatars } = useLoaderData();
     const fetcher = useFetcher();
     const { revalidate } = useRevalidator();
     const [activeTab, setActiveTab] = useState("courts");
@@ -778,7 +780,8 @@ export default function PublicTournamentView() {
                                         <div style={{ width: 24, textAlign: "center", fontSize: i < 3 && isFinished ? "1rem" : "0.82rem", flexShrink: 0, color: "var(--label-3)", fontWeight: 700 }}>
                                             {getPlacementLabel(i)}
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        {!isTeamMode && <Avatar name={entry.name} src={avatars[entry.id]} size={28} />}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontWeight: 600, fontSize: "0.9rem", color: isTeamMode ? teamTone.accent : "var(--label)" }}>{entry.name}</div>
                                             {isTeamMode && (
                                                 <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 2 }}>{entry.label}</div>

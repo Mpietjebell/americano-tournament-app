@@ -31,6 +31,11 @@ model TournamentUser {
   id          String       @id @default(uuid())
   email       String       @unique
   username    String
+  city        String?
+  // Avatar: a small image stored as a data URL, served through /app/play/avatar/<avatarKey>.
+  // The key is public (the user id is not — it is the login cookie).
+  avatar      String?
+  avatarKey   String?      @unique
   createdAt   DateTime     @default(now())
   tournaments Tournament[]
   ownedClubs  Club[]
@@ -43,6 +48,8 @@ model Club {
   description String?
   city        String?
   isPublic    Boolean        @default(true)
+  avatar      String?
+  avatarKey   String?        @unique
   joinCode    String         @unique
   ownerId     String
   createdAt   DateTime       @default(now())

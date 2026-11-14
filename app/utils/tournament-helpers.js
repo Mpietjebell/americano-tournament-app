@@ -302,7 +302,7 @@ export function viewerTournament(tournament, { isHost = false, keepPlayerId = nu
   const rounds = safe.rounds || [];
   const cutoff = Math.max(...rounds.map((r) => r.roundNumber), 0) - 2;
   const blank = (list) => (list || []).map((p) =>
-    p.id === keepPlayerId ? p : { ...p, totalPoints: 0, matchesPlayed: 0, matchesWon: 0, matchesDrawn: 0 });
+    p.id === keepPlayerId ? p : { ...p, totalPoints: 0, matchesPlayed: 0, matchesWon: 0, matchesDrawn: 0, byePoints: 0, roundsSatOut: 0 });
   return {
     ...safe,
     resultsWithheld: true,

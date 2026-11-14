@@ -7,6 +7,7 @@ import { getRoster } from "../utils/registration.server";
 import { getUser, publicUser, userCookie, clearUserCookie } from "../utils/user.server";
 import { NopaBanner } from "../components/NopaBanner";
 import { InstallHint } from "../components/InstallHint";
+import { Avatar } from "../components/Avatar";
 
 export const meta = () => [
     { title: "NOPA Clubhouse — Host & join padel Americano tournaments" },
@@ -175,13 +176,10 @@ export default function PlayHome() {
                 <span className="nopa-home-brand">NOPA</span>
                 <div className="nopa-home-user">
                     {user ? (
-                        <>
+                        <Link to="/app/play/profile" className="nopa-home-profile" aria-label="My profile">
                             <span>{user.username}</span>
-                            <Form method="post" style={{ display: "inline" }}>
-                                <input type="hidden" name="intent" value="logout" />
-                                <button type="submit" className="nopa-topbar-btn">Sign out</button>
-                            </Form>
-                        </>
+                            <Avatar name={user.username} src={user.avatar} size={32} />
+                        </Link>
                     ) : (
                         <button type="button" onClick={() => setShowLogin(true)} className="nopa-topbar-btn">Sign in</button>
                     )}
@@ -214,7 +212,7 @@ export default function PlayHome() {
                 </div>
                 <div className="nopa-home-secondary">
                     <Link to="/app/play/clubs">Clubs &amp; leaderboards</Link>
-                    <Link to="/app/play/join">Enter a code</Link>
+                    <Link to="/app/play/scoring">How scoring works</Link>
                 </div>
 
                 <div className="nopa-segmented" role="tablist">

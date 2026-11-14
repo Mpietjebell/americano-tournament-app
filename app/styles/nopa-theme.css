@@ -881,7 +881,7 @@ input:not([type])::placeholder,
 
 .nopa-home-hero {
   height: clamp(190px, 34vh, 320px); position: relative;
-  background: url(/hero-court.png) center 40% / cover;
+  background: url("https://cdn.shopify.com/s/files/1/0878/5277/7636/files/nopa-email-hero-sunsetCourt.jpg?v=1793631322&width=1400") center 55% / cover, url(/hero-court.png) center 40% / cover;
 }
 .nopa-home-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.55)); }
 .nopa-home-hero-title {
@@ -951,3 +951,45 @@ input:not([type])::placeholder,
 .nopa-club-table td.pts { font-weight: 800; color: var(--green); }
 .nopa-club-table .titles { color: var(--gold); font-weight: 700; }
 .nopa-club-table th:last-child, .nopa-club-table td:last-child { padding-right: 14px; }
+
+/* ─── Profile link in the home bar ───────────────────────── */
+.nopa-home-profile { display: flex; align-items: center; gap: 8px; text-decoration: none; color: white; min-width: 0; }
+.nopa-home-profile span:first-child { font-size: 0.8rem; font-weight: 600; opacity: 0.9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+.nopa-home-profile > span:last-child { box-shadow: 0 0 0 2px rgba(255,255,255,0.55); }
+.nopa-club-table .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nopa-club-table .who > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.nopa-club-table tr.provisional td { opacity: 0.55; }
+.nopa-explain { margin: 8px 4px 0; font-size: 0.76rem; color: var(--label-3); line-height: 1.55; }
+.nopa-explain summary { cursor: pointer; font-weight: 600; color: var(--green); padding: 4px 0; }
+.nopa-explain p { margin: 6px 0 0; }
+.nopa-explain strong { color: var(--label-2); }
+
+/* ─── Results celebration ────────────────────────────────── */
+@keyframes nopa-card-in { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes nopa-rise { from { transform: scaleY(0.05); opacity: 0; } 60% { opacity: 1; } to { transform: scaleY(1); opacity: 1; } }
+@keyframes nopa-pop { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.12); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes nopa-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes nopa-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(197,165,90,0); } 50% { box-shadow: 0 0 28px 4px rgba(197,165,90,0.55); } }
+@keyframes nopa-shine { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes nopa-trophy { 0% { opacity: 0; transform: translateY(-26px) rotate(-18deg) scale(0.4); } 55% { opacity: 1; transform: translateY(4px) rotate(8deg) scale(1.15); } 75% { transform: translateY(0) rotate(-4deg) scale(1); } 100% { opacity: 1; transform: none; } }
+
+.nopa-celebrate .nopa-reveal-card { animation: nopa-card-in 0.6s cubic-bezier(.2,.8,.2,1) both; }
+.nopa-celebrate .nopa-podium-badge { animation: nopa-pop 0.5s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--d) + 0.75s); }
+.nopa-celebrate .nopa-podium-bar { transform-origin: bottom; animation: nopa-rise 0.8s cubic-bezier(.2,.9,.25,1.1) both; animation-delay: var(--d); }
+.nopa-celebrate .nopa-podium-bar > * { animation: nopa-fade-up 0.45s ease both; animation-delay: calc(var(--d) + 0.55s); }
+.nopa-celebrate .nopa-podium-bar.first { animation: nopa-rise 0.8s cubic-bezier(.2,.9,.25,1.1) both, nopa-glow 2.2s ease-in-out 2.4s 3; animation-delay: var(--d), 2.4s; }
+.nopa-celebrate .nopa-congrats { animation: nopa-fade-up 0.6s ease both; animation-delay: 2.1s; }
+.nopa-celebrate .nopa-congrats-trophy { display: inline-block; animation: nopa-trophy 0.9s cubic-bezier(.2,.8,.2,1) both; animation-delay: 2.1s; }
+.nopa-celebrate .nopa-row-in { animation: nopa-fade-up 0.4s ease both; animation-delay: calc(2.5s + var(--i) * 0.07s); }
+.nopa-congrats-name {
+  font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 600; font-size: 1.7rem; line-height: 1.1;
+  background: linear-gradient(100deg, #E8D49A 20%, #FFFFFF 40%, #C5A55A 60%, #E8D49A 80%); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.nopa-celebrate .nopa-congrats-name { animation: nopa-shine 3.5s linear 2.4s 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nopa-celebrate * { animation: none !important; }
+}
+@keyframes nopa-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.nopa-pulse { animation: nopa-pulse 1.6s ease-in-out infinite; }

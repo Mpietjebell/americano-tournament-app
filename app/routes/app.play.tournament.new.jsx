@@ -1,4 +1,5 @@
 import { json, redirect } from "@remix-run/node";
+import { heroImage } from "../utils/photos";
 import { useActionData, useLoaderData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
@@ -768,7 +769,7 @@ export default function NewTournamentPublic() {
             {/* Hero */}
             <div style={{
                 height: 160,
-                backgroundImage: "url(/hero-court.png)",
+                backgroundImage: heroImage("villaCourt"),
                 backgroundSize: "cover",
                 backgroundPosition: "center 35%",
                 position: "relative",

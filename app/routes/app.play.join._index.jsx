@@ -1,4 +1,5 @@
 import { json, redirect } from "@remix-run/node";
+import { heroImage } from "../utils/photos";
 import { useActionData, Form, Link } from "@remix-run/react";
 import prisma from "../db.server";
 
@@ -30,7 +31,7 @@ export default function JoinPage() {
             {/* Hero strip */}
             <div style={{
                 height: 220,
-                backgroundImage: "url(/player-portal.png)",
+                backgroundImage: heroImage("womanCourt", "/player-portal.png"),
                 backgroundSize: "cover",
                 backgroundPosition: "center 20%",
                 position: "relative",

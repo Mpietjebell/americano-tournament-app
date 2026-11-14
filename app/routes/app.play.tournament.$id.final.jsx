@@ -1,7 +1,10 @@
 import { json } from "@remix-run/node";
 import { NopaBanner } from "../components/NopaBanner";
-import { useLoaderData, Link, useFetcher } from "@remix-run/react";
-import { useState } from "react";
+import { useLoaderData, Link, useFetcher, useRevalidator } from "@remix-run/react";
+import { useEffect, useRef, useState } from "react";
+import { Confetti, CountUp } from "../components/Celebration";
+import { Avatar } from "../components/Avatar";
+import { getPlayerAvatars } from "../utils/avatar.server";
 import { toPng } from "html-to-image";
 import { loadTournament } from "../utils/tournament-actions.server";
 import { viewerTournament, buildResultsShareText, buildTeamStandings, getCountryDisplay, getPlacementLabel, getTeamColor } from "../utils/tournament-helpers";
@@ -14,7 +17,7 @@ export const loader = async ({ params, request }) => {
     const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, params.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
-    return json({ tournament: viewerTournament(tournament, { isHost }), origin, isHost });
+    return json({ tournament: viewerTournament(tournament, { isHost }), origin, isHost, avatars: await getPlayerAvatars(tournament.id) });
 };
 
 export const meta = ({ data }) => {
@@ -59,9 +62,35 @@ function execCopy(text, onSuccess) {
 }
 
 export default function FinalLeaderboard() {
-    const { tournament, origin, isHost } = useLoaderData();
+    const { tournament, origin, isHost, avatars } = useLoaderData();
     const [copied, setCopied] = useState(false);
-    const [released, setReleased] = useState(tournament.resultsPublished);
+    const [releasedNow, setReleasedNow] = useState(false);
+    const released = tournament.resultsPublished || releasedNow;
+    const revalidator = useRevalidator();
+
+    // Players waiting for the host: check every few seconds so the results
+    // appear on their phone by themselves the moment they are released.
+    useEffect(() => {
+        if (isHost || released) return;
+        const interval = setInterval(() => revalidator.revalidate(), 4000);
+        return () => clearInterval(interval);
+    }, [isHost, released, revalidator]);
+
+    // Celebrate once per person per tournament: when the host releases, when
+    // the results arrive on a waiting player's phone, or on a first visit.
+    const [celebrate, setCelebrate] = useState(0);
+    const wasReleased = useRef(released);
+    useEffect(() => {
+        const key = `nopa_celebrated_${tournament.id}`;
+        let seen = false;
+        try { seen = sessionStorage.getItem(key) === "1"; } catch { /* private mode */ }
+        const justReleased = released && !wasReleased.current;
+        wasReleased.current = released;
+        if (released && (justReleased || !seen)) {
+            setCelebrate((n) => n + 1);
+            try { sessionStorage.setItem(key, "1"); } catch { /* private mode */ }
+        }
+    }, [released, tournament.id]);
     const [imageState, setImageState] = useState("idle"); // idle | generating | error
     const releaseFetcher = useFetcher();
 
@@ -104,7 +133,7 @@ export default function FinalLeaderboard() {
 
     const handleReleaseResults = () => {
         releaseFetcher.submit({}, { method: "post", action: `/api/tournament/${tournament.id}/release-results` });
-        setReleased(true);
+        setReleasedNow(true);
     };
 
     // Renders the branded scorecard (#final-card) to a PNG so it can go
@@ -158,9 +187,9 @@ export default function FinalLeaderboard() {
                     <span style={{ minWidth: 60 }} />
                 </nav>
                 <div className="ios-page" style={{ maxWidth: 640, textAlign: "center", paddingTop: 80 }}>
-                    <div style={{ fontSize: "3rem", marginBottom: 16 }}>⏳</div>
+                    <div className="nopa-pulse" style={{ fontSize: "3rem", marginBottom: 16 }}>⏳</div>
                     <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--label)", marginBottom: 8 }}>Results not released yet</div>
-                    <div style={{ fontSize: "0.88rem", color: "var(--label-3)" }}>The host hasn't released the results yet. Check back shortly!</div>
+                    <div style={{ fontSize: "0.88rem", color: "var(--label-3)" }}>All matches are played. The results appear here by themselves as soon as the host releases them.</div>
                 </div>
             </>
         );
@@ -176,10 +205,12 @@ export default function FinalLeaderboard() {
                 <span className="ios-nav-brand">NOPA</span>
                 <span style={{ minWidth: 60 }} />
             </nav>
-            <div className="ios-page" style={{ maxWidth: 640 }}>
+            <Confetti fire={celebrate} />
+            {/* key: replaying the celebration restarts every entrance animation */}
+            <div className={`ios-page ${celebrate ? "nopa-celebrate" : ""}`} key={celebrate} style={{ maxWidth: 640 }}>
 
                 {/* ── Shareable result card ── */}
-                <div id="final-card" style={{
+                <div id="final-card" className="nopa-reveal-card" style={{
                     background: "linear-gradient(145deg, var(--green-dark), var(--green))",
                     borderRadius: 20, padding: "40px 32px", color: "white", textAlign: "center", marginBottom: 8,
                     boxShadow: "0 8px 40px rgba(28,79,53,0.35)",
@@ -207,11 +238,12 @@ export default function FinalLeaderboard() {
                             const heights = { 0: 110, 1: 80, 2: 70 };
                             const teamTone = isTeamMode ? getTeamColor(rank) : null;
                             return (
-                                <div key={entry.id} style={{ textAlign: "center", flex: 1, maxWidth: 180 }}>
-                                    <div style={{ width: isFirst ? 42 : 34, height: isFirst ? 42 : 34, margin: "0 auto 8px", borderRadius: "50%", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white" }}>
+                                <div key={entry.id} style={{ textAlign: "center", flex: 1, maxWidth: 180, minWidth: 0, "--d": `${{ 2: 0.5, 1: 0.95, 0: 1.4 }[rank]}s` }}>
+                                    {!isTeamMode && <Avatar name={entry.name} src={avatars[entry.id]} size={isFirst ? 54 : 42} style={{ margin: "0 auto 8px", display: "flex", boxShadow: isFirst ? "0 0 0 3px #C5A55A" : "0 0 0 2px rgba(255,255,255,0.35)" }} />}
+                                    <div className="nopa-podium-badge" style={{ width: isFirst ? 42 : 34, height: isFirst ? 42 : 34, margin: "0 auto 8px", borderRadius: "50%", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white" }}>
                                         {getPlacementLabel(rank)}
                                     </div>
-                                    <div style={{
+                                    <div className={`nopa-podium-bar ${isFirst ? "first" : ""}`} style={{
                                         background: isTeamMode ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.1)",
                                         borderRadius: isFirst ? "14px 14px 0 0" : "10px 10px 0 0",
                                         padding: isFirst ? "20px 14px 18px" : "14px 10px 12px",
@@ -219,13 +251,13 @@ export default function FinalLeaderboard() {
                                         minHeight: heights[rank],
                                         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                                     }}>
-                                        <div style={{ fontWeight: 700, fontSize: isFirst ? "1rem" : "0.88rem", marginBottom: 6, letterSpacing: "0.02em" }}>{entry.name}</div>
+                                        <div style={{ fontWeight: 700, fontSize: isFirst ? "1rem" : "0.88rem", marginBottom: 6, letterSpacing: "0.02em", maxWidth: "100%", overflowWrap: "anywhere" }}>{entry.name}</div>
                                         {isTeamMode && (
                                             <div style={{ fontSize: "0.58rem", opacity: 0.72, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
                                                 {entry.label}
                                             </div>
                                         )}
-                                        <div style={{ fontSize: isFirst ? "2rem" : "1.5rem", fontWeight: 900, color: isTeamMode ? teamTone.accent : podiumColors[rank], lineHeight: 1 }}>{entry.totalPoints}</div>
+                                        <div style={{ fontSize: isFirst ? "2rem" : "1.5rem", fontWeight: 900, color: isTeamMode ? teamTone.accent : podiumColors[rank], lineHeight: 1 }}><CountUp value={entry.totalPoints} run={celebrate} delay={{ 2: 900, 1: 1350, 0: 1800 }[rank]} /></div>
                                         <div style={{ fontSize: "0.6rem", opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 3 }}>pts</div>
                                     </div>
                                 </div>
@@ -235,13 +267,14 @@ export default function FinalLeaderboard() {
 
                     {/* MVP banner */}
                     {mvp && (
-                        <div style={{
+                        <div className="nopa-congrats" style={{
                             background: "rgba(197,165,90,0.18)", border: "1px solid rgba(197,165,90,0.45)",
-                            borderRadius: 12, padding: "14px 24px", marginBottom: 0, display: "inline-block",
+                            borderRadius: 14, padding: "16px 22px", marginBottom: 0, display: "inline-block", maxWidth: "100%",
                         }}>
-                            <div style={{ fontSize: "0.65rem", letterSpacing: "0.12em", opacity: 0.85, textTransform: "uppercase", marginBottom: 4 }}>{isTeamMode ? "Champion Team" : "MVP Award"}</div>
-                            <div style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "0.02em" }}>{mvp.name}</div>
-                            <div style={{ fontSize: "0.78rem", opacity: 0.7, marginTop: 2 }}>{mvp.totalPoints} total points</div>
+                            <div className="nopa-congrats-trophy" style={{ fontSize: "1.9rem", lineHeight: 1, marginBottom: 6 }}>🏆</div>
+                            <div style={{ fontSize: "0.65rem", letterSpacing: "0.16em", opacity: 0.85, textTransform: "uppercase", marginBottom: 4 }}>{isTeamMode ? "Congratulations, champions" : "Congratulations"}</div>
+                            <div className="nopa-congrats-name" style={{ overflowWrap: "anywhere" }}>{mvp.name}</div>
+                            <div style={{ fontSize: "0.78rem", opacity: 0.75, marginTop: 4 }}>{isTeamMode ? "Champion team" : "Tournament winner"} · {mvp.totalPoints} points</div>
                         </div>
                     )}
                 </div>
@@ -322,15 +355,19 @@ export default function FinalLeaderboard() {
 
                 {/* ── Full standings ── */}
                 <div style={{ marginBottom: 32 }}>
-                    <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 12, fontWeight: 600, paddingLeft: 4 }}>
-                        Full Standings
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingLeft: 4 }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", fontWeight: 600 }}>Full Standings</div>
+                        {released && (
+                            <button type="button" onClick={() => setCelebrate((n) => n + 1)} style={{ background: "none", border: "none", color: "var(--green)", fontSize: "0.76rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>🎉 Replay</button>
+                        )}
                     </div>
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow)" }}>
                         {standings.map((entry, i) => {
                             const losses = entry.matchesPlayed - entry.matchesWon - (entry.matchesDrawn || 0);
                             const teamTone = isTeamMode ? getTeamColor(i) : null;
                             return (
-                                <div key={entry.id} style={{
+                                <div key={entry.id} className="nopa-row-in" style={{
+                                    "--i": i,
                                     display: "flex", alignItems: "center", gap: 12, padding: "13px 16px",
                                     borderBottom: i < standings.length - 1 ? "1px solid var(--sep)" : "none",
                                     background: isTeamMode ? teamTone.bg : i === 0 ? "rgba(197,165,90,0.05)" : undefined,
@@ -338,10 +375,12 @@ export default function FinalLeaderboard() {
                                     <div style={{ width: 28, textAlign: "center", fontSize: i < 3 ? "1.1rem" : "0.88rem", fontWeight: 700, color: "var(--label-3)", flexShrink: 0 }}>
                                         {getPlacementLabel(i)}
                                     </div>
-                                    <div style={{ flex: 1, fontWeight: 600, fontSize: "0.9rem", color: isTeamMode ? teamTone.accent : "var(--label)" }}>
+                                    {!isTeamMode && <Avatar name={entry.name} src={avatars[entry.id]} size={30} />}
+                                    <div style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: "0.9rem", color: isTeamMode ? teamTone.accent : "var(--label)" }}>
                                         {entry.name}
                                         {i === 0 && <span style={{ fontSize: "0.6rem", marginLeft: 8, background: "var(--gold)", color: "white", padding: "2px 7px", borderRadius: 50, fontWeight: 700 }}>{isTeamMode ? "Winners" : "MVP"}</span>}
                                         {isTeamMode && <div style={{ fontSize: "0.66rem", color: "var(--label-3)", marginTop: 4 }}>{entry.label}</div>}
+                                        {entry.byePoints > 0 && <div style={{ fontSize: "0.66rem", color: "var(--label-3)", marginTop: 2, fontWeight: 500 }}>incl. {entry.byePoints} for {entry.roundsSatOut} round{entry.roundsSatOut === 1 ? "" : "s"} sat out</div>}
                                     </div>
                                     <div style={{ fontSize: "1rem", fontWeight: 700, color: isTeamMode ? teamTone.accent : "var(--green)", minWidth: 36, textAlign: "right" }}>{entry.totalPoints}</div>
                                     <div style={{ fontSize: "0.72rem", color: "var(--label-3)", minWidth: 80, textAlign: "right" }}>

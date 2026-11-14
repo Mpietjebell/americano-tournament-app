@@ -1,4 +1,5 @@
 import { json } from "@remix-run/node";
+import { heroImage } from "../utils/photos";
 import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
@@ -77,7 +78,7 @@ export default function TournamentOverview() {
                     overflow: "hidden",
                     position: "relative",
                     marginBottom: 20,
-                    backgroundImage: `linear-gradient(to bottom, rgba(28,79,53,0.18), rgba(21,61,41,0.74)), url(/hero-court.png)`,
+                    backgroundImage: `linear-gradient(to bottom, rgba(28,79,53,0.18), rgba(21,61,41,0.74)), ${heroImage("nightCourt")}`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     boxShadow: "var(--shadow-md)",

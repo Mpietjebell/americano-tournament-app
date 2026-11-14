@@ -73,6 +73,24 @@ export async function loadTournament(id) {
         }
     }
 
+    // Sitting out must not cost points. With more players than court places
+    // someone rests each round; for every finished round a player sat out
+    // they are credited their own average score per match, so the ranking
+    // compares everyone over the same number of rounds.
+    for (const player of computedPlayers) player.byePoints = 0;
+    for (const round of tournament.rounds) {
+        if (round.matches.length === 0 || round.matches.some((m) => m.status !== "completed")) continue;
+        const onCourt = new Set(round.matches.flatMap((m) => [...JSON.parse(m.teamAIds), ...JSON.parse(m.teamBIds)]));
+        for (const player of computedPlayers) {
+            if (!onCourt.has(player.id)) player.roundsSatOut = (player.roundsSatOut || 0) + 1;
+        }
+    }
+    for (const player of computedPlayers) {
+        if (!player.roundsSatOut || player.matchesPlayed === 0) continue;
+        player.byePoints = Math.round((player.totalPoints / player.matchesPlayed) * player.roundsSatOut);
+        player.totalPoints += player.byePoints;
+    }
+
     computedPlayers.sort((a, b) => {
         if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
         if (b.matchesWon !== a.matchesWon) return b.matchesWon - a.matchesWon;

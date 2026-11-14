@@ -3,7 +3,9 @@ import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
 import { getUser } from "../utils/user.server";
-import { buildClubLeaderboard } from "../utils/clubs.server";
+import { buildClubLeaderboard, normaliseName, FORM_WINDOW, MIN_MATCHES } from "../utils/clubs.server";
+import { parseAvatarUpload, avatarUrl } from "../utils/avatar.server";
+import { Avatar, AvatarPicker } from "../components/Avatar";
 import { getRoster } from "../utils/registration.server";
 import { getRequestOrigin } from "../utils/request.server";
 import { TYPE_LABELS } from "../utils/tournament-helpers";
@@ -17,7 +19,7 @@ async function loadClub(id) {
     return prisma.club.findUnique({
         where: { id },
         include: {
-            members: { include: { user: { select: { username: true } } }, orderBy: { createdAt: "asc" } },
+            members: { include: { user: { select: { username: true, avatarKey: true } } }, orderBy: { createdAt: "asc" } },
             tournaments: {
                 include: {
                     players: { select: { id: true, name: true } },
@@ -43,7 +45,10 @@ export const loader = async ({ params, request }) => {
         return json({ ...base, locked: true, club: { id: club.id, name: club.name, isPublic: false } });
     }
 
-    const { standings, counted, awaitingRelease } = buildClubLeaderboard(club.tournaments);
+    const board = buildClubLeaderboard(club.tournaments);
+    // A leaderboard name that matches a member's display name gets that member's photo.
+    const memberAvatars = new Map(club.members.map((m) => [normaliseName(m.user.username), avatarUrl(m.user.avatarKey)]));
+    const withAvatar = (rows) => rows.map((r) => ({ ...r, avatar: memberAvatars.get(normaliseName(r.name)) || null }));
     return json({
         ...base,
         locked: false,
@@ -53,13 +58,17 @@ export const loader = async ({ params, request }) => {
             description: club.description,
             city: club.city,
             isPublic: club.isPublic,
+            avatar: avatarUrl(club.avatarKey),
             // The invite code lets people into a private club — members only.
             joinCode: isMember ? club.joinCode : null,
         },
-        members: club.members.map((m) => ({ name: m.user.username, owner: m.userId === club.ownerId })),
-        standings,
-        counted,
-        awaitingRelease,
+        members: club.members.map((m) => ({ name: m.user.username, avatar: avatarUrl(m.user.avatarKey), owner: m.userId === club.ownerId })),
+        form: withAvatar(board.form),
+        allTime: withAvatar(board.allTime),
+        counted: board.counted,
+        inWindow: board.inWindow,
+        awaitingRelease: board.awaitingRelease,
+        rules: { window: FORM_WINDOW, minMatches: MIN_MATCHES },
         tournaments: club.tournaments.map((t) => ({
             id: t.id,
             name: t.name,
@@ -103,6 +112,14 @@ export const action = async ({ params, request }) => {
         return redirect(`/app/play/clubs/${club.id}`);
     }
 
+    if (intent === "avatar") {
+        if (club.ownerId !== user.id) return json({ error: "Only the club owner can change this." }, { status: 403 });
+        const upload = parseAvatarUpload(form.get("avatar"));
+        if (upload.error) return json({ error: upload.error }, { status: 400 });
+        if (!upload.skip) await prisma.club.update({ where: { id: club.id }, data: { avatar: upload.avatar, avatarKey: upload.avatarKey } });
+        return redirect(`/app/play/clubs/${club.id}`);
+    }
+
     return json({ error: "Unknown action" }, { status: 400 });
 };
 
@@ -127,6 +144,7 @@ export default function ClubPage() {
     const data = useLoaderData();
     const actionData = useActionData();
     const [copied, setCopied] = useState(false);
+    const [board, setBoard] = useState("form");
     const { club, signedIn, isMember, isOwner } = data;
     const loginUrl = `/app/play?login=1&next=/app/play/clubs/${club.id}`;
 
@@ -158,7 +176,8 @@ export default function ClubPage() {
         );
     }
 
-    const { standings, counted, awaitingRelease, tournaments, members, origin } = data;
+    const { form, allTime, counted, inWindow, awaitingRelease, rules, tournaments, members, origin } = data;
+    const standings = board === "form" ? form : allTime;
     const inviteUrl = club.joinCode ? `${origin}/app/play/clubs?code=${club.joinCode}` : null;
     const inviteText = inviteUrl
         ? encodeURIComponent(`Join our padel club "${club.name}" on the NOPA Clubhouse.\nInvite code: ${club.joinCode}\n${inviteUrl}`)
@@ -174,6 +193,7 @@ export default function ClubPage() {
             <Nav />
             <div className="ios-page" style={{ maxWidth: 560 }}>
                 <div style={{ textAlign: "center", marginBottom: 18 }}>
+                    <Avatar name={club.name} src={club.avatar} size={76} square style={{ marginBottom: 12, boxShadow: "var(--shadow-md)" }} />
                     <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--label-3)", fontWeight: 700, marginBottom: 6 }}>
                         {club.isPublic ? "Public club" : "Private club"}{club.city ? ` · ${club.city}` : ""}
                     </div>
@@ -199,6 +219,10 @@ export default function ClubPage() {
                 )}
 
                 <div style={sectionTitle}>Leaderboard</div>
+                <div className="nopa-segmented" role="tablist">
+                    <button type="button" role="tab" aria-selected={board === "form"} className={`nopa-seg-btn ${board === "form" ? "active" : ""}`} onClick={() => setBoard("form")}>Form</button>
+                    <button type="button" role="tab" aria-selected={board === "allTime"} className={`nopa-seg-btn ${board === "allTime" ? "active" : ""}`} onClick={() => setBoard("allTime")}>All-time points</button>
+                </div>
                 <div className="nopa-feed">
                     {standings.length === 0 ? (
                         <div className="nopa-feed-empty">
@@ -207,27 +231,47 @@ export default function ClubPage() {
                     ) : (
                         <table className="nopa-club-table">
                             <thead>
-                                <tr><th>#</th><th style={{ textAlign: "left" }}>Player</th><th>Pts</th><th>W</th><th>Played</th><th>Events</th></tr>
+                                {board === "form"
+                                    ? <tr><th>#</th><th style={{ textAlign: "left" }}>Player</th><th>Share</th><th>W</th><th>Played</th></tr>
+                                    : <tr><th>#</th><th style={{ textAlign: "left" }}>Player</th><th>Pts</th><th>W</th><th>Played</th><th>Events</th></tr>}
                             </thead>
                             <tbody>
                                 {standings.map((row, i) => (
-                                    <tr key={row.name}>
-                                        <td className="rank">{i + 1}</td>
-                                        <td className="name">{row.name}{row.titles > 0 && <span className="titles" title="Tournament wins"> ★{row.titles > 1 ? row.titles : ""}</span>}</td>
-                                        <td className="pts">{row.points}</td>
+                                    <tr key={row.name} className={row.provisional ? "provisional" : undefined}>
+                                        <td className="rank">{row.provisional ? "–" : i + 1}</td>
+                                        <td className="name">
+                                            <span className="who">
+                                                <Avatar name={row.name} src={row.avatar} size={26} />
+                                                <span>{row.name}{row.titles > 0 && <span className="titles" title="Tournament wins"> ★{row.titles > 1 ? row.titles : ""}</span>}</span>
+                                            </span>
+                                        </td>
+                                        <td className="pts">{board === "form" ? `${row.share}%` : row.points}</td>
                                         <td>{row.won}</td>
                                         <td>{row.played}</td>
-                                        <td>{row.tournaments}</td>
+                                        {board === "allTime" && <td>{row.tournaments}</td>}
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     )}
                 </div>
-                <p style={{ fontSize: "0.72rem", color: "var(--label-3)", margin: "8px 4px 0", lineHeight: 1.5 }}>
-                    Points from {counted} finished tournament{counted === 1 ? "" : "s"}, added up per player name.
-                    {awaitingRelease > 0 && ` ${awaitingRelease} more waiting for the host to release results.`}
-                </p>
+                <details className="nopa-explain">
+                    <summary>How this ranking works</summary>
+                    {board === "form" ? (
+                        <p>
+                            <strong>Form</strong> is the share of points you won in your matches: score 12–9 and you took 57% of that match.
+                            It is averaged over the club&apos;s last {rules.window} released tournaments ({inWindow} so far), so older results roll off and
+                            playing more often does not by itself move you up. You need {rules.minMatches} matches in that window to be ranked — until then
+                            you are listed below as provisional, so a couple of lucky matches cannot top the table. 50% is an even record.
+                        </p>
+                    ) : (
+                        <p>
+                            <strong>All-time points</strong> adds up every point you scored in all {counted} released tournament{counted === 1 ? "" : "s"}.
+                            It rewards showing up: play more, score more. Use Form to see who is playing best right now.
+                        </p>
+                    )}
+                    <p><Link to="/app/play/scoring" style={{ color: "var(--green)", fontWeight: 600 }}>How scoring works</Link> · Players are matched across tournaments by name, so use the same name every time.{awaitingRelease > 0 && ` ${awaitingRelease} finished tournament${awaitingRelease === 1 ? " is" : "s are"} waiting for the host to release results.`}</p>
+                </details>
 
                 <div style={sectionTitle}>Tournaments</div>
                 <div className="nopa-feed">
@@ -266,12 +310,23 @@ export default function ClubPage() {
                 <div style={sectionTitle}>Members · {members.length}</div>
                 <div className="nopa-card" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {members.map((m, i) => (
-                        <span key={i} style={{ background: "var(--bg-fill)", borderRadius: 50, padding: "5px 12px", fontSize: "0.8rem", color: "var(--label-2)" }}>
+                        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--bg-fill)", borderRadius: 50, padding: "4px 12px 4px 4px", fontSize: "0.8rem", color: "var(--label-2)" }}>
+                            <Avatar name={m.name} src={m.avatar} size={26} />
                             {m.name}{m.owner ? " · owner" : ""}
                         </span>
                     ))}
                 </div>
 
+                {isOwner && (
+                    <div className="nopa-card" style={{ marginTop: 14 }}>
+                        <Form method="post" key={club.avatar || "none"}>
+                            <input type="hidden" name="intent" value="avatar" />
+                            <span className="nopa-label">Club logo</span>
+                            <AvatarPicker name={club.name} src={club.avatar} size={64} square label="Choose logo" />
+                            <button type="submit" className="nopa-btn nopa-btn-secondary nopa-btn-small" style={{ marginTop: 12 }}>Save logo</button>
+                        </Form>
+                    </div>
+                )}
                 {isOwner && (
                     <Form method="post" style={{ marginTop: 14 }}>
                         <input type="hidden" name="intent" value="visibility" />
