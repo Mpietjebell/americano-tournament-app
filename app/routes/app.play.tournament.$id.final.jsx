@@ -1,3 +1,4 @@
+import { SealedResults } from "../components/SealedResults";
 import { json } from "@remix-run/node";
 import { NopaBanner } from "../components/NopaBanner";
 import { useLoaderData, Link, useFetcher, useRevalidator } from "@remix-run/react";
@@ -186,9 +187,8 @@ export default function FinalLeaderboard() {
                     <span className="ios-nav-brand">NOPA</span>
                     <span style={{ minWidth: 60 }} />
                 </nav>
-                <div className="ios-page" style={{ maxWidth: 640, textAlign: "center", paddingTop: 80 }}>
-                    <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--label)", marginBottom: 8 }}>Results not released yet</div>
-                    <div style={{ fontSize: "0.88rem", color: "var(--label-3)" }}>All matches are played. The results appear here by themselves as soon as the host releases them.</div>
+                <div className="ios-page" style={{ maxWidth: 640 }}>
+                    <SealedResults tournament={tournament} />
                 </div>
             </>
         );

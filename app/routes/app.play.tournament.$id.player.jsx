@@ -1,6 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import { Avatar } from "../components/Avatar";
 import { getPlayerAvatars } from "../utils/avatar.server";
+import { SealedResults } from "../components/SealedResults";
 import { ClubHero } from "../components/ClubHero";
 import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
 import { useEffect, useState } from "react";
@@ -189,13 +190,13 @@ export default function PlayerScoreboard() {
                         )}
                     </div>
 
-                    {inSuspense ? (
+                    {resultsWithheld ? (
+                        <SealedResults tournament={tournament} yourScore={myPlayer?.totalPoints} />
+                    ) : inSuspense ? (
                         <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", textAlign: "center", padding: "32px 20px", boxShadow: "var(--shadow)" }}>
                             <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Standings Hidden</div>
                             <p style={{ color: "var(--label-3)", fontSize: "0.85rem", maxWidth: 300, margin: "0 auto 20px", lineHeight: 1.6 }}>
-                                {resultsWithheld
-                                    ? "All matches are played. The host will release the final results — this page updates by itself."
-                                    : `Leaderboard locked for the final ${totalRounds - suspenseThreshold} round(s). Revealed when the host finishes.`}
+                                {`Leaderboard locked for the final ${totalRounds - suspenseThreshold} round(s). Revealed when the host finishes.`}
                             </p>
                             <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "14px 24px", display: "inline-block" }}>
                                 <div style={{ fontSize: "0.7rem", color: "var(--label-3)", marginBottom: 4 }}>Your score</div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { SealedResults } from "../components/SealedResults";
 import { RoundCurtain, useFlipList, useJustChanged, Tick, ScoreStamp } from "../components/Motion";
 import { Avatar } from "../components/Avatar";
 import { getPlayerAvatars } from "../utils/avatar.server";
@@ -613,7 +614,6 @@ export default function PublicTournamentView() {
 
                         {!hasRounds && !isHost && (
                             <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "28px 20px", textAlign: "center", boxShadow: "var(--shadow)", marginBottom: 20 }}>
-                                <div style={{ fontSize: "2rem", marginBottom: 12 }}>⏳</div>
                                 <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--label)", marginBottom: 8 }}>
                                     Waiting for the host to start the tournament
                                 </div>
@@ -686,15 +686,7 @@ export default function PublicTournamentView() {
 
                 {/* ──────── LEADERBOARD TAB ──────── */}
                 {activeTab === "leaderboard" && (resultsHidden ? (
-                    <div style={{
-                        background: "linear-gradient(135deg, var(--green-dark), var(--green))",
-                        color: "white", borderRadius: "var(--r-card)", padding: "40px 20px",
-                        textAlign: "center", marginBottom: 20, boxShadow: "0 6px 24px rgba(28,79,53,0.3)",
-                    }}>
-                        <div style={{ fontSize: "2.4rem", marginBottom: 12 }}>⏳</div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", marginBottom: 8 }}>Results not released yet</div>
-                        <div style={{ fontSize: "0.82rem", opacity: 0.75 }}>{completedMatches.length} matches · {tournament.rounds.length} rounds played. The host will share the final standings shortly.</div>
-                    </div>
+                    <SealedResults tournament={tournament} yourScore={players.find((pl) => pl.id === playerId)?.totalPoints} />
                 ) : (
                     <>
                         {isFinished && (() => {
@@ -759,7 +751,7 @@ export default function PublicTournamentView() {
                                             </>
                                         ) : (
                                             <div style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", fontSize: "0.85rem", border: "1px solid rgba(255,255,255,0.2)" }}>
-                                                ⏳ Results will be released by the host
+                                                Results will be released by the host
                                             </div>
                                         )}
                                     </div>
