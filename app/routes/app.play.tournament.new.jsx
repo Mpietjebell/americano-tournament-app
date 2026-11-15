@@ -1,5 +1,6 @@
 import { json, redirect } from "@remix-run/node";
 import { ClubHero } from "../components/ClubHero";
+import { LEVEL_BANDS, describeLevel } from "../utils/tournament-helpers";
 import { useActionData, useLoaderData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
@@ -70,11 +71,16 @@ export const action = async ({ request }) => {
     const maxStandbyRaw = formData.get("maxStandby");
     const maxStandby = maxStandbyRaw ? parseInt(maxStandbyRaw, 10) || null : null;
     const duration = formData.get("duration") ? parseInt(formData.get("duration"), 10) : null;
-    const repeatWeeks = formData.get("repeatWeeks") ? parseInt(formData.get("repeatWeeks"), 10) : 0;
+    // Repeat: a number of weeks in total (the first one included) and the
+    // weekdays to play on (0 = Sunday … 6 = Saturday).
+    const repeatWeeks = Math.min(52, Math.max(0, parseInt(formData.get("repeatWeeks"), 10) || 0));
+    const repeatDays = String(formData.get("repeatDays") || "")
+        .split(",").map((d) => parseInt(d, 10)).filter((d) => d >= 0 && d <= 6);
     const organizerName = formData.get("organizerName") || null;
     const hostPassword = formData.get("hostPassword") || null;
     const hostEmail = formData.get("hostEmail") || null;
-    const level = formData.get("level") ? parseInt(formData.get("level"), 10) : null;
+    const level = formData.get("level") ? Math.min(5, Math.max(1, parseInt(formData.get("level"), 10) || 1)) : null;
+    const levelMax = level && formData.get("levelMax") ? Math.min(5, Math.max(level, parseInt(formData.get("levelMax"), 10) || level)) : level;
     const description = formData.get("description") || null;
     const latitude = formData.get("latitude") ? parseFloat(formData.get("latitude")) : null;
     const longitude = formData.get("longitude") ? parseFloat(formData.get("longitude")) : null;
@@ -169,6 +175,7 @@ export const action = async ({ request }) => {
             hostPassword: hostPassword || null,
             hostEmail: hostEmail || null,
             level: level || null,
+            levelMax: levelMax || null,
             description: description || null,
             clubId,
             players: {
@@ -181,11 +188,12 @@ export const action = async ({ request }) => {
         },
     });
 
-    // Create additional weekly copies if requested
+    // Create the other tournaments of a repeating series: every chosen
+    // weekday, for the chosen number of weeks, at the same time of day.
     if (repeatWeeks > 0 && scheduledAtStr) {
         const baseDate = new Date(scheduledAtStr);
-        for (let w = 1; w <= repeatWeeks; w++) {
-            const weeklyDate = new Date(baseDate.getTime() + w * 7 * 24 * 60 * 60 * 1000);
+        for (const dayOffset of repeatOffsets(baseDate.getDay(), repeatDays, repeatWeeks)) {
+            const weeklyDate = new Date(baseDate.getTime() + dayOffset * 24 * 60 * 60 * 1000);
             let weeklyCode;
             let wAttempts = 0;
             do {
@@ -207,7 +215,7 @@ export const action = async ({ request }) => {
                     price: price || null, currency: currency || "EUR",
                     organizerName: organizerName || null,
                     hostPassword: hostPassword || null, hostEmail: hostEmail || null,
-                    level: level || null, description: description || null,
+                    level: level || null, levelMax: levelMax || null, description: description || null,
                     clubId,
                 },
             });
@@ -220,6 +228,27 @@ export const action = async ({ request }) => {
         },
     });
 };
+
+const MAX_SERIES = 60;
+const WEEKDAYS = [
+    { n: 1, short: "Mon" }, { n: 2, short: "Tue" }, { n: 3, short: "Wed" }, { n: 4, short: "Thu" },
+    { n: 5, short: "Fri" }, { n: 6, short: "Sat" }, { n: 0, short: "Sun" },
+];
+
+/**
+ * Day offsets (from the first tournament) of the rest of a repeating series.
+ * The first date's own weekday is always part of it. Weekdays earlier in the
+ * week than the first date fall in the days after it, so a series that starts
+ * on a Wednesday with Mon/Wed/Fri runs Wed, Fri, Mon, Wed, Fri, Mon…
+ */
+function repeatOffsets(startDay, days, weeks) {
+    const chosen = [...new Set([startDay, ...days])];
+    const offsets = [];
+    for (let w = 0; w < weeks; w++) {
+        for (const d of chosen) offsets.push(((d - startDay + 7) % 7) + w * 7);
+    }
+    return offsets.filter((o) => o > 0).sort((x, y) => x - y).slice(0, MAX_SERIES - 1);
+}
 
 const PLAY_TYPES = [
     { id: "americano", name: "Americano", desc: "Rotating partners, individual points", info: "Each round you rotate partners and opponents. Points are individual — you collect your own score every match regardless of partner. At the end, the player with the most total points wins. Best format for mixed groups where everyone wants to play together." },
@@ -523,7 +552,17 @@ export default function NewTournamentPublic() {
     const [fieldErrors, setFieldErrors] = useState({});
 
     // Level + description
-    const [level, setLevel] = useState(null);
+    const [level, setLevel] = useState(null);       // lowest band
+    const [levelMax, setLevelMax] = useState(null); // highest band
+    // First tap picks one band, a second tap on another band stretches the
+    // range to it; tapping again starts over (or clears a single band).
+    const pickLevel = (d) => {
+        if (!level) { setLevel(d); setLevelMax(d); }
+        else if (level === levelMax && d === level) { setLevel(null); setLevelMax(null); }
+        else if (level === levelMax) { setLevel(Math.min(level, d)); setLevelMax(Math.max(level, d)); }
+        else { setLevel(d); setLevelMax(d); }
+    };
+    const levelInfo = describeLevel(level, levelMax);
     const [description, setDescription] = useState("");
 
     // Repeat weekly
@@ -531,6 +570,7 @@ export default function NewTournamentPublic() {
     const [repeatWeeklyInput, setRepeatWeeklyInput] = useState("");
     const [repeatWeeklyConfirmed, setRepeatWeeklyConfirmed] = useState(false);
     const [repeatWeeks, setRepeatWeeks] = useState(4);
+    const [repeatDays, setRepeatDays] = useState([]);
 
     // Organiser
     const [organizerName, setOrganizerName] = useState("");
@@ -545,6 +585,12 @@ export default function NewTournamentPublic() {
         ? `${scheduledDate}T${String(scheduledHour).padStart(2, "0")}:${String(scheduledMinute).padStart(2, "0")}`
         : "";
     const scheduledDateInvalid = Boolean(scheduledDate) && !scheduledDateTime;
+
+    // Every date of a repeating series, for the preview under the day picker.
+    const startDay = scheduledDateTime ? scheduledDateTime.getDay() : null;
+    const seriesOffsets = scheduledDateTime ? [0, ...repeatOffsets(startDay, repeatDays, repeatWeeks)] : [];
+    const seriesDates = seriesOffsets.map((o) => { const d = new Date(scheduledDateTime); d.setDate(d.getDate() + o); return d; });
+    const seriesCapped = scheduledDateTime && new Set([startDay, ...repeatDays]).size * repeatWeeks > MAX_SERIES;
 
     const handleMapsUrlBlur = async () => {
         const url = googleMapsUrl.trim();
@@ -958,7 +1004,7 @@ export default function NewTournamentPublic() {
                                                 }}
                                                 style={{ accentColor: "var(--green)", width: 14, height: 14 }}
                                             />
-                                            <span style={{ fontSize: "0.68rem", fontWeight: 600, color: repeatWeekly ? "var(--green)" : "var(--label-3)" }}>Repeat weekly</span>
+                                            <span style={{ fontSize: "0.68rem", fontWeight: 600, color: repeatWeekly ? "var(--green)" : "var(--label-3)" }}>Repeat</span>
                                         </label>
                                     </div>
                                     <input
@@ -995,7 +1041,7 @@ export default function NewTournamentPublic() {
                                     <div style={{ borderBottom: "1px solid var(--sep)", background: "#fffbeb", padding: "14px 16px" }}>
                                         <div style={{ background: "#fef3c7", border: "1px solid #fbbf24", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
                                             <div style={{ fontSize: "0.82rem", color: "#92400e", fontWeight: 600, marginBottom: 4 }}>Check venue availability</div>
-                                            <div style={{ fontSize: "0.75rem", color: "#92400e", lineHeight: 1.55 }}>Make sure you check availability with the venue to create this event weekly. Each week will create a new tournament with the same settings.</div>
+                                            <div style={{ fontSize: "0.75rem", color: "#92400e", lineHeight: 1.55 }}>Make sure you check availability with the venue for every date. Each date will create a new tournament with the same settings.</div>
                                         </div>
                                         {!repeatWeeklyConfirmed ? (
                                             <div>
@@ -1019,13 +1065,32 @@ export default function NewTournamentPublic() {
                                             </div>
                                         ) : (
                                             <div>
-                                                <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--green)", marginBottom: 10 }}>✓ Confirmed — how many weeks?</div>
+                                                <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--green)", marginBottom: 10 }}>Confirmed — which days?</div>
+                                                <div className="repeat-days" role="group" aria-label="Days of the week">
+                                                    {WEEKDAYS.map((d) => {
+                                                        const isStart = startDay === d.n;
+                                                        const on = isStart || repeatDays.includes(d.n);
+                                                        return (
+                                                            <button key={d.n} type="button" aria-pressed={on} disabled={isStart}
+                                                                title={isStart ? "The day of your first date" : undefined}
+                                                                onClick={() => setRepeatDays((cur) => cur.includes(d.n) ? cur.filter((x) => x !== d.n) : [...cur, d.n])}
+                                                                className={`repeat-day${on ? " on" : ""}`}
+                                                            >{d.short}</button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                                                    <button type="button" className="repeat-quick" onClick={() => setRepeatDays([1, 2, 3, 4, 5])}>Weekdays</button>
+                                                    <button type="button" className="repeat-quick" onClick={() => setRepeatDays([0, 1, 2, 3, 4, 5, 6])}>Every day</button>
+                                                    <button type="button" className="repeat-quick" onClick={() => setRepeatDays([])}>Clear</button>
+                                                </div>
+                                                <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--green)", marginBottom: 10 }}>For how many weeks?</div>
                                                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                                    {[2, 4, 6, 8, 12].map(w => (
+                                                    {[1, 2, 4, 5, 6, 8].map(w => (
                                                         <button key={w} type="button" onClick={() => setRepeatWeeks(w)}
                                                             style={{
-                                                                width: 48, height: 38, borderRadius: 10,
-                                                                border: `2px solid ${repeatWeeks === w ? "var(--green)" : "var(--sep-opaque)"}`,
+                                                                width: 44, height: 38, borderRadius: 0,
+                                                                border: `1px solid ${repeatWeeks === w ? "var(--green)" : "var(--sep-opaque)"}`,
                                                                 background: repeatWeeks === w ? "var(--green)" : "white",
                                                                 color: repeatWeeks === w ? "white" : "var(--label-2)",
                                                                 fontWeight: 700, fontSize: "0.88rem", cursor: "pointer",
@@ -1034,26 +1099,33 @@ export default function NewTournamentPublic() {
                                                         >{w}</button>
                                                     ))}
                                                     <input
-                                                        type="number" min="1" max="52"
+                                                        type="number" min="1" max="52" aria-label="Number of weeks"
                                                         value={repeatWeeks}
                                                         onChange={(e) => setRepeatWeeks(Math.min(52, Math.max(1, parseInt(e.target.value, 10) || 1)))}
                                                         style={{
-                                                            width: 60, padding: "6px 8px",
-                                                            border: "1.5px solid var(--sep-opaque)", borderRadius: 10,
+                                                            width: 64, padding: "6px 8px",
+                                                            border: "1px solid var(--sep-opaque)", borderRadius: 0,
                                                             fontSize: "0.9rem", fontWeight: 700, textAlign: "center",
                                                             fontFamily: "inherit", background: "white", color: "var(--label)",
                                                         }}
                                                     />
                                                     <span style={{ fontSize: "0.78rem", color: "var(--label-3)" }}>weeks</span>
                                                 </div>
-                                                <div style={{ marginTop: 8, fontSize: "0.72rem", color: "var(--label-3)" }}>
-                                                    Creates {repeatWeeks} additional tournaments · same day each week
+                                                <div className="repeat-summary">
+                                                    {!scheduledDateTime ? "Pick the first date above to see every date." : (
+                                                        <>
+                                                            <strong>{seriesDates.length} tournament{seriesDates.length === 1 ? "" : "s"} in total</strong>
+                                                            <span>{seriesDates.slice(0, 9).map((d) => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(" · ")}{seriesDates.length > 9 ? ` · and ${seriesDates.length - 9} more` : ""}</span>
+                                                            {seriesCapped && <span>A series is limited to {MAX_SERIES} tournaments.</span>}
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 )}
                                 <input type="hidden" name="repeatWeeks" value={repeatWeekly && repeatWeeklyConfirmed ? repeatWeeks : 0} />
+                                <input type="hidden" name="repeatDays" value={repeatWeekly && repeatWeeklyConfirmed ? repeatDays.join(",") : ""} />
 
                                 {/* ── Time: hour picker ── */}
                                 <div style={{ padding: "14px 0 0", borderBottom: "1px solid var(--sep)" }}>
@@ -1350,48 +1422,37 @@ export default function NewTournamentPublic() {
                     </div>
                     <input type="hidden" name="type" value={selectedType} />
                     <input type="hidden" name="level" value={level || ""} />
+                    <input type="hidden" name="levelMax" value={levelMax || ""} />
 
                     {/* ── Level ── */}
                     {sectionLabel("Level")}
-                    {(() => {
-                        const LEVEL_LABELS = ["", "Playtomic 0–1", "Playtomic 0–1.5", "Playtomic 2–3", "Playtomic 3–4", "Playtomic 4+"];
-                        const LEVEL_DESC = ["", "Beginner", "Casual / Recreational", "Intermediate Club", "Advanced Club", "Competitive+"];
-                        return (
-                            <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "20px", marginBottom: 24, boxShadow: "var(--shadow)" }}>
-                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginBottom: 14, lineHeight: 1.5 }}>
-                                    Set the required Playtomic level so players know if this tournament suits their skill.
-                                </div>
-                                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 10 }}>
-                                    {[1, 2, 3, 4, 5].map(d => (
-                                        <button
-                                            key={d}
-                                            type="button"
-                                            onClick={() => setLevel(level === d ? null : d)}
-                                            style={{
-                                                width: 44, height: 44, borderRadius: "50%",
-                                                border: `2px solid ${(level || 0) >= d ? "var(--green)" : "var(--sep-opaque)"}`,
-                                                background: (level || 0) >= d ? "var(--green)" : "var(--bg-grouped)",
-                                                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                                                transition: "all 0.15s", flexShrink: 0,
-                                            }}
-                                        >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill={(level || 0) >= d ? "white" : "var(--sep-opaque)"}>
-                                                <circle cx="12" cy="12" r="10"/>
-                                            </svg>
-                                        </button>
-                                    ))}
-                                </div>
-                                {level ? (
-                                    <div style={{ textAlign: "center" }}>
-                                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--green)" }}>{LEVEL_LABELS[level]}</div>
-                                        <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 2 }}>{LEVEL_DESC[level]}</div>
-                                    </div>
-                                ) : (
-                                    <div style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--label-3)" }}>No level set — open to all</div>
-                                )}
+                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "20px 14px", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginBottom: 14, lineHeight: 1.5 }}>
+                            Set the Playtomic level this tournament is for. Tap one ball for a single level, then a second ball to cover everything in between.
+                        </div>
+                        <div className="level-picker" role="group" aria-label="Playing level">
+                            {[1, 2, 3, 4, 5].map((d) => {
+                                const on = level && d >= level && d <= levelMax;
+                                const band = LEVEL_BANDS[d];
+                                return (
+                                    <button key={d} type="button" aria-pressed={Boolean(on)} onClick={() => pickLevel(d)}
+                                        className={`level-ball${on ? " on" : ""}${on && d > level ? " joined" : ""}`}>
+                                        <span className="level-dot" />
+                                        <span className="level-range">{band.to ? `${band.from}–${band.to}` : `${band.from}+`}</span>
+                                        <span className="level-name">{band.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {levelInfo ? (
+                            <div style={{ textAlign: "center", marginTop: 14 }}>
+                                <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--green)" }}>{levelInfo.label}</div>
+                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 2 }}>{levelInfo.name} · players confirm their level when they sign up</div>
                             </div>
-                        );
-                    })()}
+                        ) : (
+                            <div style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--label-3)", marginTop: 14 }}>No level set — open to all</div>
+                        )}
+                    </div>
 
                     {/* ── Description ── */}
                     {sectionLabel("Description (optional)")}

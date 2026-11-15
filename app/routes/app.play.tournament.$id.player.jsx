@@ -121,6 +121,12 @@ export default function PlayerScoreboard() {
                             <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 4, fontWeight: 600 }}>Players registered</div>
                             <div style={{ fontWeight: 700, fontSize: "1.6rem", color: "var(--green)" }}>{players.length}</div>
                         </div>
+                        {tournament.scheduledAt && tournament.joinCode && (
+                            <div style={{ marginTop: 20 }}>
+                                <a href={`/j/${tournament.joinCode}/calendar`} className="nopa-btn nopa-btn-secondary" style={{ textDecoration: "none" }}>Add to calendar</a>
+                                <div style={{ fontSize: "0.72rem", color: "var(--label-3)", marginTop: 8 }}>With a reminder the day before.</div>
+                            </div>
+                        )}
                     </div>
                 )}
 

@@ -2,7 +2,7 @@ import { json, redirect } from "@remix-run/node";
 import { useLoaderData, Form, Link, useActionData } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
-import { TYPE_LABELS } from "../utils/tournament-helpers";
+import { TYPE_LABELS, describeLevel } from "../utils/tournament-helpers";
 import { getRoster } from "../utils/registration.server";
 import { getUser, publicUser, userCookie, clearUserCookie } from "../utils/user.server";
 import { NopaBanner } from "../components/NopaBanner";
@@ -39,6 +39,7 @@ function feedItem(t) {
         isPublic: t.isPublic,
         maxPlayers: t.maxPlayers,
         playerCount: roster.activeCount,
+        levelRange: describeLevel(t.level, t.levelMax)?.range || null,
         clubName: t.club?.name || null,
         winner: winner ? { name: winner.name, points: winner.totalPoints } : null,
     };
@@ -110,7 +111,7 @@ function FeedCard({ t, mine }) {
                             {t.name}
                         </div>
                         <div style={{ fontSize: "0.75rem", color: "var(--label-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {TYPE_LABELS[t.type] || t.type} · {t.playerCount}{t.maxPlayers ? `/${t.maxPlayers}` : ""} players
+                            {TYPE_LABELS[t.type] || t.type} · {t.playerCount}{t.maxPlayers ? `/${t.maxPlayers}` : ""} players{t.levelRange ? ` · Level ${t.levelRange}` : ""}
                             {t.location ? ` · ${t.location}` : ""}
                         </div>
                         {t.clubName && (

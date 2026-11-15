@@ -3,7 +3,7 @@ import { ClubHero } from "../components/ClubHero";
 import { useLoaderData, useActionData, Form, Link } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
-import { DEUCE_LABELS, getCountryDisplay, viewerTournament, TYPE_LABELS } from "../utils/tournament-helpers";
+import { DEUCE_LABELS, getCountryDisplay, viewerTournament, TYPE_LABELS, describeLevel } from "../utils/tournament-helpers";
 import { getRequestOrigin } from "../utils/request.server";
 import { getRoster, registerPlayer } from "../utils/registration.server";
 
@@ -130,6 +130,18 @@ export default function JoinCode() {
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState("");
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const levelInfo = describeLevel(tournament.level, tournament.levelMax);
+    // Date and time of the event, in the visitor's own time zone.
+    const when = (() => {
+        if (!tournament.scheduledAt) return null;
+        const start = new Date(tournament.scheduledAt);
+        const clock = (d) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        const end = tournament.duration ? new Date(start.getTime() + tournament.duration * 60000) : null;
+        return {
+            date: start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" }),
+            time: end ? `${clock(start)} – ${clock(end)}` : clock(start),
+        };
+    })();
     const hasPreregistered = tournament.players.length > 0;
 
     const emailValid = email.includes("@") && email.includes(".");
@@ -148,11 +160,25 @@ export default function JoinCode() {
             <ClubHero
                 eyebrow="You're invited"
                 title={tournament.name}
-                sub={`${tournament.location} · ${getCountryDisplay(tournament.country)}`}
+                sub={[tournament.location, getCountryDisplay(tournament.country)].filter(Boolean).join(", ")}
                 frame="locker"
-            />
+            >
+                {when && (
+                    <div className="club-hero-when" suppressHydrationWarning>
+                        <strong suppressHydrationWarning>{when.date}</strong>
+                        <span suppressHydrationWarning>{when.time}</span>
+                    </div>
+                )}
+            </ClubHero>
 
             <div className="ios-page" style={{ maxWidth: 560 }}>
+
+                {when && (
+                    <div style={{ textAlign: "center", marginBottom: 16 }}>
+                        <a href={`/j/${tournament.joinCode}/calendar`} style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--green)" }}>Add to calendar</a>
+                        <span style={{ fontSize: "0.76rem", color: "var(--label-3)" }}> · reminder the day before</span>
+                    </div>
+                )}
 
                 {/* Tournament info pills */}
                 <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
@@ -161,7 +187,9 @@ export default function JoinCode() {
                         `${tournament.courtsAvailable} courts`,
                         `${tournament.pointsPerMatch} pts`,
                         DEUCE_LABELS[tournament.deuceMethod] || tournament.deuceMethod,
-                    ].map(label => (
+                        levelInfo ? `Level ${levelInfo.range}` : null,
+                        tournament.price ? `${tournament.price} ${tournament.currency || ""}`.trim() : null,
+                    ].filter(Boolean).map(label => (
                         <span key={label} style={{
                             background: "var(--bg-card)", border: "1px solid var(--sep-opaque)",
                             borderRadius: "var(--r-pill)", padding: "5px 13px",
@@ -397,6 +425,16 @@ export default function JoinCode() {
                             )}
 
                             <input type="hidden" name="email" value={email} />
+
+                            {levelInfo && (
+                                <label className="level-confirm">
+                                    <input type="checkbox" name="levelConfirmed" value="1" required />
+                                    <span>
+                                        <strong>This tournament is for {levelInfo.label}</strong>
+                                        I play at this level ({levelInfo.name.toLowerCase()}).
+                                    </span>
+                                </label>
+                            )}
 
                             <div style={{ display: "flex", gap: 10 }}>
                                 <button
