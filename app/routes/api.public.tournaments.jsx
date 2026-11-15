@@ -1,5 +1,6 @@
 import prisma from "../db.server";
 import { corsJson, handleOptions } from "../utils/cors.server";
+import { getRoster } from "../utils/registration.server";
 
 export async function loader({ request }) {
     const early = handleOptions(request);
@@ -17,7 +18,7 @@ export async function loader({ request }) {
             },
             include: {
                 players: { select: { id: true, name: true } },
-                participants: { select: { id: true, name: true, standbyPosition: true } },
+                participants: { select: { id: true, name: true, playerId: true, standbyPosition: true } },
                 venue: true,
             },
             orderBy: { scheduledAt: "asc" },
@@ -33,7 +34,7 @@ export async function loader({ request }) {
             },
             include: {
                 players: { select: { id: true, name: true, totalPoints: true } },
-                participants: { select: { id: true, standbyPosition: true } },
+                participants: { select: { id: true, playerId: true, standbyPosition: true } },
                 venue: true,
             },
             orderBy: { scheduledAt: "desc" },
@@ -51,14 +52,12 @@ export async function loader({ request }) {
 }
 
 function serialize(t, past) {
-    const activeParticipants = (t.participants || []).filter(p => p.standbyPosition == null);
-    const standbyParticipants = (t.participants || []).filter(p => p.standbyPosition != null);
-    const playerCount = t.players.length + activeParticipants.length;
-    const standbyCount = standbyParticipants.length;
-    const playerNames = [
-        ...t.players.map(p => p.name),
-        ...(t.participants || []).filter(p => p.standbyPosition == null).map(p => p.name),
-    ].filter(Boolean);
+    // Every confirmed sign-up already has a Player row, so players are the
+    // roster — adding participants on top counted each sign-up twice.
+    const roster = getRoster(t);
+    const playerCount = roster.activeCount;
+    const standbyCount = roster.standbyCount;
+    const playerNames = roster.activePlayers.map(p => p.name).filter(Boolean);
     const sorted = past ? [...t.players].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0)) : [];
     return {
         id: t.id,
@@ -91,6 +90,6 @@ function serialize(t, past) {
         venue: t.venue ? { name: t.venue.name, city: t.venue.city, country: t.venue.country } : null,
         status: t.status,
         past,
-        winner: past && sorted[0] ? { name: sorted[0].name, points: sorted[0].totalPoints } : null,
+        winner: past && t.resultsPublished && sorted[0] ? { name: sorted[0].name, points: sorted[0].totalPoints } : null,
     };
 }

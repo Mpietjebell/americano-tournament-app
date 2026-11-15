@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useRememberTournament } from "../components/Resume";
+import { SealedResults } from "../components/SealedResults";
+import { RoundCurtain, useFlipList, useJustChanged, Tick, ScoreStamp } from "../components/Motion";
+import { Avatar } from "../components/Avatar";
+import { getPlayerAvatars } from "../utils/avatar.server";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, useRevalidator, Link, Form } from "@remix-run/react";
 import prisma from "../db.server";
 import { loadTournament, generateAllRounds, submitScore, proposeScore, confirmScore, resetScore } from "../utils/tournament-actions.server";
-import {
+import { viewerTournament,
     buildTeams,
     buildTeamStandings,
     buildJoinInviteText,
@@ -14,7 +19,7 @@ import {
     getTournamentStats,
     TYPE_LABELS,
 } from "../utils/tournament-helpers";
-import { getHostTokenFromRequest } from "../utils/host-auth.server";
+import { createHostCookie, getHostTokenFromRequest } from "../utils/host-auth.server";
 import { getRequestOrigin } from "../utils/request.server";
 
 function CancelRegistrationInline({ tournamentId, playerId }) {
@@ -30,11 +35,11 @@ function CancelRegistrationInline({ tournamentId, playerId }) {
             <Form method="post" action={`/api/tournament/${tournamentId}/deregister`}>
                 <input type="hidden" name="playerId" value={playerId} />
                 <div style={{ display: "flex", gap: 10 }}>
-                    <button type="button" onClick={() => setShowConfirm(false)}
+                    <button className="club-btn" type="button" onClick={() => setShowConfirm(false)}
                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "var(--bg-fill)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                         No, keep my spot
                     </button>
-                    <button type="submit"
+                    <button className="club-btn" type="submit"
                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "#dc2626", border: "none", color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                         Yes, deregister
                     </button>
@@ -57,7 +62,7 @@ export const loader = async ({ params, request }) => {
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
     const playerId = playerCookieMatch?.[1] || null;
-    return json({ tournament, origin, isHost, playerId });
+    return json({ tournament: viewerTournament(tournament, { isHost, keepPlayerId: playerId }), origin, isHost, playerId, canHostLogin: Boolean(tournament.hostPassword), avatars: await getPlayerAvatars(tournament.id) });
 };
 
 export const meta = ({ data }) => {
@@ -65,7 +70,7 @@ export const meta = ({ data }) => {
     const t = data.tournament;
     const title = `${t.name} — NOPA`;
     const desc = `${TYPE_LABELS[t.type] || t.type} · ${t.players.length} players · ${t.courtsAvailable} courts on NOPA Padel.`;
-    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/hero-court.png`;
+    const image = t.logoUrl && t.logoUrl.startsWith("http") ? t.logoUrl : `${data.origin}/images/brand/clubhouse-table.jpg`;
     const url = `${data.origin}/app/play/tournament/${t.id}`;
     return [
         { title },
@@ -93,6 +98,20 @@ export const action = async ({ request, params }) => {
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
     const playerCookieMatch = (request.headers.get("Cookie") || "").match(new RegExp(`nopa_player_${params.id}=([^;]+)`));
     const playerId = playerCookieMatch?.[1] || null;
+
+    // The host cookie is set on the device that created the tournament. On
+    // any other phone (or after clearing the browser) the host proves who
+    // they are with the host password they chose at creation.
+    if (intent === "host_login") {
+        const password = (formData.get("password") || "").toString();
+        if (!tournament.hostPassword) {
+            return json({ loginError: "This tournament has no host password — it can only be managed from the device that created it." }, { status: 400 });
+        }
+        if (!password || password !== tournament.hostPassword) {
+            return json({ loginError: "That's not the host password for this tournament." }, { status: 401 });
+        }
+        return json({ success: true }, { headers: { "Set-Cookie": createHostCookie(tournament.id, tournament.hostToken) } });
+    }
 
     if (intent === "generate_all_rounds") {
         if (!isHost) return json({ error: "Host access required." }, { status: 403 });
@@ -260,7 +279,7 @@ function fallbackCopy(text, onSuccess) {
 }
 
 export default function PublicTournamentView() {
-    const { tournament, origin, isHost, playerId } = useLoaderData();
+    const { tournament, origin, isHost, playerId, canHostLogin, avatars } = useLoaderData();
     const fetcher = useFetcher();
     const { revalidate } = useRevalidator();
     const [activeTab, setActiveTab] = useState("courts");
@@ -269,6 +288,8 @@ export default function PublicTournamentView() {
     const [confirmEarlyStart, setConfirmEarlyStart] = useState(false);
 
     const players = tournament.players;
+    useRememberTournament({ id: tournament.id, name: tournament.name, href: `/app/play/tournament/${tournament.id}`, finished: Boolean(isHost && tournament.resultsPublished), enabled: isHost });
+    const flipRef = useFlipList(tournament.players.map((p) => `${p.id}:${p.totalPoints}`));
     const setupPlayers = tournament.setupPlayers || tournament.players;
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";
     const setupTeams = buildTeams(setupPlayers);
@@ -338,6 +359,7 @@ export default function PublicTournamentView() {
 
     return (
         <>
+            <RoundCurtain rounds={tournament.rounds} finished={isFinished} />
             <nav className="ios-nav">
                 <Link to="/app/play" className="ios-nav-back">
                     <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -361,7 +383,7 @@ export default function PublicTournamentView() {
                             <img src={tournament.logoUrl} alt={`${tournament.name} logo`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                         </div>
                     )}
-                    <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.9rem", fontWeight: 400, color: "var(--label)", marginBottom: 4 }}>
+                    <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.9rem", fontWeight: 400, color: "var(--label)", marginBottom: 4 }}>
                         {tournament.name}
                     </h1>
                     <p style={{ fontSize: "0.82rem", color: "var(--label-3)", marginBottom: hasRounds ? 12 : 0 }}>
@@ -395,11 +417,7 @@ export default function PublicTournamentView() {
                             </span>
                         </div>
                     )}
-                    {!isHost && (
-                        <div style={{ marginRight: "auto", fontSize: "0.72rem", color: "var(--label-3)" }}>
-                            Read-only spectator view
-                        </div>
-                    )}
+                    {!isHost && <HostLogin canHostLogin={canHostLogin} />}
                     <a
                         href={`/app/play/tournament/${tournament.id}/print.pdf`}
                         download
@@ -462,7 +480,7 @@ export default function PublicTournamentView() {
                                 )}
                                 {waText && (
                                     <a href={`https://wa.me/?text=${waText}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
-                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "13px 16px", background: "#25D366", borderRadius: "var(--r-cell)", color: "white", fontWeight: 600, fontSize: "0.9rem" }}>
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "13px 16px", background: "var(--green)", borderRadius: "var(--r-cell)", color: "white", fontWeight: 600, fontSize: "0.9rem" }}>
                                             Share on WhatsApp
                                         </div>
                                     </a>
@@ -528,7 +546,7 @@ export default function PublicTournamentView() {
                     <>
                         {!hasRounds && isHost && (
                             <div style={{ marginBottom: 24, background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "28px 20px", textAlign: "center", boxShadow: "var(--shadow)" }}>
-                                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.3rem", color: "var(--label-2)", marginBottom: 8 }}>Ready to play?</div>
+                                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", color: "var(--label-2)", marginBottom: 8 }}>Ready to play?</div>
                                 <p style={{ fontSize: "0.83rem", color: "var(--label-3)", marginBottom: 20 }}>
                                     {generatesRoundsDynamically
                                         ? `Start the tournament. Rounds will continue automatically until ${plannedRounds} rounds are complete.`
@@ -551,7 +569,7 @@ export default function PublicTournamentView() {
                                 ) : (
                                     <fetcher.Form method="post">
                                         <input type="hidden" name="intent" value="generate_all_rounds" />
-                                        <button type="submit" disabled={fetcher.state !== "idle"} style={{
+                                        <button className="club-btn" type="submit" disabled={fetcher.state !== "idle"} style={{
                                             padding: "13px 32px", borderRadius: "var(--r-card)",
                                             background: "var(--green)", color: "white",
                                             fontWeight: 600, fontSize: "0.95rem", border: "none",
@@ -598,7 +616,6 @@ export default function PublicTournamentView() {
 
                         {!hasRounds && !isHost && (
                             <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "28px 20px", textAlign: "center", boxShadow: "var(--shadow)", marginBottom: 20 }}>
-                                <div style={{ fontSize: "2rem", marginBottom: 12 }}>⏳</div>
                                 <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--label)", marginBottom: 8 }}>
                                     Waiting for the host to start the tournament
                                 </div>
@@ -659,9 +676,9 @@ export default function PublicTournamentView() {
                                 padding: "28px 24px", textAlign: "center", marginTop: 8,
                                 boxShadow: "0 6px 24px rgba(28,79,53,0.35)",
                             }}>
-                                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.6rem", marginBottom: 4 }}>Tournament Complete</div>
+                                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.6rem", marginBottom: 4 }}>Tournament Complete</div>
                                 <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: 16 }}>{completedMatches.length} matches played</p>
-                                <button style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setActiveTab("leaderboard")}>
+                                <button className="club-btn" style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setActiveTab("leaderboard")}>
                                     View Leaderboard
                                 </button>
                             </div>
@@ -671,15 +688,7 @@ export default function PublicTournamentView() {
 
                 {/* ──────── LEADERBOARD TAB ──────── */}
                 {activeTab === "leaderboard" && (resultsHidden ? (
-                    <div style={{
-                        background: "linear-gradient(135deg, var(--green-dark), var(--green))",
-                        color: "white", borderRadius: "var(--r-card)", padding: "40px 20px",
-                        textAlign: "center", marginBottom: 20, boxShadow: "0 6px 24px rgba(28,79,53,0.3)",
-                    }}>
-                        <div style={{ fontSize: "2.4rem", marginBottom: 12 }}>⏳</div>
-                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", marginBottom: 8 }}>Results not released yet</div>
-                        <div style={{ fontSize: "0.82rem", opacity: 0.75 }}>{completedMatches.length} matches · {tournament.rounds.length} rounds played. The host will share the final standings shortly.</div>
-                    </div>
+                    <SealedResults tournament={tournament} yourScore={players.find((pl) => pl.id === playerId)?.totalPoints} />
                 ) : (
                     <>
                         {isFinished && (() => {
@@ -692,7 +701,7 @@ export default function PublicTournamentView() {
                                     textAlign: "center", marginBottom: 20,
                                     boxShadow: "0 6px 24px rgba(28,79,53,0.3)",
                                 }}>
-                                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.5rem", marginBottom: 4 }}>Final Results</div>
+                                    <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", marginBottom: 4 }}>Final Results</div>
                                     <div style={{ fontSize: "0.78rem", opacity: 0.7, marginBottom: 20 }}>{completedMatches.length} matches · {tournament.rounds.length} rounds</div>
 
                                     <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 10, marginBottom: 20 }}>
@@ -732,7 +741,7 @@ export default function PublicTournamentView() {
                                         {(isHost || tournament.resultsPublished) ? (
                                             <>
                                                 <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
-                                                    <button style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.88rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                                    <button className="club-btn" style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.88rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                                                         {isHost ? "Share Results" : "View Results"}
                                                     </button>
                                                 </Link>
@@ -744,7 +753,7 @@ export default function PublicTournamentView() {
                                             </>
                                         ) : (
                                             <div style={{ padding: "10px 20px", borderRadius: "var(--r-pill)", background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", fontSize: "0.85rem", border: "1px solid rgba(255,255,255,0.2)" }}>
-                                                ⏳ Results will be released by the host
+                                                Results will be released by the host
                                             </div>
                                         )}
                                     </div>
@@ -755,12 +764,12 @@ export default function PublicTournamentView() {
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 10, fontWeight: 600, paddingLeft: 4 }}>
                             {isFinished ? "Final Standings" : "Live Leaderboard"}
                         </div>
-                        <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                        <div ref={flipRef} style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow)" }}>
                             {(isTeamMode ? teamStandings : players).map((entry, i, list) => {
                                 const losses = entry.matchesPlayed - entry.matchesWon - (entry.matchesDrawn || 0);
                                 const teamTone = isTeamMode ? getTeamColor(i) : null;
                                 return (
-                                    <div key={entry.id} style={{
+                                    <div key={entry.id} data-flip={entry.id} style={{
                                         display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
                                         borderBottom: i < list.length - 1 ? "1px solid var(--sep)" : "none",
                                         background: isTeamMode ? teamTone.bg : i === 0 && isFinished ? "rgba(197,165,90,0.05)" : undefined,
@@ -768,13 +777,14 @@ export default function PublicTournamentView() {
                                         <div style={{ width: 24, textAlign: "center", fontSize: i < 3 && isFinished ? "1rem" : "0.82rem", flexShrink: 0, color: "var(--label-3)", fontWeight: 700 }}>
                                             {getPlacementLabel(i)}
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        {!isTeamMode && <Avatar name={entry.name} src={avatars[entry.id]} size={28} />}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontWeight: 600, fontSize: "0.9rem", color: isTeamMode ? teamTone.accent : "var(--label)" }}>{entry.name}</div>
                                             {isTeamMode && (
                                                 <div style={{ fontSize: "0.68rem", color: "var(--label-3)", marginTop: 2 }}>{entry.label}</div>
                                             )}
                                         </div>
-                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: isTeamMode ? teamTone.accent : "var(--green)", minWidth: 32, textAlign: "right" }}>{entry.totalPoints}</div>
+                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: isTeamMode ? teamTone.accent : "var(--green)", minWidth: 32, textAlign: "right" }}><Tick value={entry.totalPoints} /></div>
                                         <div style={{ fontSize: "0.7rem", color: "var(--label-3)", minWidth: 80, textAlign: "right" }}>
                                             {entry.matchesPlayed}P · {entry.matchesWon}W · {losses}L
                                         </div>
@@ -935,7 +945,7 @@ function PlayerSetupEditor({ player, index, isTeamMode, teamOptions }) {
                 </select>
             )}
             {!isTeamMode && <input type="hidden" name="teamId" value={player.teamId || ""} />}
-            <button
+            <button className="club-btn"
                 type="submit"
                 disabled={isSaving || name.trim() === "" || (name.trim() === player.name && teamId === (player.teamId || fallbackTeam))}
                 style={{
@@ -1119,7 +1129,7 @@ function DragTeamBoard({ players }) {
                 <div style={{ fontSize: "0.72rem", color: "var(--label-3)", lineHeight: 1.5 }}>
                     Drag players to reorder on desktop, or use the arrow controls on mobile. Every two adjacent rows become one fixed team.
                 </div>
-                <button
+                <button className="club-btn"
                     type="submit"
                     disabled={isSaving}
                     style={{
@@ -1160,7 +1170,7 @@ function HostScoreEntry({ match, pointsPerMatch, fetcher, scoreA, scoreB, handle
                     <fetcher.Form method="post" style={{ marginBottom: 8 }}>
                         <input type="hidden" name="intent" value="confirm_score" />
                         <input type="hidden" name="matchId" value={match.id} />
-                        <button
+                        <button className="club-btn"
                             type="submit"
                             disabled={fetcher.state !== "idle"}
                             style={{
@@ -1214,7 +1224,7 @@ function HostScoreEntry({ match, pointsPerMatch, fetcher, scoreA, scoreB, handle
                     }}
                 />
             </div>
-            <button
+            <button className="club-btn"
                 type="submit"
                 disabled={fetcher.state !== "idle" || !totalValid}
                 style={{
@@ -1318,7 +1328,7 @@ function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
                     }}
                 />
             </div>
-            <button
+            <button className="club-btn"
                 type="submit"
                 disabled={fetcher.state !== "idle" || !totalValid}
                 style={{
@@ -1336,11 +1346,43 @@ function PlayerProposalForm({ match, pointsPerMatch, fetcher }) {
     );
 }
 
+function HostLogin({ canHostLogin }) {
+    const fetcher = useFetcher();
+    const [open, setOpen] = useState(false);
+    if (!canHostLogin) {
+        return <div style={{ marginRight: "auto", fontSize: "0.72rem", color: "var(--label-3)" }}>Spectator view</div>;
+    }
+    if (!open) {
+        return (
+            <button type="button" onClick={() => setOpen(true)} style={{ marginRight: "auto", fontSize: "0.74rem", color: "var(--green)", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
+                Host? Log in
+            </button>
+        );
+    }
+    return (
+        <fetcher.Form method="post" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", width: "100%", order: 5 }}>
+            <input type="hidden" name="intent" value="host_login" />
+            <input
+                name="password" type="password" autoComplete="current-password" placeholder="Host password" autoFocus
+                style={{ flex: 1, minWidth: 140, padding: "9px 12px", border: "1.5px solid var(--sep-opaque)", borderRadius: "var(--r-cell)", fontSize: "0.9rem", fontFamily: "inherit", outline: "none" }}
+            />
+            <button className="club-btn" type="submit" disabled={fetcher.state !== "idle"} style={{ padding: "9px 16px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>
+                {fetcher.state !== "idle" ? "Checking…" : "Log in as host"}
+            </button>
+            {fetcher.data?.loginError && (
+                <div style={{ width: "100%", fontSize: "0.76rem", color: "#dc2626" }}>{fetcher.data.loginError}</div>
+            )}
+        </fetcher.Form>
+    );
+}
+
 function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playerId }) {
     const fetcher = useFetcher();
     const [scoreA, setScoreA] = useState(match.scoreA ?? "");
     const [scoreB, setScoreB] = useState(match.scoreB ?? "");
     const isCompleted = match.status === "completed";
+    const justScored = useJustChanged(isCompleted, 2200) && isCompleted;
+    const busy = fetcher.state !== "idle";
 
     const handleScoreAChange = (e) => {
         const val = e.target.value;
@@ -1367,7 +1409,7 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playe
     const isParticipant = Boolean(playerId) && (teamA.includes(playerId) || teamB.includes(playerId));
 
     return (
-        <div style={{
+        <div className={`club-court${justScored ? " is-scored" : ""}${busy ? " is-busy" : ""}`} style={{
             background: "var(--bg-card)",
             borderRadius: "var(--r-card)", overflow: "hidden",
             boxShadow: isCompleted ? "var(--shadow)" : "var(--shadow-md)",
@@ -1401,7 +1443,8 @@ function CourtCard({ match, teamA, teamB, players, pointsPerMatch, isHost, playe
 
                 {isCompleted ? (
                     <div style={{ textAlign: "center", padding: "4px 0" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+                        {justScored && <ScoreStamp />}
+                        <div className="club-court-score" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
                             <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--green)" }}>{match.scoreA}</span>
                             <span style={{ color: "var(--label-4)", fontWeight: 700 }}>—</span>
                             <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--green)" }}>{match.scoreB}</span>

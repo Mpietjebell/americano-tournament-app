@@ -1,8 +1,15 @@
 import { json, redirect } from "@remix-run/node";
+import { Avatar } from "../components/Avatar";
+import { getPlayerAvatars } from "../utils/avatar.server";
+import { InstallHint } from "../components/InstallHint";
+import { useRememberTournament } from "../components/Resume";
+import { SealedResults } from "../components/SealedResults";
+import { ClubHero } from "../components/ClubHero";
 import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
 import { useEffect, useState } from "react";
+import { RoundCurtain, useFlipList, Tick } from "../components/Motion";
 import { loadTournament } from "../utils/tournament-actions.server";
-import { getCountryDisplay, getPlacementLabel } from "../utils/tournament-helpers";
+import { viewerTournament, getCountryDisplay, getPlacementLabel } from "../utils/tournament-helpers";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
@@ -19,7 +26,7 @@ export const loader = async ({ params, request }) => {
         return redirect(`/app/play/join/${tournament.joinCode}`);
     }
 
-    return json({ tournament, playerId });
+    return json({ tournament: viewerTournament(tournament, { keepPlayerId: playerId }), playerId, avatars: await getPlayerAvatars(tournament.id) });
 };
 
 export const meta = ({ data }) => {
@@ -32,7 +39,7 @@ function getPlayerName(id, players) {
 }
 
 export default function PlayerScoreboard() {
-    const { tournament, playerId } = useLoaderData();
+    const { tournament, playerId, avatars } = useLoaderData();
     const revalidator = useRevalidator();
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
@@ -44,6 +51,11 @@ export default function PlayerScoreboard() {
     }, [revalidator]);
 
     const players = tournament.players;
+    useRememberTournament({
+        id: tournament.id, name: tournament.name, finished: Boolean(tournament.resultsPublished),
+        href: `/app/play/tournament/${tournament.id}/player${playerId ? `?playerId=${playerId}` : ""}`,
+    });
+    const flipRef = useFlipList(players.map((p) => `${p.id}:${p.totalPoints}`));
     const myPlayer = players.find(p => p.id === playerId);
 
     const allMatches = tournament.rounds.flatMap(r => r.matches.map(m => ({ ...m, roundNumber: r.roundNumber })));
@@ -54,7 +66,8 @@ export default function PlayerScoreboard() {
     // Suspense: blank leaderboard for last 2 rounds
     const suspenseThreshold = Math.max(0, totalRounds - 2);
     const completedRounds = tournament.rounds.filter(r => r.status === "completed").length;
-    const inSuspense = !isFinished && completedRounds >= suspenseThreshold && totalRounds > 2;
+    const resultsWithheld = Boolean(tournament.resultsWithheld);
+    const inSuspense = resultsWithheld || (!isFinished && completedRounds >= suspenseThreshold && totalRounds > 2);
 
     // My upcoming matches (not yet completed, I'm in)
     const myUpcoming = allMatches.filter(m => {
@@ -76,6 +89,7 @@ export default function PlayerScoreboard() {
 
     return (
         <>
+            <RoundCurtain rounds={tournament.rounds} finished={isFinished} />
             <nav className="ios-nav">
                 <span className="ios-nav-brand">NOPA</span>
                 <span style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", fontSize: "0.72rem", opacity: 0.7, fontWeight: 500 }}>
@@ -84,32 +98,22 @@ export default function PlayerScoreboard() {
                 <span style={{ minWidth: 60 }} />
             </nav>
 
-            {/* Hero */}
-            <div style={{
-                height: 180,
-                backgroundImage: "url(/player-portal.png)",
-                backgroundSize: "cover",
-                backgroundPosition: "center 15%",
-                position: "relative",
-            }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(28,79,53,0.25) 0%, rgba(0,0,0,0.6) 100%)" }} />
-                <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, textAlign: "center", padding: "0 20px" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.8rem", fontWeight: 400, color: "white", lineHeight: 1.1, textShadow: "0 2px 16px rgba(0,0,0,0.35)" }}>
-                        {tournament.name}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-                        {[tournament.location, getCountryDisplay(tournament.country)].filter(Boolean).join(" · ")}
-                        {myPlayer && <span style={{ marginLeft: 10, background: "rgba(255,255,255,0.18)", padding: "2px 10px", borderRadius: 50, backdropFilter: "blur(4px)" }}>{myPlayer.name}</span>}
-                    </div>
-                </div>
-            </div>
+            <ClubHero
+                frame="table"
+                eyebrow="Player card"
+                title={tournament.name}
+                sub={[tournament.location, getCountryDisplay(tournament.country)].filter(Boolean).join(" · ")}
+            >
+                {myPlayer && <span className="club-hero-chip">{myPlayer.name}</span>}
+            </ClubHero>
 
             <div className="ios-page">
+                <InstallHint />
 
                 {/* Not started yet */}
                 {notStarted && (
                     <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", textAlign: "center", padding: "36px 24px", marginBottom: 20, boxShadow: "var(--shadow)" }}>
-                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Waiting to start</div>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Waiting to start</div>
                         <p style={{ color: "var(--label-3)", fontSize: "0.85rem", maxWidth: 280, margin: "0 auto 20px", lineHeight: 1.6 }}>
                             The host hasn't activated rounds yet. This page refreshes automatically.
                         </p>
@@ -143,7 +147,7 @@ export default function PlayerScoreboard() {
 
                 {/* My next match */}
                 {myUpcoming.length > 0 && (
-                    <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "16px", marginBottom: 20, border: "2px solid var(--green)", boxShadow: "var(--shadow-md)" }}>
+                    <div key={myUpcoming[0].id} className="club-next" style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "16px", marginBottom: 20, border: "2px solid var(--green)", boxShadow: "var(--shadow-md)" }}>
                         <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--green)", marginBottom: 12, fontWeight: 700 }}>
                             Your Next Match
                         </div>
@@ -168,6 +172,12 @@ export default function PlayerScoreboard() {
                                             <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--label-3)", marginTop: 3 }}>Opponents</div>
                                         </div>
                                     </div>
+                                    <Link to={`/app/play/tournament/${tournament.id}`} style={{ textDecoration: "none", display: "block", marginTop: 14 }}>
+                                        <button className="club-btn" type="button" style={{ width: "100%", padding: "12px", borderRadius: "var(--r-cell)", background: "var(--green)", color: "white", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                                            Enter the score
+                                        </button>
+                                    </Link>
+                                    <div style={{ fontSize: "0.7rem", color: "var(--label-3)", textAlign: "center", marginTop: 6 }}>The host confirms it before it counts.</div>
                                 </div>
                             );
                         })()}
@@ -178,21 +188,22 @@ export default function PlayerScoreboard() {
                 <div style={{ marginBottom: 20 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingLeft: 4 }}>
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", fontWeight: 600 }}>
-                            {isFinished ? "Final Leaderboard" : "Live Standings"}
+                            {resultsWithheld ? "Final Results" : isFinished ? "Final Leaderboard" : "Live Standings"}
                         </div>
-                        {inSuspense && !isFinished && (
+                        {inSuspense && !isFinished && !resultsWithheld && (
                             <span style={{ background: "var(--gold)", color: "white", fontSize: "0.65rem", fontWeight: 700, padding: "3px 10px", borderRadius: "var(--r-pill)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                 Suspense Mode
                             </span>
                         )}
                     </div>
 
-                    {inSuspense && !isFinished ? (
+                    {resultsWithheld ? (
+                        <SealedResults tournament={tournament} yourScore={myPlayer?.totalPoints} />
+                    ) : inSuspense ? (
                         <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", textAlign: "center", padding: "32px 20px", boxShadow: "var(--shadow)" }}>
-                            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Standings Hidden</div>
+                            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "var(--label-2)", marginBottom: 8 }}>Standings Hidden</div>
                             <p style={{ color: "var(--label-3)", fontSize: "0.85rem", maxWidth: 300, margin: "0 auto 20px", lineHeight: 1.6 }}>
-                                Leaderboard locked for the final {totalRounds - suspenseThreshold} round(s).
-                                Revealed when the host finishes.
+                                {`Leaderboard locked for the final ${totalRounds - suspenseThreshold} round(s). Revealed when the host finishes.`}
                             </p>
                             <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "14px 24px", display: "inline-block" }}>
                                 <div style={{ fontSize: "0.7rem", color: "var(--label-3)", marginBottom: 4 }}>Your score</div>
@@ -200,11 +211,11 @@ export default function PlayerScoreboard() {
                             </div>
                         </div>
                     ) : (
-                        <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow)" }}>
+                        <div ref={flipRef} style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow)" }}>
                             {players.map((p, i) => {
                                 const isMe = p.id === playerId;
                                 return (
-                                    <div key={p.id} style={{
+                                    <div key={p.id} data-flip={p.id} style={{
                                         display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
                                         borderBottom: i < players.length - 1 ? "1px solid var(--sep)" : "none",
                                         background: isMe ? "rgba(28,79,53,0.06)" : undefined,
@@ -212,11 +223,12 @@ export default function PlayerScoreboard() {
                                         <div style={{ width: 22, textAlign: "center", fontSize: "0.82rem", flexShrink: 0, color: "var(--label-3)", fontWeight: 700 }}>
                                             {getPlacementLabel(i)}
                                         </div>
-                                        <div style={{ flex: 1, fontWeight: isMe ? 700 : 500, fontSize: "0.9rem", color: isMe ? "var(--green)" : "var(--label)" }}>
+                                        <Avatar name={p.name} src={avatars[p.id]} size={28} />
+                                        <div style={{ flex: 1, minWidth: 0, fontWeight: isMe ? 700 : 500, fontSize: "0.9rem", color: isMe ? "var(--green)" : "var(--label)" }}>
                                             {p.name}
                                             {isMe && <span style={{ fontSize: "0.6rem", background: "var(--green)", color: "white", padding: "2px 6px", borderRadius: "var(--r-pill)", marginLeft: 6, fontWeight: 700 }}>You</span>}
                                         </div>
-                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--green)", minWidth: 32, textAlign: "right" }}>{p.totalPoints}</div>
+                                        <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--green)", minWidth: 32, textAlign: "right" }}><Tick value={p.totalPoints} /></div>
                                         <div style={{ fontSize: "0.7rem", color: "var(--label-3)", minWidth: 60, textAlign: "right" }}>
                                             {p.matchesPlayed}P · {p.matchesWon}W
                                         </div>
@@ -264,12 +276,12 @@ export default function PlayerScoreboard() {
                 )}
 
                 {/* Final reveal */}
-                {isFinished && (
+                {isFinished && !resultsWithheld && (
                     <div style={{ background: "linear-gradient(135deg, var(--green-dark), var(--green))", color: "white", borderRadius: "var(--r-card)", padding: "28px 24px", textAlign: "center", boxShadow: "0 6px 24px rgba(28,79,53,0.35)" }}>
-                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "1.5rem", marginBottom: 4 }}>Tournament Complete!</div>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", marginBottom: 4 }}>Tournament Complete!</div>
                         <p style={{ opacity: 0.8, fontSize: "0.85rem", marginBottom: 16 }}>The final results are published.</p>
                         <Link to={`/app/play/tournament/${tournament.id}/final`} style={{ textDecoration: "none" }}>
-                            <button style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                            <button className="club-btn" style={{ padding: "11px 24px", borderRadius: "var(--r-pill)", background: "white", color: "var(--green)", fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                                 View Final Leaderboard
                             </button>
                         </Link>
@@ -290,11 +302,11 @@ export default function PlayerScoreboard() {
                             <Form method="post" action={`/api/tournament/${tournament.id}/deregister`}>
                                 <input type="hidden" name="playerId" value={playerId} />
                                 <div style={{ display: "flex", gap: 10 }}>
-                                    <button type="button" onClick={() => setShowCancelConfirm(false)}
+                                    <button className="club-btn" type="button" onClick={() => setShowCancelConfirm(false)}
                                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "var(--bg-fill)", border: "1px solid var(--sep)", color: "var(--label-2)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                                         No, keep my spot
                                     </button>
-                                    <button type="submit"
+                                    <button className="club-btn" type="submit"
                                         style={{ flex: 1, padding: "12px", borderRadius: "var(--r-card)", background: "#dc2626", border: "none", color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                                         Yes, deregister
                                     </button>

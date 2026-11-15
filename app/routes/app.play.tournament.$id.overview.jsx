@@ -1,8 +1,9 @@
 import { json } from "@remix-run/node";
+import { ClubHero } from "../components/ClubHero";
 import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { loadTournament } from "../utils/tournament-actions.server";
-import {
+import { viewerTournament,
     buildTeams,
     buildJoinInviteText,
     DEUCE_LABELS,
@@ -19,7 +20,7 @@ export const loader = async ({ params, request }) => {
     const origin = getRequestOrigin(request);
     const hostToken = getHostTokenFromRequest(request, tournament.id);
     const isHost = Boolean(hostToken && hostToken === tournament.hostToken);
-    return json({ tournament, origin, isHost });
+    return json({ tournament: viewerTournament(tournament), origin, isHost });
 };
 
 export const meta = ({ data }) => {
@@ -48,7 +49,7 @@ export default function TournamentOverview() {
     });
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";
     const teams = isTeamMode ? buildTeams(setupPlayers) : [];
-    const publicJoinUrl = `https://play.nopabrand.com/j/${tournament.joinCode}`;
+    const publicJoinUrl = `${origin}/j/${tournament.joinCode}`;
     const venueJoinUrl = `${origin}/app/play/join/${tournament.joinCode}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(venueJoinUrl)}&size=220x220&margin=10&color=1C4F35`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(buildJoinInviteText(tournament, publicJoinUrl))}`;
@@ -71,31 +72,16 @@ export default function TournamentOverview() {
             </nav>
 
             <div className="ios-page">
-                <div style={{
-                    height: 190,
-                    borderRadius: "var(--r-card)",
-                    overflow: "hidden",
-                    position: "relative",
-                    marginBottom: 20,
-                    backgroundImage: `linear-gradient(to bottom, rgba(28,79,53,0.18), rgba(21,61,41,0.74)), url(/hero-court.png)`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    boxShadow: "var(--shadow-md)",
-                }}>
-                    <div style={{ position: "absolute", left: 20, right: 20, bottom: 20 }}>
-                        <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(255,255,255,0.72)", fontWeight: 600, marginBottom: 8 }}>
-                            Tournament Created
-                        </div>
-                        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400, fontSize: "2rem", color: "white", lineHeight: 1, marginBottom: 6 }}>
-                            {tournament.name}
-                        </h1>
-                        <div style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.8)" }}>
-                            {tournament.location || "Venue TBC"} · {getCountryDisplay(tournament.country)}
-                        </div>
-                    </div>
-                </div>
+                <ClubHero
+                    card
+                    as="h1"
+                    frame="table"
+                    eyebrow="Tournament created"
+                    title={tournament.name}
+                    sub={`${tournament.location || "Venue TBC"} · ${getCountryDisplay(tournament.country)}`}
+                />
 
-                <div style={{ display: "grid", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20 }}>
                     <section style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: 18, boxShadow: "var(--shadow)" }}>
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 14, fontWeight: 600 }}>
                             Format
@@ -178,10 +164,10 @@ export default function TournamentOverview() {
                         <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--label-3)", marginBottom: 14, fontWeight: 600 }}>
                             Share
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "stretch" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, alignItems: "stretch" }}>
                             <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-card)", padding: "16px 18px" }}>
                                 <div style={{ fontSize: "0.58rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>Join Code</div>
-                                <div style={{ fontFamily: "monospace", fontSize: "2rem", letterSpacing: "0.22em", fontWeight: 800, color: "var(--green)", marginBottom: 8 }}>
+                                <div style={{ fontFamily: "monospace", fontSize: "clamp(1.25rem, 6vw, 2rem)", letterSpacing: "0.14em", fontWeight: 800, color: "var(--green)", marginBottom: 8 }}>
                                     {tournament.joinCode}
                                 </div>
                                 <div style={{ fontSize: "0.76rem", color: "var(--label-3)", lineHeight: 1.5 }}>
@@ -189,16 +175,16 @@ export default function TournamentOverview() {
                                 </div>
                             </div>
                             <div style={{ background: "white", borderRadius: "var(--r-card)", padding: 12, border: "1px solid var(--sep)" }}>
-                                <img src={qrUrl} alt="Tournament join QR code" style={{ width: 132, height: 132, display: "block", borderRadius: "var(--r-cell)" }} />
+                                <img src={qrUrl} alt="Tournament join QR code" style={{ width: 108, height: 108, display: "block", borderRadius: "var(--r-cell)" }} />
                             </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
                             <a href={whatsappUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 16px", background: "#25D366", color: "white", borderRadius: "var(--r-card)", fontWeight: 600, fontSize: "0.92rem" }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 16px", background: "var(--green)", color: "white", borderRadius: "var(--r-card)", fontWeight: 600, fontSize: "0.92rem" }}>
                                     Share on WhatsApp
                                 </div>
                             </a>
-                            <button type="button" onClick={handleCopy} style={{ padding: "14px 16px", borderRadius: "var(--r-card)", background: copied ? "rgba(28,79,53,0.06)" : "var(--bg-fill-2)", color: copied ? "var(--green)" : "var(--label)", border: `1px solid ${copied ? "var(--green)" : "var(--sep)"}`, fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
+                            <button className="club-btn" type="button" onClick={handleCopy} style={{ padding: "14px 16px", borderRadius: "var(--r-card)", background: copied ? "rgba(28,79,53,0.06)" : "var(--bg-fill-2)", color: copied ? "var(--green)" : "var(--label)", border: `1px solid ${copied ? "var(--green)" : "var(--sep)"}`, fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" }}>
                                 {copied ? "Link Copied" : "Copy Join Link"}
                             </button>
                             <div style={{ fontSize: "0.74rem", color: "var(--label-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{publicJoinUrl}</div>
@@ -207,19 +193,19 @@ export default function TournamentOverview() {
 
                     {isHost && tournament.status === "setup" && (
                         <Link to={`/app/play/tournament/${tournament.id}/edit`} style={{ textDecoration: "none", flex: 1 }}>
-                            <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "#1C4F35", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
+                            <button className="club-btn" style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "#1C4F35", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
                                 Edit Tournament
                             </button>
                         </Link>
                     )}
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <a href={`/app/play/tournament/${tournament.id}/print.pdf`} download style={{ textDecoration: "none", flex: 1 }}>
-                            <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--bg-card)", color: "var(--label)", border: "1px solid var(--sep)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "var(--shadow)" }}>
+                            <button className="club-btn" style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--bg-card)", color: "var(--label)", border: "1px solid var(--sep)", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "var(--shadow)" }}>
                                 Download Schedule PDF
                             </button>
                         </a>
                         <Link to={`/app/play/tournament/${tournament.id}`} style={{ textDecoration: "none", flex: 1 }}>
-                            <button style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
+                            <button className="club-btn" style={{ width: "100%", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
                                 Open Match Manager
                             </button>
                         </Link>

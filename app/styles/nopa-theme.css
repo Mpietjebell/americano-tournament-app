@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   NOPA — iOS-inspired Design System
-   Accent: NOPA Green #1C4F35 | Background: Cream #F8F0E4
-   Typography: Cormorant Garamond (hero) · Inter (UI)
+   NOPA — Clubhouse Design System
+   Accent: NOPA Green #1C4F35 | Background: Cream #F5F0E8
+   Typography: Bodoni Moda (display) · Libre Franklin (UI) · flat corners, hairline rules
    ═══════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600&family=Libre+Franklin:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,18 +12,23 @@
   /* NOPA brand */
   --green:          #1C4F35;
   --green-light:    #2A6B49;
-  --green-dark:     #153D29;
+  --green-dark:     #143A28;
+  --cream:          #F5F0E8;
+  --mute:           #D9D0C7;
+  --line:           rgba(15,29,61,0.2);
+  --font-display:   'Bodoni Moda', Georgia, 'Times New Roman', serif;
+  --font-body:      'Libre Franklin', Helvetica, Arial, sans-serif;
   --gold:           #C5A55A;
 
   /* iOS system backgrounds */
-  --bg:             #F2EDE4;
-  --bg-grouped:     #F2EDE4;
+  --bg:             #F5F0E8;
+  --bg-grouped:     #F5F0E8;
   --bg-card:        #FFFFFF;
   --bg-fill:        rgba(120,120,128,0.12);
   --bg-fill-2:      rgba(120,120,128,0.08);
 
   /* Text */
-  --label:          #1C1C1E;
+  --label:          #1C1C1A;
   --label-2:        #3C3C43;
   --label-3:        rgba(60,60,67,0.6);
   --label-4:        rgba(60,60,67,0.3);
@@ -36,14 +41,14 @@
   --accent:         var(--green);
 
   /* Shape */
-  --r-card:         16px;
-  --r-cell:         12px;
-  --r-sm:           8px;
-  --r-pill:         100px;
+  --r-card:         0px;
+  --r-cell:         0px;
+  --r-sm:           0px;
+  --r-pill:         0px;
 
   /* Shadow */
-  --shadow:         0 1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06);
-  --shadow-md:      0 4px 24px rgba(0,0,0,0.08);
+  --shadow:         0 0 0 1px rgba(15,29,61,0.16);
+  --shadow-md:      0 0 0 1px rgba(15,29,61,0.18), 0 8px 22px rgba(15,29,61,0.10);
 
   /* Motion */
   --ease:           cubic-bezier(0.4,0,0.2,1);
@@ -56,7 +61,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 .nopa-app {
   background: var(--bg-grouped);
   min-height: 100vh;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body);
   color: var(--label);
 }
 
@@ -77,7 +82,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 }
 
 .ios-nav-brand {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 500;
   letter-spacing: 0.2em;
@@ -148,7 +153,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 
 /* ─── Large title ────────────────────────────────────────── */
 .ios-large-title {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-display);
   font-size: 2.2rem;
   font-weight: 400;
   letter-spacing: 0.03em;
@@ -797,9 +802,9 @@ input:not([type])::placeholder,
 .nopa-label { display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--label-3); margin-bottom: 6px; }
 .nopa-form-group { margin-bottom: 18px; }
 .nopa-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
-.nopa-title { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 500; letter-spacing: 0.04em; }
+.nopa-title { font-family: var(--font-display); font-size: 1.6rem; font-weight: 500; letter-spacing: 0.04em; }
 .nopa-page-header { margin-bottom: 24px; }
-.nopa-page-header h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 500; color: var(--green); margin-bottom: 4px; }
+.nopa-page-header h2 { font-family: var(--font-display); font-size: 1.7rem; font-weight: 500; color: var(--green); margin-bottom: 4px; }
 .nopa-page-header p { color: var(--label-3); font-size: 0.88rem; }
 .nopa-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: var(--r-pill); font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .nopa-badge-active { background: rgba(28,79,53,0.1); color: var(--green); }
@@ -860,3 +865,354 @@ input:not([type])::placeholder,
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ─── Clubhouse home (mobile first) ──────────────────────── */
+.nopa-topbar-btn {
+  font: inherit; font-size: 0.8rem; font-weight: 600; color: white;
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22);
+  border-radius: var(--r-pill); padding: 6px 14px; cursor: pointer; white-space: nowrap;
+}
+.nopa-topbar-btn:hover { background: rgba(255,255,255,0.24); }
+
+.nopa-home-bar {
+  background: var(--green); color: white; min-height: 52px;
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  position: sticky; top: 0; z-index: 50;
+}
+.nopa-home-brand { font-family: var(--font-display); letter-spacing: 0.2em; font-size: 1.05rem; font-weight: 500; }
+.nopa-home-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nopa-home-user span { font-size: 0.78rem; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+
+.nopa-home-main { max-width: 680px; margin: 0 auto; padding: 16px 16px calc(64px + env(safe-area-inset-bottom, 0px)); }
+.nopa-home-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.nopa-home-cta a { text-decoration: none; }
+.nopa-home-cta .nopa-btn { width: 100%; justify-content: center; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.86rem; padding: 14px 10px; }
+.nopa-home-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.nopa-home-secondary a {
+  display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;
+  background: var(--bg-card); color: var(--label-2); border: 1px solid var(--sep-opaque);
+  border-radius: var(--r-cell); padding: 11px 10px; font-size: 0.84rem; font-weight: 600;
+}
+
+.nopa-segmented { display: flex; background: var(--bg-fill); border-radius: var(--r-cell); padding: 3px; gap: 2px; margin-bottom: 12px; }
+.nopa-seg-btn {
+  flex: 1; font: inherit; font-size: 0.78rem; font-weight: 500; color: var(--label-3);
+  background: transparent; border: none; border-radius: calc(var(--r-cell) - 3px);
+  padding: 8px 4px; cursor: pointer; white-space: nowrap;
+}
+.nopa-seg-btn.active { background: var(--bg-card); color: var(--label); font-weight: 600; box-shadow: var(--shadow); }
+
+.nopa-feed { background: var(--bg-card); border-radius: var(--r-card); overflow: hidden; box-shadow: var(--shadow); }
+.nopa-feed-empty { padding: 40px 20px; text-align: center; color: var(--label-3); font-size: 0.84rem; }
+.nopa-feed > a:last-child > div { border-bottom: none !important; }
+
+/* ─── NOPA banner ────────────────────────────────────────── */
+.nopa-banner {
+  display: flex; align-items: center; gap: 12px; text-decoration: none;
+  background: var(--bg-card); border: 1px solid rgba(28,79,53,0.18); border-radius: var(--r-card);
+  padding: 12px 14px; margin: 18px 0; box-shadow: var(--shadow);
+}
+.nopa-banner img { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
+.nopa-banner-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nopa-banner-eyebrow { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--label-3); font-weight: 600; }
+.nopa-banner-title { font-size: 0.86rem; font-weight: 600; color: var(--label); line-height: 1.3; }
+.nopa-banner-cta { flex-shrink: 0; font-size: 0.78rem; font-weight: 700; color: white; background: var(--green); border-radius: var(--r-pill); padding: 7px 14px; }
+
+/* ─── Install hint ───────────────────────────────────────── */
+.nopa-install {
+  display: flex; align-items: flex-start; gap: 10px; background: var(--green-dark); color: var(--cream);
+  padding: 16px 14px 16px 16px; margin-bottom: 14px; border: 1px solid var(--green-dark);
+}
+.nopa-install-copy { flex: 1; min-width: 0; font-size: 0.8rem; line-height: 1.45; }
+.nopa-install-copy strong { display: block; font-family: var(--font-display); font-weight: 500; font-size: 1.15rem; line-height: 1.2; margin: 8px 0 10px; }
+.nopa-install-copy p { opacity: 0.88; margin: 0; }
+.nopa-install-steps { list-style: none; display: grid; gap: 7px; margin: 0; padding: 0; }
+.nopa-install-steps li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nopa-install-steps li > span { flex: none; width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid rgba(245,240,232,0.5); font-size: 0.68rem; font-weight: 600; margin-right: 4px; }
+.nopa-install-share { flex: none; margin: 0 1px; }
+.nopa-install-btn { font: inherit; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--green-dark); background: var(--cream); border: none; padding: 10px 14px; cursor: pointer; align-self: center; }
+.nopa-install-close { font: inherit; font-size: 1.3rem; line-height: 1; color: var(--cream); background: none; border: none; opacity: 0.7; cursor: pointer; padding: 2px 6px; }
+
+/* Installed (standalone) on a notched phone: keep the nav clear of the status bar */
+.ios-nav { height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+
+/* ─── Club leaderboard ───────────────────────────────────── */
+.nopa-club-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.nopa-club-table th { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--label-3); font-weight: 700; padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--sep); }
+.nopa-club-table td { padding: 11px 6px; text-align: center; border-bottom: 1px solid var(--sep); color: var(--label-2); font-variant-numeric: tabular-nums; }
+.nopa-club-table tr:last-child td { border-bottom: none; }
+.nopa-club-table th:first-child, .nopa-club-table td.rank { padding-left: 14px; width: 34px; color: var(--label-3); font-weight: 700; }
+.nopa-club-table td.name { text-align: left; font-weight: 600; color: var(--label); max-width: 0; width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nopa-club-table td.pts { font-weight: 800; color: var(--green); }
+.nopa-club-table .titles { color: var(--gold); font-weight: 700; }
+.nopa-club-table th:last-child, .nopa-club-table td:last-child { padding-right: 14px; }
+
+/* ─── Profile link in the home bar ───────────────────────── */
+.nopa-home-profile { display: flex; align-items: center; gap: 8px; text-decoration: none; color: white; min-width: 0; }
+.nopa-home-profile span:first-child { font-size: 0.8rem; font-weight: 600; opacity: 0.9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+.nopa-home-profile > span:last-child { box-shadow: 0 0 0 2px rgba(255,255,255,0.55); }
+.nopa-club-table .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nopa-club-table .who > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.nopa-club-table tr.provisional td { opacity: 0.55; }
+.nopa-explain { margin: 8px 4px 0; font-size: 0.76rem; color: var(--label-3); line-height: 1.55; }
+.nopa-explain summary { cursor: pointer; font-weight: 600; color: var(--green); padding: 4px 0; }
+.nopa-explain p { margin: 6px 0 0; }
+.nopa-explain strong { color: var(--label-2); }
+
+/* ─── Results celebration ────────────────────────────────── */
+@keyframes nopa-card-in { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes nopa-rise { from { transform: scaleY(0.05); opacity: 0; } 60% { opacity: 1; } to { transform: scaleY(1); opacity: 1; } }
+@keyframes nopa-pop { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.12); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes nopa-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes nopa-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(197,165,90,0); } 50% { box-shadow: 0 0 28px 4px rgba(197,165,90,0.55); } }
+@keyframes nopa-shine { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes nopa-trophy { 0% { opacity: 0; transform: translateY(-26px) rotate(-18deg) scale(0.4); } 55% { opacity: 1; transform: translateY(4px) rotate(8deg) scale(1.15); } 75% { transform: translateY(0) rotate(-4deg) scale(1); } 100% { opacity: 1; transform: none; } }
+
+.nopa-celebrate .nopa-reveal-card { animation: nopa-card-in 0.6s cubic-bezier(.2,.8,.2,1) both; }
+.nopa-celebrate .nopa-podium-badge { animation: nopa-pop 0.5s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--d) + 0.75s); }
+.nopa-celebrate .nopa-podium-bar { transform-origin: bottom; animation: nopa-rise 0.8s cubic-bezier(.2,.9,.25,1.1) both; animation-delay: var(--d); }
+.nopa-celebrate .nopa-podium-bar > * { animation: nopa-fade-up 0.45s ease both; animation-delay: calc(var(--d) + 0.55s); }
+.nopa-celebrate .nopa-podium-bar.first { animation: nopa-rise 0.8s cubic-bezier(.2,.9,.25,1.1) both, nopa-glow 2.2s ease-in-out 2.4s 3; animation-delay: var(--d), 2.4s; }
+.nopa-celebrate .nopa-congrats { animation: nopa-fade-up 0.6s ease both; animation-delay: 2.1s; }
+.nopa-celebrate .nopa-congrats-trophy { display: inline-block; animation: nopa-trophy 0.9s cubic-bezier(.2,.8,.2,1) both; animation-delay: 2.1s; }
+.nopa-celebrate .nopa-row-in { animation: nopa-fade-up 0.4s ease both; animation-delay: calc(2.5s + var(--i) * 0.07s); }
+.nopa-congrats-name {
+  font-family: var(--font-display); font-weight: 500; font-size: 1.6rem; line-height: 1.1;
+  background: linear-gradient(100deg, #E8D49A 20%, #FFFFFF 40%, #C5A55A 60%, #E8D49A 80%); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.nopa-celebrate .nopa-congrats-name { animation: nopa-shine 3.5s linear 2.4s 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nopa-celebrate * { animation: none !important; }
+}
+@keyframes nopa-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.nopa-pulse { animation: nopa-pulse 1.6s ease-in-out infinite; }
+
+
+/* ═══ Clubhouse design system layer ═══════════════════════════
+   Flat corners, hairline rules, tracked-caps labels, Bodoni display. */
+.nopa-app { font-family: var(--font-body); }
+.ios-nav-brand, .nopa-home-brand {
+  font-size: 0 !important; display: inline-block; width: 62px; height: 30px;
+  background: url(/images/brand/nopa-wordmark-white.png) center / contain no-repeat;
+}
+.ios-nav, .nopa-home-bar { border-bottom: 1px solid var(--green-dark); }
+.ios-nav-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+.ios-nav-action { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.66rem; font-weight: 600; background: transparent; border-color: rgba(245,240,232,0.45); color: var(--cream); padding: 7px 12px; }
+.ios-large-title, .nopa-title, .nopa-page-header h2 { font-style: normal; font-weight: 500; letter-spacing: 0.01em; }
+
+.nopa-btn { border-radius: 0; text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.72rem; font-weight: 600; padding: 14px 22px; line-height: 1.35; text-align: center; }
+.nopa-btn-small { padding: 9px 14px; font-size: 0.66rem; letter-spacing: 0.14em; }
+.nopa-btn-primary { background: var(--green); color: var(--cream); }
+.nopa-btn-primary:hover { opacity: 1; background: var(--green-dark); }
+.nopa-btn-secondary { border: 1px solid var(--green); }
+.nopa-btn-ghost { background: transparent; border: 1px solid var(--line); }
+.nopa-home-cta .nopa-btn { letter-spacing: 0.16em; font-size: 0.72rem; }
+.nopa-input, .nopa-select { border-width: 1px; border-color: var(--line); background: #fff; }
+.nopa-label { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.2em; }
+.nopa-badge { letter-spacing: 0.14em; font-weight: 600; }
+.nopa-court-header { letter-spacing: 0.2em; font-weight: 600; }
+
+/* Eyebrow: thin rule + tracked caps label */
+.club-eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-body); font-size: 11px; line-height: 14px; font-weight: 600;
+  letter-spacing: 0.3em; text-transform: uppercase; color: var(--mute);
+}
+.club-eyebrow::before { content: ""; width: 26px; height: 1px; background: currentColor; opacity: 0.7; flex: none; }
+
+/* Hero */
+.club-hero { background: var(--green); color: var(--cream); position: relative; overflow: hidden; border-bottom: 1px solid var(--green-dark); }
+.club-hero-photo { display: block; width: 100%; height: clamp(190px, 34vh, 340px); object-fit: cover; border-bottom: 1px solid var(--green-dark); }
+.club-hero-body { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 22px 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.club-hero-text { min-width: 0; flex: 1; }
+.club-hero-title { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.6rem, 7.2vw, 2.4rem); line-height: 1.1; letter-spacing: 0.01em; margin: 10px 0 0; color: var(--cream); overflow-wrap: anywhere; }
+.club-hero-sub { font-size: 13px; line-height: 20px; color: rgba(245,240,232,0.78); margin-top: 6px; }
+.club-hero-frame { flex: none; width: 88px; background: var(--cream); padding: 4px; border: 1px solid var(--green-dark); box-shadow: 0 10px 26px rgba(0,0,0,0.28); }
+.club-hero-frame img { display: block; width: 100%; aspect-ratio: 6 / 7; object-fit: cover; border: 1px solid rgba(29,79,53,0.35); }
+/* Graphic cover: deep strip on the right with three hairline rules */
+.club-hero--graphic::before { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 26%; max-width: 180px; background: var(--green-dark); }
+.club-hero--graphic::after {
+  content: ""; position: absolute; top: 16px; right: calc(min(26%, 180px) - 44px); width: 32px; height: 17px;
+  background: linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) top / 100% 1px no-repeat,
+              linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) center / 100% 1px no-repeat,
+              linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) bottom / 100% 1px no-repeat;
+}
+.club-hero--graphic .club-hero-body { min-height: 132px; }
+.club-hero--card { margin-bottom: 20px; border: 1px solid var(--green-dark); }
+.club-hero-chip { display: inline-block; margin-top: 10px; background: var(--cream); color: var(--green); font-family: var(--font-display); font-size: 13px; letter-spacing: 0.14em; padding: 5px 12px; }
+
+/* Inline-styled action buttons share the Clubhouse button lettering */
+.club-btn, .nopa-topbar-btn {
+  font-family: var(--font-body) !important; text-transform: uppercase; letter-spacing: 0.15em !important;
+  font-size: 0.7rem !important; font-weight: 600 !important; border-radius: 0 !important; line-height: 1.4 !important;
+}
+.nopa-topbar-btn { background: transparent; border: 1px solid rgba(245,240,232,0.45); color: var(--cream); padding: 8px 12px; font-size: 0.64rem !important; }
+
+
+/* ═══ Motion ══════════════════════════════════════════════════ */
+@keyframes club-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes club-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes club-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes club-settle { from { transform: scale(1.07); } to { transform: scale(1); } }
+@keyframes club-pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.14); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes club-tick { 0% { transform: translateY(70%); opacity: 0; } 55% { transform: translateY(-12%); opacity: 1; } 100% { transform: none; } }
+@keyframes club-sweep { from { transform: translateX(-101%); } to { transform: translateX(101%); } }
+@keyframes club-draw { from { stroke-dashoffset: 18; } to { stroke-dashoffset: 0; } }
+@keyframes club-busy { from { background-position: 0 0; } to { background-position: -200% 0; } }
+@keyframes club-curtain { 0% { clip-path: inset(0 0 100% 0); } 16% { clip-path: inset(0 0 0 0); } 84% { clip-path: inset(0 0 0 0); } 100% { clip-path: inset(100% 0 0 0); } }
+@keyframes club-curtain-text { 0%, 12% { opacity: 0; transform: translateY(18px); } 28%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-10px); } }
+@keyframes club-curtain-rule { 0%, 14% { transform: scaleX(0); } 36%, 82% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+
+/* Pages ease in, one block after another */
+.ios-page > *, .ios-page-wide > *, .nopa-home-main > * { animation: club-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.ios-page > :nth-child(2), .ios-page-wide > :nth-child(2), .nopa-home-main > :nth-child(2) { animation-delay: 0.06s; }
+.ios-page > :nth-child(3), .ios-page-wide > :nth-child(3), .nopa-home-main > :nth-child(3) { animation-delay: 0.12s; }
+.ios-page > :nth-child(4), .ios-page-wide > :nth-child(4), .nopa-home-main > :nth-child(4) { animation-delay: 0.18s; }
+.ios-page > :nth-child(n+5), .ios-page-wide > :nth-child(n+5), .nopa-home-main > :nth-child(n+5) { animation-delay: 0.24s; }
+
+/* Hero: the photo settles, the rule draws, the words rise */
+.club-hero-photo { animation: club-settle 1.4s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.club-eyebrow::before { transform-origin: left; animation: club-rule 0.7s 0.15s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.club-hero .club-eyebrow { animation: club-fade 0.6s 0.1s backwards; }
+.club-hero-title { animation: club-enter 0.6s 0.16s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.club-hero-sub, .club-hero-chip { animation: club-enter 0.6s 0.26s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.club-hero-frame { animation: club-enter 0.7s 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+/* Buttons answer the finger */
+.nopa-btn, .club-btn, .nopa-seg-btn, .nopa-topbar-btn { transition: transform 0.12s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease; }
+.nopa-btn:active, .club-btn:active:not(:disabled), .nopa-topbar-btn:active { transform: scale(0.97); }
+
+/* Court cards */
+.club-court { position: relative; animation: club-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; transition: box-shadow 0.4s ease, border-color 0.4s ease; }
+.club-court:nth-child(2) { animation-delay: 0.07s; }
+.club-court:nth-child(3) { animation-delay: 0.14s; }
+.club-court:nth-child(n+4) { animation-delay: 0.21s; }
+/* While a score is being sent: a thin line runs along the top */
+.club-court.is-busy::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 2;
+  background: linear-gradient(90deg, transparent, var(--cream), transparent) 0 0 / 200% 100%; animation: club-busy 0.9s linear infinite;
+}
+.club-court.is-busy button[type="submit"] { opacity: 0.7; }
+/* The moment the score lands */
+.club-court.is-scored::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, rgba(28,79,53,0.14) 50%, transparent 70%);
+  animation: club-sweep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.club-court.is-scored .club-court-score > span { display: inline-block; animation: club-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.club-court.is-scored .club-court-score > span:last-child { animation-delay: 0.12s; }
+.club-stamp {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; color: var(--green);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+  animation: club-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.club-stamp path { stroke-dasharray: 18; animation: club-draw 0.45s 0.15s ease-out backwards; }
+
+/* Numbers tick over, the next-match card arrives */
+.club-tick { animation: club-tick 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.club-next { animation: club-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+/* Round curtain */
+.club-curtain {
+  position: fixed; inset: 0; z-index: 200; background: var(--green); color: var(--cream);
+  display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer;
+  animation: club-curtain 2.3s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+.club-curtain-inner { padding: 0 32px; width: 100%; max-width: 420px; }
+.club-curtain-inner > * { animation: club-curtain-text 2.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.club-curtain-rule { height: 1px; background: rgba(245,240,232,0.5); animation-name: club-curtain-rule; }
+.club-curtain-eyebrow { margin-top: 26px; font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--mute); }
+.club-curtain-title { font-family: var(--font-display); font-weight: 500; font-size: clamp(3rem, 16vw, 4.6rem); line-height: 1.05; margin: 10px 0 8px; animation-delay: 0.06s; }
+.club-curtain-sub { font-size: 13px; color: rgba(245,240,232,0.78); margin-bottom: 26px; animation-delay: 0.12s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ios-page > *, .ios-page-wide > *, .nopa-home-main > *, .club-hero *, .club-court, .club-court *, .club-court::before, .club-court::after,
+  .club-tick, .club-next, .club-stamp, .club-stamp path { animation: none !important; }
+  .club-curtain { animation: club-fade 0.2s both; }
+  .club-curtain-inner > * { animation: none; }
+  .nopa-btn:active, .club-btn:active:not(:disabled), .nopa-topbar-btn:active { transform: none; }
+}
+
+
+/* ═══ Sealed results (waiting for the host to release) ═════════ */
+@keyframes sealed-drum { 0%, 80%, 100% { transform: scaleY(0.35); opacity: 0.4; } 40% { transform: scaleY(1); opacity: 1; } }
+@keyframes sealed-shine { from { transform: translateX(-120%) skewX(-18deg); } to { transform: translateX(320%) skewX(-18deg); } }
+@keyframes sealed-fact { 0% { opacity: 0; transform: translateY(8px); } 14%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
+.sealed {
+  position: relative; overflow: hidden; background: var(--green); color: var(--cream); text-align: center;
+  padding: 30px 20px 26px; margin-bottom: 20px; border: 1px solid var(--green-dark);
+}
+.sealed::before { content: ""; position: absolute; inset: 5px; border: 1px solid rgba(245,240,232,0.28); pointer-events: none; }
+.sealed::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 34%; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(245,240,232,0.09), transparent);
+  animation: sealed-shine 4.2s ease-in-out infinite;
+}
+.sealed-eyebrow { justify-content: center; }
+.sealed-eyebrow::after { content: ""; width: 26px; height: 1px; background: currentColor; opacity: 0.7; flex: none; }
+.sealed-title { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.5rem, 6.6vw, 2rem); line-height: 1.15; margin: 10px auto 16px; max-width: 320px; color: var(--cream); }
+.sealed-rally { position: relative; width: 290px; height: 156px; margin: 22px auto 6px; color: rgba(245,240,232,0.8); }
+.sealed-ground { position: absolute; left: 0; right: 0; bottom: 14px; height: 1px; background: rgba(245,240,232,0.45); }
+.sealed-net { position: absolute; left: 50%; bottom: 14px; width: 1px; height: 30px; background: rgba(245,240,232,0.7); }
+.sealed-net::before { content: ""; position: absolute; top: 0; left: -3px; width: 7px; height: 1px; background: rgba(245,240,232,0.7); }
+.sealed-paddle { position: absolute; bottom: 20px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25)); }
+.sealed-paddle-left { left: 0; transform-origin: 50% 90%; animation: sealed-swing-l 3.2s ease-in-out infinite; }
+.sealed-paddle-right { right: 0; transform-origin: 50% 90%; animation: sealed-swing-r 3.2s ease-in-out infinite; }
+.sealed-ball-x, .sealed-shadow-x { position: absolute; left: 50px; bottom: 15px; animation: sealed-ball-x 1.6s linear infinite alternate; }
+.sealed-ball {
+  width: 15px; height: 15px; border-radius: 50%; background: #DDE56F; position: relative; overflow: hidden;
+  animation: sealed-ball-y 1.6s infinite alternate;
+}
+.sealed-ball::before { content: ""; position: absolute; width: 18px; height: 18px; left: -11px; top: -2px; border: 1px solid rgba(28,79,53,0.55); border-radius: 50%; }
+.sealed-shadow { width: 15px; height: 3px; border-radius: 50%; background: rgba(0,0,0,0.35); transform: translateY(2px); animation: sealed-shadow 1.6s infinite alternate; }
+@keyframes sealed-ball-x { from { transform: translateX(0); } to { transform: translateX(175px); } }
+@keyframes sealed-ball-y {
+  0%   { transform: translateY(-72px); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  42%  { transform: translateY(-118px); animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5); }
+  76%  { transform: translateY(0) scale(1.18, 0.8); animation-timing-function: cubic-bezier(0.1, 0.6, 0.4, 1); }
+  80%  { transform: translateY(-3px) scale(1, 1); }
+  100% { transform: translateY(-72px); }
+}
+@keyframes sealed-shadow { 0% { opacity: 0.35; transform: translateY(2px) scale(0.7); } 42% { opacity: 0.15; transform: translateY(2px) scale(0.45); } 76% { opacity: 0.9; transform: translateY(2px) scale(1.15); } 100% { opacity: 0.35; transform: translateY(2px) scale(0.7); } }
+@keyframes sealed-swing-l { 0%, 100% { transform: rotate(16deg); } 6% { transform: rotate(-10deg); } 30% { transform: rotate(4deg); } 90% { transform: rotate(4deg); } }
+@keyframes sealed-swing-r { 0%, 40% { transform: rotate(-4deg); } 50% { transform: rotate(-16deg); } 56% { transform: rotate(10deg); } 80%, 100% { transform: rotate(-4deg); } }
+.sealed-fact { min-height: 20px; font-size: 13px; letter-spacing: 0.04em; color: rgba(245,240,232,0.9); animation: sealed-fact 2.8s ease both; }
+.sealed-drum { display: flex; justify-content: center; align-items: center; gap: 5px; height: 16px; margin: 12px 0 18px; }
+.sealed-drum i { width: 2px; height: 14px; background: var(--cream); animation: sealed-drum 1.1s ease-in-out infinite; }
+.sealed-drum i:nth-child(2) { animation-delay: 0.15s; }
+.sealed-drum i:nth-child(3) { animation-delay: 0.3s; }
+.sealed-yours { display: inline-flex; align-items: baseline; gap: 12px; background: var(--cream); color: var(--green); padding: 8px 16px; margin-bottom: 16px; }
+.sealed-yours span { font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; }
+.sealed-yours strong { font-family: var(--font-display); font-weight: 500; font-size: 1.5rem; line-height: 1; }
+.sealed-note { font-size: 12px; line-height: 18px; color: rgba(245,240,232,0.7); max-width: 280px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) {
+  .sealed::after, .sealed-drum i, .sealed-fact, .sealed-ball, .sealed-ball-x, .sealed-shadow-x, .sealed-shadow, .sealed-paddle { animation: none; }
+  .sealed-ball-x, .sealed-shadow-x { left: 138px; }
+}
+
+
+/* ═══ Home-screen app (iPhone "Add to Home Screen") ═══════════ */
+.club-resume {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none;
+  background: #fff; color: var(--label); border: 1px solid var(--green); padding: 14px 16px; margin-bottom: 14px;
+}
+.club-resume .club-eyebrow { color: var(--green); font-size: 10px; letter-spacing: 0.24em; }
+.club-resume strong { display: block; font-family: var(--font-display); font-weight: 500; font-size: 1.2rem; line-height: 1.2; margin-top: 6px; }
+.club-resume > span { font-size: 1.3rem; color: var(--green); }
+
+/* Feels like an app under the thumb: no grey tap flash, no rubber-band
+   reload, no accidental text selection on controls. */
+.nopa-app { -webkit-tap-highlight-color: transparent; min-height: 100dvh; }
+.nopa-app button, .nopa-app a, .nopa-app nav, .nopa-app label { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+html:has(.nopa-app) { overscroll-behavior-y: none; background: var(--green); }
+html:has(.nopa-app) body { background: var(--bg); }
+/* iPhones zoom the page when a field's text is under 16px. */
+@media (pointer: coarse) {
+  .nopa-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), .nopa-app select, .nopa-app textarea { font-size: 16px !important; }
+}
+/* Keep content clear of the home indicator and the rounded corners. */
+.ios-page, .ios-page-wide { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.club-curtain { padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }

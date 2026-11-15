@@ -31,8 +31,42 @@ model TournamentUser {
   id          String       @id @default(uuid())
   email       String       @unique
   username    String
+  city        String?
+  // Avatar: a small image stored as a data URL, served through /app/play/avatar/<avatarKey>.
+  // The key is public (the user id is not — it is the login cookie).
+  avatar      String?
+  avatarKey   String?      @unique
   createdAt   DateTime     @default(now())
   tournaments Tournament[]
+  ownedClubs  Club[]
+  memberships ClubMember[]
+}
+
+model Club {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  city        String?
+  isPublic    Boolean        @default(true)
+  avatar      String?
+  avatarKey   String?        @unique
+  joinCode    String         @unique
+  ownerId     String
+  createdAt   DateTime       @default(now())
+  owner       TournamentUser @relation(fields: [ownerId], references: [id])
+  members     ClubMember[]
+  tournaments Tournament[]
+}
+
+model ClubMember {
+  id        String         @id @default(uuid())
+  clubId    String
+  userId    String
+  createdAt DateTime       @default(now())
+  club      Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      TournamentUser @relation(fields: [userId], references: [id])
+
+  @@unique([clubId, userId])
 }
 
 model Venue {
@@ -93,6 +127,8 @@ model Tournament {
   hostEmail       String?
   level           Int?
   description     String?
+  clubId          String?
+  club            Club?                   @relation(fields: [clubId], references: [id], onDelete: SetNull)
   players         Player[]
   rounds          Round[]
   createdBy       TournamentUser?         @relation(fields: [createdById], references: [id])

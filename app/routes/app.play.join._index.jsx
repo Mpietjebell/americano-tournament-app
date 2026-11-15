@@ -1,4 +1,5 @@
 import { json, redirect } from "@remix-run/node";
+import { ClubHero } from "../components/ClubHero";
 import { useActionData, Form, Link } from "@remix-run/react";
 import prisma from "../db.server";
 
@@ -27,30 +28,7 @@ export default function JoinPage() {
                 <span style={{ minWidth: 60 }} />
             </nav>
 
-            {/* Hero strip */}
-            <div style={{
-                height: 220,
-                backgroundImage: "url(/player-portal.png)",
-                backgroundSize: "cover",
-                backgroundPosition: "center 20%",
-                position: "relative",
-            }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(28,79,53,0.3) 0%, rgba(0,0,0,0.55) 100%)" }} />
-                <div style={{ position: "absolute", bottom: 28, left: 0, right: 0, textAlign: "center" }}>
-                    <div style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontStyle: "italic",
-                        fontSize: "2.6rem",
-                        fontWeight: 400,
-                        color: "white",
-                        letterSpacing: "0.04em",
-                        textShadow: "0 2px 20px rgba(0,0,0,0.3)",
-                        lineHeight: 1,
-                    }}>
-                        Join a Tournament
-                    </div>
-                </div>
-            </div>
+            <ClubHero eyebrow="Players" title="Join a Tournament" sub="Enter the code your host shared." frame="locker" as="h1" />
 
             {/* Form */}
             <div style={{ maxWidth: 440, margin: "0 auto", padding: "32px 20px 60px" }}>
@@ -92,7 +70,7 @@ export default function JoinPage() {
                                 }}
                             />
                         </div>
-                        <button type="submit" style={{ width: "100%", justifyContent: "center", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
+                        <button className="club-btn" type="submit" style={{ width: "100%", justifyContent: "center", padding: "14px 16px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(28,79,53,0.24)" }}>
                             Find Tournament
                         </button>
                     </Form>

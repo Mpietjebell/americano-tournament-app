@@ -1,5 +1,6 @@
 import { json, redirect } from "@remix-run/node";
-import { useActionData, useNavigation, Form, Link } from "@remix-run/react";
+import { ClubHero } from "../components/ClubHero";
+import { useActionData, useLoaderData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
 import { createHostCookie } from "../utils/host-auth.server";
@@ -7,11 +8,22 @@ import { buildTeams, getMinimumPlayers, getTournamentStats } from "../utils/tour
 import { GAME_MODE_BUTTON_IMAGES } from "../utils/game-mode-icons";
 import { getCurrencyForCountry, SUPPORTED_CURRENCIES } from "../utils/currency";
 
-function getUserIdFromCookie(request) {
-    const cookie = request.headers.get("Cookie") || "";
-    const match = cookie.match(/nopa_user=([^;]+)/);
-    return match ? match[1] : null;
-}
+import { getUserIdFromRequest as getUserIdFromCookie } from "../utils/user.server";
+
+/** Clubs the signed-in host belongs to, so a tournament can count towards a club leaderboard. */
+export const loader = async ({ request }) => {
+    const userId = getUserIdFromCookie(request);
+    const url = new URL(request.url);
+    if (!userId) return json({ clubs: [], preselectedClubId: "" });
+    const memberships = await prisma.clubMember.findMany({
+        where: { userId },
+        include: { club: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" },
+    });
+    const clubs = memberships.map((m) => m.club);
+    const wanted = url.searchParams.get("club") || "";
+    return json({ clubs, preselectedClubId: clubs.some((c) => c.id === wanted) ? wanted : "" });
+};
 
 function generateJoinCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -67,6 +79,15 @@ export const action = async ({ request }) => {
     const latitude = formData.get("latitude") ? parseFloat(formData.get("latitude")) : null;
     const longitude = formData.get("longitude") ? parseFloat(formData.get("longitude")) : null;
     const isScheduled = !!scheduledAtStr;
+
+    // A tournament only counts for a club the host is actually a member of.
+    let clubId = (formData.get("clubId") || "").toString() || null;
+    if (clubId) {
+        const membership = userId
+            ? await prisma.clubMember.findUnique({ where: { clubId_userId: { clubId, userId } } })
+            : null;
+        if (!membership) clubId = null;
+    }
 
     if (!name || !location || !type) {
         return json({ error: "Please fill in all required fields." }, { status: 400 });
@@ -149,6 +170,7 @@ export const action = async ({ request }) => {
             hostEmail: hostEmail || null,
             level: level || null,
             description: description || null,
+            clubId,
             players: {
                 create: playerNames.map((p, index) => ({
                     name: p.name,
@@ -186,6 +208,7 @@ export const action = async ({ request }) => {
                     organizerName: organizerName || null,
                     hostPassword: hostPassword || null, hostEmail: hostEmail || null,
                     level: level || null, description: description || null,
+                    clubId,
                 },
             });
         }
@@ -450,6 +473,7 @@ const COUNTRIES = [
 
 export default function NewTournamentPublic() {
     const actionData = useActionData();
+    const { clubs, preselectedClubId } = useLoaderData();
     const navigation = useNavigation();
     const isSubmitting = navigation.state === "submitting";
 
@@ -742,21 +766,7 @@ export default function NewTournamentPublic() {
                 <span style={{ minWidth: 60 }} />
             </nav>
 
-            {/* Hero */}
-            <div style={{
-                height: 160,
-                backgroundImage: "url(/hero-court.png)",
-                backgroundSize: "cover",
-                backgroundPosition: "center 35%",
-                position: "relative",
-            }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(28,79,53,0.3) 0%, rgba(0,0,0,0.6) 100%)" }} />
-                <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, textAlign: "center" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "2rem", fontWeight: 400, color: "white", letterSpacing: "0.02em", textShadow: "0 2px 16px rgba(0,0,0,0.4)" }}>
-                        New Tournament
-                    </div>
-                </div>
-            </div>
+            <ClubHero frame="table" eyebrow="Host" title="New Tournament" sub="Set the format, courts and players." as="h1" />
 
             <div className="ios-page">
                 <Form method="post" encType="multipart/form-data" noValidate onSubmit={handleSubmit}>
@@ -804,7 +814,7 @@ export default function NewTournamentPublic() {
                                     width: "100%",
                                     fontSize: "1.25rem",
                                     fontWeight: 600,
-                                    fontFamily: "'Cormorant Garamond', serif",
+                                    fontFamily: "var(--font-display)",
                                     letterSpacing: "0.02em",
                                     border: "none",
                                     borderBottom: `2px solid ${fieldErrors.name ? "#dc2626" : "var(--green)"}`,
@@ -850,6 +860,21 @@ export default function NewTournamentPublic() {
                         <input type="hidden" name="isPublic" value={String(isPublic)} />
                     </div>
 
+                    {clubs.length > 0 && (
+                        <>
+                            {sectionLabel("Club")}
+                            <div style={{ background: "var(--bg-card)", borderRadius: "var(--r-card)", padding: "14px 16px", marginBottom: 24, boxShadow: "var(--shadow)" }}>
+                                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--label-3)", marginBottom: 6, fontWeight: 600 }}>
+                                    Count towards a club leaderboard <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400 }}>— optional</span>
+                                </div>
+                                <select name="clubId" defaultValue={preselectedClubId} style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.95rem", fontFamily: "inherit", color: "var(--label)", outline: "none" }}>
+                                    <option value="">No club</option>
+                                    {clubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                        </>
+                    )}
+
                     {/* ── Schedule ── */}
                     {sectionLabel("Schedule")}
 
@@ -858,11 +883,10 @@ export default function NewTournamentPublic() {
                         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom)" }}>
                             <div style={{ background: "var(--bg-card)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 480 }}>
                                 <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
-                                <div style={{ fontSize: "1.5rem", marginBottom: 12, textAlign: "center" }}>📅</div>
                                 <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10, textAlign: "center" }}>Before you confirm this date</div>
                                 <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-cell)", padding: "14px 16px", marginBottom: 16 }}>
                                     <p style={{ fontSize: "0.88rem", color: "#92400e", lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-                                        ⚠️ Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
+                                        Please make sure you have <strong>confirmed availability with the venue</strong> for this date and time.
                                     </p>
                                 </div>
                                 <div style={{ background: "var(--bg-fill-2)", borderRadius: "var(--r-cell)", padding: "12px 14px", marginBottom: 20 }}>
@@ -870,7 +894,7 @@ export default function NewTournamentPublic() {
                                         This system does <strong>not</strong> check for public holidays, national days, or local events that may affect venue availability.
                                     </p>
                                 </div>
-                                <button
+                                <button className="club-btn"
                                     type="button"
                                     onClick={confirmDateWarning}
                                     style={{ width: "100%", padding: "14px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}
@@ -970,7 +994,7 @@ export default function NewTournamentPublic() {
                                 {repeatWeekly && (
                                     <div style={{ borderBottom: "1px solid var(--sep)", background: "#fffbeb", padding: "14px 16px" }}>
                                         <div style={{ background: "#fef3c7", border: "1px solid #fbbf24", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
-                                            <div style={{ fontSize: "0.82rem", color: "#92400e", fontWeight: 600, marginBottom: 4 }}>⚠️ Check venue availability</div>
+                                            <div style={{ fontSize: "0.82rem", color: "#92400e", fontWeight: 600, marginBottom: 4 }}>Check venue availability</div>
                                             <div style={{ fontSize: "0.75rem", color: "#92400e", lineHeight: 1.55 }}>Make sure you check availability with the venue to create this event weekly. Each week will create a new tournament with the same settings.</div>
                                         </div>
                                         {!repeatWeeklyConfirmed ? (
@@ -1256,7 +1280,7 @@ export default function NewTournamentPublic() {
                                 <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sep-opaque)", margin: "0 auto 20px" }} />
                                 <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--label)", marginBottom: 10 }}>{infoModal.name}</div>
                                 <p style={{ fontSize: "0.88rem", color: "var(--label-2)", lineHeight: 1.6, margin: 0 }}>{infoModal.info}</p>
-                                <button
+                                <button className="club-btn"
                                     type="button"
                                     onClick={() => setInfoModal(null)}
                                     style={{ marginTop: 20, width: "100%", padding: "13px", borderRadius: "var(--r-card)", background: "var(--green)", color: "white", border: "none", fontWeight: 600, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit" }}
@@ -1775,7 +1799,7 @@ export default function NewTournamentPublic() {
                         </div>
                     )}
 
-                    <button
+                    <button className="club-btn"
                         type="submit"
                         disabled={(!meetsMinimumUpfront) || isSubmitting}
                         style={{

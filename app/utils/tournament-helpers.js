@@ -263,3 +263,57 @@ export function getTournamentStats({ type, players = [], courtsAvailable = 0, po
     duration: hours > 0 ? `${hours}h ${mins}m` : `${mins}m`,
   };
 }
+
+/**
+ * The copy of a tournament that is safe to send to a browser.
+ *
+ * Loader data is embedded in the page for every visitor, so anything left
+ * on the object here is public. The host token IS the host login (it is
+ * the value of the host cookie), createdById IS the account login (the
+ * value of the user cookie), and the password/emails are private — strip
+ * them before a tournament leaves the server.
+ */
+export function publicTournament(tournament) {
+  if (!tournament) return tournament;
+  // eslint-disable-next-line no-unused-vars
+  const { hostToken, hostPassword, hostEmail, createdById, participants, ...safe } = tournament;
+  if (Array.isArray(participants)) {
+    safe.participants = participants.map((p) => ({
+      name: p.name ?? null,
+      playerId: p.playerId ?? null,
+      standbyPosition: p.standbyPosition ?? null,
+    }));
+  }
+  return safe;
+}
+
+/**
+ * What a non-host may see. Until the host releases the results of a finished
+ * tournament, the standings stay out of the page data entirely — hiding them
+ * only in the UI would leave them readable in the page source.
+ *
+ * Other players' totals are zeroed and the scores of the last two rounds are
+ * blanked (the rounds the live "suspense mode" already hides), so the final
+ * ranking cannot be reconstructed. `keepPlayerId` keeps that player's own totals.
+ */
+export function viewerTournament(tournament, { isHost = false, keepPlayerId = null } = {}) {
+  const safe = publicTournament(tournament);
+  if (!safe || isHost || safe.status !== "finished" || safe.resultsPublished) return safe;
+  const rounds = safe.rounds || [];
+  const cutoff = Math.max(...rounds.map((r) => r.roundNumber), 0) - 2;
+  const blank = (list) => (list || []).map((p) =>
+    p.id === keepPlayerId ? p : { ...p, totalPoints: 0, matchesPlayed: 0, matchesWon: 0, matchesDrawn: 0, byePoints: 0, roundsSatOut: 0 });
+  return {
+    ...safe,
+    resultsWithheld: true,
+    players: blank(safe.players),
+    ...(safe.setupPlayers ? { setupPlayers: blank(safe.setupPlayers) } : {}),
+    rounds: rounds.map((r) => r.roundNumber <= cutoff ? r : {
+      ...r,
+      // A player keeps the scores of the matches they played themselves.
+      matches: (r.matches || []).map((m) => keepPlayerId && `${m.teamAIds}${m.teamBIds}`.includes(keepPlayerId)
+        ? m
+        : { ...m, scoreA: null, scoreB: null, proposedScoreA: null, proposedScoreB: null }),
+    }),
+  };
+}

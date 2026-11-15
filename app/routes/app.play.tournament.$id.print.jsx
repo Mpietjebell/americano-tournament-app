@@ -1,14 +1,15 @@
 import { json } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { loadTournament } from "../utils/tournament-actions.server";
-import { getCountryDisplay } from "../utils/tournament-helpers";
+import { viewerTournament, getCountryDisplay } from "../utils/tournament-helpers";
+import { getHostTokenFromRequest } from "../utils/host-auth.server";
 import { getRequestOrigin } from "../utils/request.server";
 
 export const loader = async ({ params, request }) => {
     const tournament = await loadTournament(params.id);
     if (!tournament) throw new Response("Not Found", { status: 404 });
     const origin = getRequestOrigin(request);
-    return json({ tournament, origin });
+    return json({ tournament: viewerTournament(tournament, { isHost: getHostTokenFromRequest(request, params.id) === tournament.hostToken }), origin });
 };
 
 export const meta = ({ data }) => [
@@ -71,7 +72,7 @@ function CourtColumn({ courtNumber, courtName, rounds, players }) {
 
 const PRINT_STYLES = `
     .pp-root * { box-sizing: border-box; }
-    .pp-root { font-family: 'Inter', -apple-system, sans-serif; color: #111; }
+    .pp-root { font-family: 'Libre Franklin', Helvetica, Arial, sans-serif; color: #111; }
 
     .pp-toolbar {
         background: #1C4F35; color: white;
@@ -270,7 +271,6 @@ export default function PrintView() {
             {courtPages.length === 0 && (
                 <div className="pp-page" style={{ alignItems: "center", justifyContent: "center" }}>
                     <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: "3rem", marginBottom: 16 }}>📋</div>
                         <h2 style={{ color: "#1C4F35", marginBottom: 8 }}>{tournament.name}</h2>
                         <p style={{ color: "#666" }}>No courts configured. Go back and set up courts.</p>
                     </div>

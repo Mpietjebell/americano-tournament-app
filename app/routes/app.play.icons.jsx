@@ -24,7 +24,7 @@ export default function GameModeIconPreview() {
       </nav>
       <div className="ios-page" style={{ maxWidth: 960 }}>
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "2.2rem", fontWeight: 500, color: "var(--label)", marginBottom: 8 }}>Game Mode Icons</h1>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.2rem", fontWeight: 500, color: "var(--label)", marginBottom: 8 }}>Game Mode Icons</h1>
           <p style={{ fontSize: "0.92rem", color: "var(--label-3)" }}>Primary glossy badges and flat mobile variants.</p>
         </div>
 
