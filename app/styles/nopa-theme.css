@@ -1216,3 +1216,36 @@ html:has(.nopa-app) body { background: var(--bg); }
 /* Keep content clear of the home indicator and the rounded corners. */
 .ios-page, .ios-page-wide { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .club-curtain { padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }
+
+
+/* ═══ Repeat: weekday picker ═══════════════════════════════════ */
+.repeat-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin-bottom: 8px; }
+.repeat-day { height: 40px; padding: 0; border: 1px solid var(--sep-opaque); background: #fff; color: var(--label-2); font-family: inherit; font-size: 0.72rem !important; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: background-color 0.15s, color 0.15s, border-color 0.15s; }
+.repeat-day.on { background: var(--green); border-color: var(--green); color: var(--cream); }
+.repeat-day:disabled { cursor: default; opacity: 1; box-shadow: inset 0 -3px 0 var(--gold); }
+.repeat-quick { background: none; border: none; padding: 4px 0; margin-right: 8px; font-family: inherit; font-size: 0.72rem; font-weight: 600; color: var(--green); text-decoration: underline; cursor: pointer; }
+.repeat-summary { margin-top: 12px; padding: 10px 12px; background: #fff; border: 1px solid var(--line); font-size: 0.74rem; line-height: 1.5; color: var(--label-3); display: grid; gap: 3px; }
+.repeat-summary strong { color: var(--green); font-size: 0.82rem; }
+
+
+/* ═══ Level: range picker and sign-up confirmation ═════════════ */
+.level-picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.level-ball { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 0; background: none; border: none; font-family: inherit; cursor: pointer; }
+.level-dot { position: relative; z-index: 1; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--sep-opaque); background: var(--bg-grouped); transition: background-color 0.15s, border-color 0.15s, transform 0.12s; }
+.level-ball:active .level-dot { transform: scale(0.94); }
+.level-ball.on .level-dot { background: #DDE56F; border-color: var(--green); box-shadow: inset 0 0 0 2px var(--green); }
+/* the bar that ties a range together */
+.level-ball.joined::before { content: ""; position: absolute; top: 14px; right: 50%; width: 100%; height: 12px; background: var(--green); }
+.level-range { font-size: 0.74rem !important; font-weight: 700; color: var(--label-2); }
+.level-name { font-size: 0.56rem !important; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--label-3); }
+.level-ball.on .level-range { color: var(--green); }
+.level-confirm { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; margin-bottom: 14px; border: 1px solid var(--green); background: rgba(28,79,53,0.05); cursor: pointer; font-size: 0.8rem; line-height: 1.45; color: var(--label-2); -webkit-user-select: none; user-select: none; }
+.level-confirm input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--green); flex: none; }
+.level-confirm strong { display: block; color: var(--green); }
+
+/* Date and time in a hero */
+.club-hero-when { display: inline-flex; flex-direction: column; gap: 2px; margin-top: 12px; padding: 8px 12px; background: var(--cream); color: var(--green); animation: club-enter 0.6s 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.club-hero-when strong { font-family: var(--font-display); font-weight: 500; font-size: 1.02rem; line-height: 1.2; }
+.club-hero-when span { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; }
+/* keep hero text clear of the framed photo on narrow phones */
+.club-hero-sub { overflow-wrap: anywhere; }

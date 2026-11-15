@@ -126,6 +126,7 @@ model Tournament {
   hostPassword    String?
   hostEmail       String?
   level           Int?
+  levelMax        Int?
   description     String?
   clubId          String?
   club            Club?                   @relation(fields: [clubId], references: [id], onDelete: SetNull)

@@ -1,6 +1,7 @@
 import prisma from "../db.server";
 import { corsJson, handleOptions } from "../utils/cors.server";
 import { getRoster } from "../utils/registration.server";
+import { describeLevel } from "../utils/tournament-helpers";
 
 export async function loader({ request }) {
     const early = handleOptions(request);
@@ -84,6 +85,8 @@ function serialize(t, past) {
         joinCode: t.joinCode,
         duration: t.duration || null,
         level: t.level || null,
+        levelMax: t.levelMax || t.level || null,
+        levelLabel: describeLevel(t.level, t.levelMax)?.label || null,
         description: t.description || null,
         latitude: t.latitude ?? t.venue?.latitude ?? null,
         longitude: t.longitude ?? t.venue?.longitude ?? null,

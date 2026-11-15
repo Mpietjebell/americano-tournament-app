@@ -3,9 +3,9 @@ import { useLoaderData } from "@remix-run/react";
 import prisma from "../db.server";
 import { getRequestOrigin } from "../utils/request.server";
 import { getRoster } from "../utils/registration.server";
+import { describeLevel } from "../utils/tournament-helpers";
 
 const LABELS = { americano: "Americano", mexicano: "Mexicano", team_americano: "Team Americano", team_mexicano: "Team Mexicano", king_of_the_court: "King of the Court", beat_the_box: "Beat the Box" };
-const LEVEL_TOOLTIP = ["", "Playtomic 0–1 · Beginner", "Playtomic 0–1.5 · Recreational", "Playtomic 2–3 · Intermediate", "Playtomic 3–4 · Advanced", "Playtomic 4+ · Competitive"];
 
 export const loader = async ({ params, request }) => {
     const code = params.code.toUpperCase();
@@ -53,6 +53,7 @@ export const loader = async ({ params, request }) => {
         standbyCount,
         playerNames: allNames,
         level: tournament.level || null,
+        levelMax: tournament.levelMax || tournament.level || null,
         description: tournament.description || null,
         isPast,
         status: tournament.status,
@@ -156,10 +157,12 @@ export default function ShareLanding() {
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             {t.level && (
-                                <div title={LEVEL_TOOLTIP[t.level] || ""} style={{ display: "flex", gap: 3 }}>
-                                    {[1,2,3,4,5].map(d => (
-                                        <div key={d} style={{ width: 8, height: 8, borderRadius: "50%", background: d <= t.level ? "rgba(255,255,255,.85)" : "rgba(255,255,255,.2)", border: d <= t.level ? "none" : "1px solid rgba(255,255,255,.3)" }} />
-                                    ))}
+                                <div title={`${describeLevel(t.level, t.levelMax).label} · ${describeLevel(t.level, t.levelMax).name}`} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                    {[1,2,3,4,5].map(d => {
+                                        const on = d >= t.level && d <= (t.levelMax || t.level);
+                                        return <div key={d} style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "rgba(255,255,255,.85)" : "rgba(255,255,255,.2)", border: on ? "none" : "1px solid rgba(255,255,255,.3)" }} />;
+                                    })}
+                                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "rgba(255,255,255,.85)", marginLeft: 4, whiteSpace: "nowrap" }}>Level {describeLevel(t.level, t.levelMax).range}</span>
                                 </div>
                             )}
                             <span style={{ fontSize: "0.52rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", padding: "3px 9px", borderRadius: 99, background: isFull ? (hasWaitlist ? "#ea580c" : "#dc2626") : "rgba(255,255,255,.15)", color: "white", border: isFull ? "none" : "1px solid rgba(255,255,255,.25)" }}>

@@ -68,7 +68,13 @@ export function buildJoinInviteText(tournament, joinUrl) {
     if (tournament.googleMapsUrl) lines.push("📍 " + tournament.googleMapsUrl);
     lines.push("Join code: " + tournament.joinCode);
     lines.push(joinUrl);
-    lines.push("Powered by NOPA Padel");
+    // A calendar entry with a reminder the day before (scheduled tournaments only).
+    if (tournament.scheduledAt && tournament.joinCode && joinUrl) {
+        let origin = "";
+        try { origin = new URL(joinUrl).origin; } catch { /* relative link: leave the calendar line out */ }
+        if (origin) lines.push("📅 Add to your calendar: " + origin + "/j/" + tournament.joinCode + "/calendar");
+    }
+    lines.push("Powered by NOPA Padel · www.nopabrand.com");
 
     return lines.filter(Boolean).join("\n");
 }
@@ -85,8 +91,8 @@ export function buildResultsShareText(tournament, players, pageUrl) {
     topThree,
     "",
     `MVP: ${players[0]?.name || "TBD"}`,
-    "Powered by NOPA Padel",
     pageUrl,
+    "Powered by NOPA Padel · www.nopabrand.com",
   ].join("\n");
 }
 
@@ -315,5 +321,32 @@ export function viewerTournament(tournament, { isHost = false, keepPlayerId = nu
         ? m
         : { ...m, scoreA: null, scoreB: null, proposedScoreA: null, proposedScoreB: null }),
     }),
+  };
+}
+
+/**
+ * Playing level, as five connected Playtomic bands. A tournament stores the
+ * lowest band (`level`) and the highest (`levelMax`); older tournaments have
+ * only `level`, which then counts as a single band.
+ */
+export const LEVEL_BANDS = [
+  null,
+  { from: "0", to: "1", name: "Beginner" },
+  { from: "1", to: "2", name: "Recreational" },
+  { from: "2", to: "3", name: "Intermediate" },
+  { from: "3", to: "4", name: "Advanced" },
+  { from: "4", to: null, name: "Competitive" },
+];
+
+export function describeLevel(level, levelMax) {
+  const min = Math.min(5, Math.max(1, parseInt(level, 10) || 0));
+  if (!parseInt(level, 10)) return null;
+  const max = Math.min(5, Math.max(min, parseInt(levelMax, 10) || min));
+  const lo = LEVEL_BANDS[min], hi = LEVEL_BANDS[max];
+  const range = hi.to ? `${lo.from}–${hi.to}` : `${lo.from}+`;
+  return {
+    min, max, range,
+    label: `Playtomic ${range}`,
+    name: min === max ? lo.name : `${lo.name} to ${hi.name}`,
   };
 }
