@@ -7,7 +7,7 @@
  *   2. caches fingerprinted build assets, icons and images, and
  *   3. shows a friendly offline page instead of the browser error.
  */
-const CACHE = "nopa-clubhouse-v3";
+const CACHE = "nopa-clubhouse-v4";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
