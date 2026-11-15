@@ -3,7 +3,9 @@ const FROM = "NOPA Padel <tournaments@tournaments.nopabrand.com>";
 const LOGO_URL = "https://nopabrand.com/cdn/shop/files/NOPA_Logo_clear_background.png";
 const AD_IMG_URL = "https://nopabrand.com/cdn/shop/collections/IMG_8059.jpg";
 const SHOP_URL = "https://nopabrand.com/collections/racquets";
-const APP_BASE = "https://americano-tournament-app-production.up.railway.app";
+// The public web address used in emails. Set PUBLIC_APP_URL (e.g. https://play.nopabrand.com)
+// once the app has its own domain.
+const APP_BASE = (process.env.PUBLIC_APP_URL || "https://americano-tournament-app-production.up.railway.app").replace(/\/+$/, "");
 
 function calendarButtons(tournament) {
     if (!tournament.scheduledAt) return "";

@@ -1,6 +1,7 @@
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
 import { corsJson, handleOptions } from "../utils/cors.server";
+import { getRequestOrigin } from "../utils/request.server";
 import { generateAllRounds } from "../utils/tournament-actions.server";
 
 const MASTER_PASS = "NOPAMAIKELKEVIN1@";
@@ -29,7 +30,7 @@ export async function action({ request, params }) {
     }
     await prisma.tournament.update({ where: { id: params.id }, data: { status: "active" } });
 
-    return corsJson(request, { ok: true, redirectUrl: `https://americano-tournament-app-production.up.railway.app/app/play/tournament/${params.id}` });
+    return corsJson(request, { ok: true, redirectUrl: `${getRequestOrigin(request)}/app/play/tournament/${params.id}` });
 }
 
 export function loader({ request }) { return handleOptions(request) || json({}, 405); }
