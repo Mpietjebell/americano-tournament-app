@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useRememberTournament } from "../components/Resume";
 import { SealedResults } from "../components/SealedResults";
 import { RoundCurtain, useFlipList, useJustChanged, Tick, ScoreStamp } from "../components/Motion";
 import { Avatar } from "../components/Avatar";
@@ -287,6 +288,7 @@ export default function PublicTournamentView() {
     const [confirmEarlyStart, setConfirmEarlyStart] = useState(false);
 
     const players = tournament.players;
+    useRememberTournament({ id: tournament.id, name: tournament.name, href: `/app/play/tournament/${tournament.id}`, finished: Boolean(isHost && tournament.resultsPublished), enabled: isHost });
     const flipRef = useFlipList(tournament.players.map((p) => `${p.id}:${p.totalPoints}`));
     const setupPlayers = tournament.setupPlayers || tournament.players;
     const isTeamMode = tournament.type === "team_americano" || tournament.type === "team_mexicano";

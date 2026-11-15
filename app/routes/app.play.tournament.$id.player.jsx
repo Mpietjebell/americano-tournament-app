@@ -1,6 +1,8 @@
 import { json, redirect } from "@remix-run/node";
 import { Avatar } from "../components/Avatar";
 import { getPlayerAvatars } from "../utils/avatar.server";
+import { InstallHint } from "../components/InstallHint";
+import { useRememberTournament } from "../components/Resume";
 import { SealedResults } from "../components/SealedResults";
 import { ClubHero } from "../components/ClubHero";
 import { useLoaderData, Link, useRevalidator, Form } from "@remix-run/react";
@@ -49,6 +51,10 @@ export default function PlayerScoreboard() {
     }, [revalidator]);
 
     const players = tournament.players;
+    useRememberTournament({
+        id: tournament.id, name: tournament.name, finished: Boolean(tournament.resultsPublished),
+        href: `/app/play/tournament/${tournament.id}/player${playerId ? `?playerId=${playerId}` : ""}`,
+    });
     const flipRef = useFlipList(players.map((p) => `${p.id}:${p.totalPoints}`));
     const myPlayer = players.find(p => p.id === playerId);
 
@@ -102,6 +108,7 @@ export default function PlayerScoreboard() {
             </ClubHero>
 
             <div className="ios-page">
+                <InstallHint />
 
                 {/* Not started yet */}
                 {notStarted && (

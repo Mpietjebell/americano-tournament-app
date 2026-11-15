@@ -921,14 +921,18 @@ input:not([type])::placeholder,
 
 /* ─── Install hint ───────────────────────────────────────── */
 .nopa-install {
-  display: flex; align-items: center; gap: 10px; background: var(--green-dark); color: white;
-  border-radius: var(--r-card); padding: 12px 14px; margin-bottom: 14px;
+  display: flex; align-items: flex-start; gap: 10px; background: var(--green-dark); color: var(--cream);
+  padding: 16px 14px 16px 16px; margin-bottom: 14px; border: 1px solid var(--green-dark);
 }
-.nopa-install-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.78rem; line-height: 1.4; }
-.nopa-install-copy strong { font-size: 0.88rem; }
-.nopa-install-copy span { opacity: 0.85; }
-.nopa-install-btn { font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--green-dark); background: white; border: none; border-radius: var(--r-pill); padding: 8px 14px; cursor: pointer; }
-.nopa-install-close { font: inherit; font-size: 1.2rem; line-height: 1; color: white; background: none; border: none; opacity: 0.7; cursor: pointer; padding: 4px 6px; }
+.nopa-install-copy { flex: 1; min-width: 0; font-size: 0.8rem; line-height: 1.45; }
+.nopa-install-copy strong { display: block; font-family: var(--font-display); font-weight: 500; font-size: 1.15rem; line-height: 1.2; margin: 8px 0 10px; }
+.nopa-install-copy p { opacity: 0.88; margin: 0; }
+.nopa-install-steps { list-style: none; display: grid; gap: 7px; margin: 0; padding: 0; }
+.nopa-install-steps li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nopa-install-steps li > span { flex: none; width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid rgba(245,240,232,0.5); font-size: 0.68rem; font-weight: 600; margin-right: 4px; }
+.nopa-install-share { flex: none; margin: 0 1px; }
+.nopa-install-btn { font: inherit; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--green-dark); background: var(--cream); border: none; padding: 10px 14px; cursor: pointer; align-self: center; }
+.nopa-install-close { font: inherit; font-size: 1.3rem; line-height: 1; color: var(--cream); background: none; border: none; opacity: 0.7; cursor: pointer; padding: 2px 6px; }
 
 /* Installed (standalone) on a notched phone: keep the nav clear of the status bar */
 .ios-nav { height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
@@ -1188,3 +1192,27 @@ input:not([type])::placeholder,
   .sealed::after, .sealed-drum i, .sealed-fact, .sealed-ball, .sealed-ball-x, .sealed-shadow-x, .sealed-shadow, .sealed-paddle { animation: none; }
   .sealed-ball-x, .sealed-shadow-x { left: 138px; }
 }
+
+
+/* ═══ Home-screen app (iPhone "Add to Home Screen") ═══════════ */
+.club-resume {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none;
+  background: #fff; color: var(--label); border: 1px solid var(--green); padding: 14px 16px; margin-bottom: 14px;
+}
+.club-resume .club-eyebrow { color: var(--green); font-size: 10px; letter-spacing: 0.24em; }
+.club-resume strong { display: block; font-family: var(--font-display); font-weight: 500; font-size: 1.2rem; line-height: 1.2; margin-top: 6px; }
+.club-resume > span { font-size: 1.3rem; color: var(--green); }
+
+/* Feels like an app under the thumb: no grey tap flash, no rubber-band
+   reload, no accidental text selection on controls. */
+.nopa-app { -webkit-tap-highlight-color: transparent; min-height: 100dvh; }
+.nopa-app button, .nopa-app a, .nopa-app nav, .nopa-app label { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+html:has(.nopa-app) { overscroll-behavior-y: none; background: var(--green); }
+html:has(.nopa-app) body { background: var(--bg); }
+/* iPhones zoom the page when a field's text is under 16px. */
+@media (pointer: coarse) {
+  .nopa-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), .nopa-app select, .nopa-app textarea { font-size: 16px !important; }
+}
+/* Keep content clear of the home indicator and the rounded corners. */
+.ios-page, .ios-page-wide { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.club-curtain { padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }

@@ -7,6 +7,7 @@ import { getRoster } from "../utils/registration.server";
 import { getUser, publicUser, userCookie, clearUserCookie } from "../utils/user.server";
 import { NopaBanner } from "../components/NopaBanner";
 import { InstallHint } from "../components/InstallHint";
+import { ResumeCard } from "../components/Resume";
 import { Avatar } from "../components/Avatar";
 import { ClubHero } from "../components/ClubHero";
 
@@ -190,6 +191,7 @@ export default function PlayHome() {
             <ClubHero photo="table" eyebrow="The Clubhouse" title="Americano" sub="Host a tournament, join one, follow the scores." as="h1" />
 
             <main className="nopa-home-main">
+                <ResumeCard />
                 <InstallHint />
 
                 <div className="nopa-home-cta">
