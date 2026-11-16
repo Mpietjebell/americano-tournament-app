@@ -95,12 +95,12 @@ function flag(code) {
 
 function fmtDate(iso) {
     if (!iso) return null;
-    return new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return new Date(iso).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 function fmtTime(iso) {
     if (!iso) return null;
-    return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
 }
 
 export default function ShareLanding() {

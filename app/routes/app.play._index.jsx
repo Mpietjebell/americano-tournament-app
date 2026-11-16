@@ -119,7 +119,7 @@ function FeedCard({ t, mine }) {
                         )}
                         {isUpcoming && (
                             <div style={{ fontSize: "0.74rem", color: "var(--green)", fontWeight: 600, marginTop: 3 }} suppressHydrationWarning>
-                                {new Date(t.scheduledAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                {new Date(t.scheduledAt).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                             </div>
                         )}
                         {t.winner && (

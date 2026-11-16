@@ -6,11 +6,11 @@ import { TYPE_LABELS } from "../utils/tournament-helpers";
  * /j/CODE/calendar — the tournament as a calendar event (.ics), with a
  * reminder one day before. Phones open it straight in their calendar app.
  *
- * The event is written as an exact moment (UTC), so a phone's calendar shows
- * the same time as the Clubhouse pages do on that phone.
+ * Start times are wall-clock times at the venue, so the event is written as a
+ * "floating" local time: 11:00 stays 11:00 in every calendar.
  */
 const pad = (n) => String(n).padStart(2, "0");
-const stamp = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+const stamp = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00`;
 const esc = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/([,;])/g, "\\$1");
 // Calendar files wrap long lines at 75 bytes; continuation lines start with a space.
 const fold = (line) => {
@@ -56,7 +56,7 @@ export const loader = async ({ params, request }) => {
         "METHOD:PUBLISH",
         "BEGIN:VEVENT",
         `UID:${t.id}@nopa-clubhouse`,
-        `DTSTAMP:${stamp(new Date())}`,
+        `DTSTAMP:${stamp(new Date())}Z`,
         `DTSTART:${stamp(start)}`,
         `DTEND:${stamp(end)}`,
         `SUMMARY:${esc(`Padel: ${t.name}`)}`,

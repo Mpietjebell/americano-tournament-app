@@ -2,7 +2,8 @@ import prisma from "../db.server";
 import { getRequestOrigin } from "../utils/request.server";
 
 function fmtIcs(d) {
-    return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    // wall-clock time at the venue: written without "Z" so calendars keep the hour
+    return d.toISOString().replace(/[-:]/g, "").split(".")[0];
 }
 
 export async function loader({ params, request }) {

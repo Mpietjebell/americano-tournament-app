@@ -11,7 +11,8 @@ function calendarButtons(tournament) {
     if (!tournament.scheduledAt) return "";
     const start = new Date(tournament.scheduledAt);
     const end = new Date(start.getTime() + (tournament.duration || 120) * 60000);
-    const fmt = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    // Wall-clock time at the venue: no "Z", so calendars keep the hour as written.
+    const fmt = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0];
     const venueName = tournament.venue?.name || (tournament.location && !tournament.location.startsWith("http") ? tournament.location : "") || "";
     const city = tournament.city || "";
     const loc = encodeURIComponent([venueName, city].filter(Boolean).join(", "));
@@ -19,7 +20,7 @@ function calendarButtons(tournament) {
     const desc = encodeURIComponent(`NOPA Padel Tournament — nopabrand.com`);
 
     const gcal = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${desc}&location=${loc}`;
-    const outlook = `https://outlook.live.com/calendar/0/action/compose?subject=${title}&startdt=${start.toISOString()}&enddt=${end.toISOString()}&location=${loc}&body=${desc}`;
+    const outlook = `https://outlook.live.com/calendar/0/action/compose?subject=${title}&startdt=${start.toISOString().slice(0, 19)}&enddt=${end.toISOString().slice(0, 19)}&location=${loc}&body=${desc}`;
     const ics = `${APP_BASE}/api/tournament/${tournament.id}/ics`;
 
     return `
@@ -73,7 +74,7 @@ export async function sendSignupConfirmation({ to, name, tournament, position })
     const city = tournament.city || tournament.venue?.city || "";
     const locationLine = [venueName, city].filter(Boolean).join(", ");
     const dateStr = tournament.scheduledAt
-        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", {
+        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", { timeZone: "UTC",
               weekday: "long", day: "numeric", month: "long", year: "numeric",
               hour: "2-digit", minute: "2-digit",
           })
@@ -140,7 +141,7 @@ export async function sendStandbyPromoted({ to, name, tournament }) {
     const city = tournament.city || tournament.venue?.city || "";
     const locationLine = [venueName, city].filter(Boolean).join(", ");
     const dateStr = tournament.scheduledAt
-        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", {
+        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", { timeZone: "UTC",
               weekday: "long", day: "numeric", month: "long", year: "numeric",
               hour: "2-digit", minute: "2-digit",
           })
@@ -263,7 +264,7 @@ export async function sendTournamentConfirmed({ participants, tournament }) {
     const city = tournament.city || tournament.venue?.city || "";
     const locationLine = [venueName, city].filter(Boolean).join(", ");
     const dateStr = tournament.scheduledAt
-        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", {
+        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", { timeZone: "UTC",
               weekday: "long", day: "numeric", month: "long", year: "numeric",
               hour: "2-digit", minute: "2-digit",
           })
@@ -322,7 +323,7 @@ export async function sendTournamentConfirmed({ participants, tournament }) {
 
 export async function sendCancellationEmail({ participants, tournament }) {
     const dateStr = tournament.scheduledAt
-        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        ? new Date(tournament.scheduledAt).toLocaleString("en-GB", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
         : "";
 
     await Promise.all(participants.map(({ email, name }) =>
