@@ -135,10 +135,10 @@ export default function JoinCode() {
     const when = (() => {
         if (!tournament.scheduledAt) return null;
         const start = new Date(tournament.scheduledAt);
-        const clock = (d) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        const clock = (d) => d.toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
         const end = tournament.duration ? new Date(start.getTime() + tournament.duration * 60000) : null;
         return {
-            date: start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" }),
+            date: start.toLocaleDateString("en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "long", year: "numeric" }),
             time: end ? `${clock(start)} – ${clock(end)}` : clock(start),
         };
     })();

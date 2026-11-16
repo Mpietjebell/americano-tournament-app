@@ -1,4 +1,5 @@
 import { json, redirect } from "@remix-run/node";
+import { parseWallClock } from "../utils/tournament-helpers";
 import { useLoaderData, useActionData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
@@ -122,7 +123,7 @@ export const action = async ({ params, request }) => {
             googleMapsUrl,
             location,
             isPublic,
-            scheduledAt: scheduledAtStr ? new Date(scheduledAtStr) : tournament.scheduledAt,
+            scheduledAt: scheduledAtStr ? (parseWallClock(scheduledAtStr) || tournament.scheduledAt) : tournament.scheduledAt,
             duration,
         },
     });

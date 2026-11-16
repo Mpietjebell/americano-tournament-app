@@ -1,6 +1,6 @@
 import { json, redirect } from "@remix-run/node";
 import { ClubHero } from "../components/ClubHero";
-import { LEVEL_BANDS, describeLevel } from "../utils/tournament-helpers";
+import { LEVEL_BANDS, describeLevel, parseWallClock } from "../utils/tournament-helpers";
 import { useActionData, useLoaderData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
@@ -161,7 +161,7 @@ export const action = async ({ request }) => {
             courtNames,
             isGuest: !userId,
             createdById: userId || null,
-            scheduledAt: scheduledAtStr ? new Date(scheduledAtStr) : null,
+            scheduledAt: parseWallClock(scheduledAtStr),
             maxPlayers: maxPlayers || null,
             maxStandby: maxStandby || null,
             venueId: venueId || null,
@@ -191,8 +191,8 @@ export const action = async ({ request }) => {
     // Create the other tournaments of a repeating series: every chosen
     // weekday, for the chosen number of weeks, at the same time of day.
     if (repeatWeeks > 0 && scheduledAtStr) {
-        const baseDate = new Date(scheduledAtStr);
-        for (const dayOffset of repeatOffsets(baseDate.getDay(), repeatDays, repeatWeeks)) {
+        const baseDate = parseWallClock(scheduledAtStr);
+        for (const dayOffset of repeatOffsets(baseDate.getUTCDay(), repeatDays, repeatWeeks)) {
             const weeklyDate = new Date(baseDate.getTime() + dayOffset * 24 * 60 * 60 * 1000);
             let weeklyCode;
             let wAttempts = 0;

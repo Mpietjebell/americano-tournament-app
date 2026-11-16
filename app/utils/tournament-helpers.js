@@ -36,13 +36,13 @@ export function buildJoinInviteText(tournament, joinUrl) {
     let timeLine = "";
     if (tournament.scheduledAt) {
         const d = new Date(tournament.scheduledAt);
-        dateLine = d.toLocaleDateString("en-GB", {
+        dateLine = d.toLocaleDateString("en-GB", { timeZone: "UTC",
             weekday: "long", day: "numeric", month: "2-digit", year: "numeric",
         });
-        const startTime = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        const startTime = d.toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
         if (tournament.duration) {
             const endD = new Date(d.getTime() + tournament.duration * 60000);
-            const endTime = endD.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+            const endTime = endD.toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
             timeLine = "⏰ " + startTime + " - " + endTime;
         } else {
             timeLine = "⏰ " + startTime;
@@ -349,4 +349,17 @@ export function describeLevel(level, levelMax) {
     label: `Playtomic ${range}`,
     name: min === max ? lo.name : `${lo.name} to ${hi.name}`,
   };
+}
+
+/**
+ * Start times are "wall-clock" times at the venue: 11:00 means 11:00 on the
+ * court, for whoever looks and wherever they are. They are saved as that same
+ * clock reading in UTC and always shown with `timeZone: "UTC"`, so no phone's
+ * or server's time zone can shift them.
+ */
+export function parseWallClock(value) {
+  if (!value) return null;
+  const s = String(value).trim();
+  const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(s) ? s : s + (s.length <= 16 ? ":00" : "") + "Z");
+  return Number.isNaN(d.getTime()) ? null : d;
 }
