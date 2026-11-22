@@ -1,0 +1,8 @@
+frames/
+stills/
+*.wav
+chk*.jpg
+stills-sheet*.jpg
+hook-f0000.jpg
+spec.png
+render.log

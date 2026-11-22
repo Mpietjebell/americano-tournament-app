@@ -1,0 +1,375 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="fonts-local.css">
+<style>
+/* NOPA tokens, copied from app/styles/nopa-theme.css */
+:root{
+  --green:#1C4F35; --green-light:#2A6B49; --green-dark:#143A28; --cream:#F5F0E8; --mute:#D9D0C7;
+  --gold:#C5A55A; --gold-soft:#E3CF9E; --label:#1C1C1A; --label-2:#3C3C43; --label-3:rgba(60,60,67,.78);
+  --sep-opaque:#C6C6C8; --bg-card:#FFFFFF;
+  --display:'Bodoni Moda', Georgia, serif; --body:'Libre Franklin', Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--green-dark)}
+body{font-family:var(--body);-webkit-font-smoothing:antialiased;color:var(--label)}
+.scene{position:absolute;inset:0;display:none;overflow:hidden}
+.abs{position:absolute}
+.eyebrow{display:flex;align-items:center;gap:22px;font:600 24px/1 var(--body);letter-spacing:.3em;text-transform:uppercase}
+.eyebrow:before{content:"";width:60px;height:2px;background:currentColor;opacity:.75}
+.phone{position:absolute;width:440px;background:#1E2420;padding:10px;border-radius:58px;box-shadow:0 60px 120px -40px rgba(8,22,14,.65)}
+.phone img{display:block;width:100%;border-radius:48px}
+
+/* S1 */
+#s1{background:var(--green-dark)}
+#s1 .ln{position:absolute;left:200px;font:400 150px/1 var(--display);color:var(--cream);letter-spacing:-.01em}
+#s1 .ln.gold{font-style:italic;color:var(--gold-soft);font-size:190px}
+#ball{position:absolute;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#F4F7A8,#D6E24A 55%,#AEBB2C);box-shadow:inset -8px -10px 0 rgba(0,0,0,.08)}
+#ball:after{content:"";position:absolute;inset:10px;border-radius:50%;border:4px solid rgba(255,255,255,.85);clip-path:polygon(0 0,45% 0,45% 100%,0 100%);transform:rotate(25deg)}
+#shadow{position:absolute;width:110px;height:18px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(6px)}
+#court-line{position:absolute;left:1240px;width:560px;top:862px;height:4px;background:rgba(245,240,232,.25)}
+
+/* S2 */
+#s2{background:var(--green-dark)}
+#s2 .photo{position:absolute;inset:-40px;background:url(img/clubhouse-table.jpg) center/cover}
+#s2 .veil{position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,58,40,.97) 0%,rgba(20,58,40,.92) 46%,rgba(20,58,40,.35) 75%,rgba(20,58,40,.15) 100%)}
+#s2 .wm{position:absolute;left:140px;top:90px;height:56px}
+#s2 .eyebrow{color:var(--cream);left:140px;top:350px}
+#s2 h1{position:absolute;left:132px;top:400px;font:400 230px/1 var(--display);color:var(--cream);letter-spacing:-.01em}
+#s2 .lede{position:absolute;left:140px;top:690px;width:860px;font:300 46px/1.35 var(--body);color:rgba(245,240,232,.82)}
+
+/* S3 & S4 */
+#s3,#s4{background:var(--cream)}
+.cap{position:absolute;font:400 92px/1.06 var(--display);color:var(--label);letter-spacing:-.01em}
+.cap em{font-style:italic;color:var(--green)}
+.hy{font-style:normal;font-family:var(--body);font-weight:300}
+.s-eyebrow{color:var(--green)}
+.codecard{position:absolute;background:var(--bg-card);box-shadow:0 0 0 2px rgba(15,29,61,.16);padding:44px 52px 40px}
+.codecard .lbl{font:600 22px/1 var(--body);letter-spacing:.22em;color:rgba(60,60,67,.78);text-align:center}
+.codebox{margin-top:28px;background:rgba(120,120,128,.12);height:190px;display:flex;align-items:center;justify-content:center;gap:26px}
+.codebox span{font:700 128px/1 ui-monospace,'SF Mono',Menlo,'DejaVu Sans Mono',monospace;color:var(--green);width:84px;text-align:center}
+.codebox .caret{width:6px;height:120px;background:var(--green)}
+.codecard .hint{margin-top:26px;font:400 26px/1.4 var(--body);color:rgba(60,60,67,.78);text-align:center}
+
+.court{position:absolute;background:var(--bg-card);box-shadow:0 0 0 2px var(--sep-opaque),0 30px 60px -30px rgba(15,29,61,.25)}
+.court .hd{background:var(--green);color:#fff;font:600 26px/1 var(--body);letter-spacing:.14em;padding:24px 34px;display:flex;justify-content:space-between}
+.court .hd b{font-weight:600;padding:6px 12px;font-size:20px;background:rgba(255,255,255,.16);letter-spacing:.1em}
+.court .teams{display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;padding:40px 34px 10px;text-align:center}
+.court .tl{font:600 20px/1 var(--body);letter-spacing:.14em;color:rgba(60,60,67,.78)}
+.court .tn{font:600 38px/1.2 var(--body);margin-top:10px}
+.court .vs{font:700 24px/1 var(--body);color:#8E8E93}
+.court .tot{text-align:center;font:400 24px/1 var(--body);color:rgba(60,60,67,.78);margin-top:24px}
+.court .scores{display:flex;justify-content:center;align-items:center;gap:26px;margin-top:22px}
+.court .box{width:136px;height:116px;border:3px solid var(--sep-opaque);background:var(--cream);display:flex;align-items:center;justify-content:center;font:700 60px/1 var(--body);color:#8E8E93}
+.court .box.on{border-color:var(--green);color:var(--label)}
+.court .dash{font:700 44px/1 var(--body);color:rgba(60,60,67,.78)}
+.court .btn{margin:34px 34px 36px;height:92px;display:flex;align-items:center;justify-content:center;font:600 26px/1 var(--body);letter-spacing:.2em;color:#fff;background:#C7C7CC}
+.court .btn.ready{background:var(--green)}
+
+.lb{position:absolute;background:var(--bg-card);box-shadow:0 0 0 2px rgba(15,29,61,.16),0 30px 60px -30px rgba(15,29,61,.2)}
+.lb .hd{display:flex;justify-content:space-between;align-items:center;padding:26px 30px;border-bottom:2px solid var(--sep-opaque)}
+.lb .hd span{font:600 22px/1 var(--body);letter-spacing:.2em;color:rgba(60,60,67,.78)}
+.lb .hd b{font:600 20px/1 var(--body);color:var(--green);letter-spacing:.06em}
+.lb .rows{position:relative;height:576px}
+.lb .row{position:absolute;left:0;right:0;height:72px;display:grid;grid-template-columns:70px 64px 1fr 120px;align-items:center;padding:0 30px;border-bottom:1px solid #E5E1DA;background:#fff}
+.lb .rk{font:500 28px/1 var(--body);color:rgba(60,60,67,.78);font-variant-numeric:tabular-nums}
+.av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 17px/1 var(--body)}
+.lb .nm{font:600 32px/1 var(--body);padding-left:8px}
+.lb .pt{font:600 38px/1 var(--body);color:var(--green);text-align:right;font-variant-numeric:tabular-nums}
+.toast{position:absolute;background:var(--green-dark);color:var(--cream);font:600 26px/1 var(--body);letter-spacing:.06em;padding:22px 30px;display:flex;gap:18px;align-items:center}
+.toast i{font-style:normal;color:var(--gold-soft)}
+
+/* S5 */
+#s5{background:var(--green-dark)}
+#s5 .cap{color:var(--cream)}
+#s5 .cap em{color:var(--gold-soft)}
+.final{position:absolute;background:var(--green);box-shadow:inset 0 0 0 2px rgba(245,240,232,.14)}
+.final .by{text-align:center;font:500 22px/1 var(--body);letter-spacing:.3em;color:rgba(245,240,232,.78);margin-top:56px}
+.final .tc{text-align:center;font:500 24px/1 var(--body);letter-spacing:.26em;color:rgba(245,240,232,.8);margin-top:26px}
+.final h2{text-align:center;font:500 88px/1.02 var(--display);color:#fff;letter-spacing:.06em;margin-top:22px}
+.pod{position:absolute;bottom:0;width:250px;background:rgba(245,240,232,.09);box-shadow:inset 0 0 0 2px rgba(245,240,232,.18);text-align:center;color:#fff}
+.pod.first{background:rgba(245,240,232,.13);box-shadow:inset 0 0 0 2px rgba(227,207,158,.55)}
+.pod .n{font:600 36px/1 var(--body);margin-top:34px}
+.pod .s{font:600 104px/1 var(--display);margin-top:14px;font-variant-numeric:lining-nums tabular-nums}
+.pod .u{font:500 20px/1 var(--body);letter-spacing:.2em;opacity:.75;margin-top:10px}
+.pava{position:absolute;width:104px;height:104px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 36px/1 var(--body);border:5px solid rgba(245,240,232,.5)}
+.pnum{position:absolute;width:62px;height:62px;border-radius:50%;background:rgba(245,240,232,.15);box-shadow:inset 0 0 0 2px rgba(245,240,232,.3);color:#fff;font:600 30px/1 var(--body);display:flex;align-items:center;justify-content:center}
+#confetti{position:absolute;inset:0;pointer-events:none}
+
+/* S6 */
+#s6{background:var(--green-dark);color:var(--cream)}
+#s6 .wm{position:absolute;left:50%;top:250px;height:86px;transform:translateX(-50%)}
+#s6 .eyebrow{position:absolute;left:50%;top:400px;transform:translateX(-50%);color:var(--gold-soft)}
+#s6 .eyebrow:after{content:"";width:60px;height:2px;background:currentColor;opacity:.75}
+#s6 .hjp{position:absolute;left:0;right:0;top:470px;text-align:center;font:400 170px/1 var(--display);letter-spacing:-.01em}
+#s6 .hjp span{display:inline-block;margin:0 22px}
+#s6 .hjp span:last-child{font-style:italic;color:var(--gold-soft)}
+#s6 .free{position:absolute;left:0;right:0;top:740px;text-align:center;font:300 44px/1.3 var(--body);color:rgba(245,240,232,.8)}
+#s6 .rule{position:absolute;left:50%;top:840px;width:120px;height:2px;margin-left:-60px;background:rgba(245,240,232,.3)}
+</style></head>
+<body>
+
+<section class="scene" id="s1">
+  <div class="ln" id="l1">8 friends.</div>
+  <div class="ln" id="l2">2 courts.</div>
+  <div class="ln" id="l3">7 rounds.</div>
+  <div class="ln gold" id="l4">One phone.</div>
+  <div id="court-line"></div>
+  <div id="shadow"></div>
+  <div id="ball"></div>
+</section>
+
+<section class="scene" id="s2">
+  <div class="photo" id="s2photo"></div>
+  <div class="veil"></div>
+  <img class="wm" id="s2wm" src="img/nopa-wordmark-white.png" alt="">
+  <div class="eyebrow abs" id="s2eb">The Clubhouse</div>
+  <h1 id="s2h">Americano</h1>
+  <p class="lede" id="s2lede">Host a tournament, join one, follow the scores.</p>
+  <div class="phone" id="s2phone" style="left:1330px;top:150px"><img src="img/01-home.png" alt=""></div>
+</section>
+
+<section class="scene" id="s3">
+  <div class="eyebrow abs s-eyebrow" id="s3eb" style="left:140px;top:200px">Join</div>
+  <div class="cap" id="s3cap" style="left:140px;top:250px;width:820px">Players join with a <em>six<span class="hy">-</span>letter</em> code.</div>
+  <div class="codecard" id="s3card" style="left:140px;top:560px;width:900px">
+    <div class="lbl">JOIN CODE</div>
+    <div class="codebox" id="code"></div>
+    <div class="hint">Players can enter this code in the NOPA join flow.</div>
+  </div>
+  <div class="phone" id="s3phone" style="left:1300px;top:120px"><img src="img/08-share.png" alt=""></div>
+</section>
+
+<section class="scene" id="s4">
+  <div class="eyebrow abs s-eyebrow" id="s4eb" style="left:120px;top:96px">Play</div>
+  <div class="cap" id="s4cap" style="left:120px;top:140px;width:1700px;font-size:84px">Scores go in courtside. <em>The table re<span class="hy">-</span>ranks live.</em></div>
+  <div class="court" id="court" style="left:120px;top:330px;width:760px">
+    <div class="hd"><span>COURT 1</span><b id="cstate">ROUND 1</b></div>
+    <div class="teams">
+      <div><div class="tl">TEAM A</div><div class="tn">Jules &amp; Noor</div></div>
+      <div class="vs">VS</div>
+      <div><div class="tl">TEAM B</div><div class="tn">Lotte &amp; Sofia</div></div>
+    </div>
+    <div class="tot">Total = 24 pts</div>
+    <div class="scores"><div class="box" id="sa">0</div><div class="dash">—</div><div class="box" id="sb">0</div></div>
+    <div class="btn" id="cbtn">SUBMIT SCORE</div>
+  </div>
+  <div class="lb" id="lb" style="left:1000px;top:330px;width:800px">
+    <div class="hd"><span>LEADERBOARD</span><b id="lbprog">0 / 14 matches</b></div>
+    <div class="rows" id="rows"></div>
+  </div>
+  <div class="toast" id="toast" style="left:120px;top:930px">COURT 2 <i>Inès &amp; Bram 15 – 9</i></div>
+</section>
+
+<section class="scene" id="s5">
+  <div class="eyebrow abs" id="s5eb" style="left:120px;top:330px;color:var(--gold-soft)">Release</div>
+  <div class="cap" id="s5cap" style="left:120px;top:380px;width:700px;font-size:82px">Results stay <em>sealed</em> until the host releases them.</div>
+  <div class="final" id="final" style="left:880px;top:80px;width:920px;height:920px">
+    <div class="by">BY NOPA PADEL</div>
+    <div class="tc">TOURNAMENT COMPLETE</div>
+    <h2>SUNDAY<br>AMERICANO</h2>
+    <div id="podwrap" style="position:absolute;left:0;right:0;bottom:50px;height:520px"></div>
+  </div>
+  <canvas id="confetti" width="1920" height="1080"></canvas>
+</section>
+
+<section class="scene" id="s6">
+  <img class="wm" id="s6wm" src="img/nopa-wordmark-white.png" alt="">
+  <div class="eyebrow" id="s6eb">The Clubhouse</div>
+  <div class="hjp"><span id="w1">Host.</span><span id="w2">Join.</span><span id="w3">Play.</span></div>
+  <div class="free" id="s6free">The Clubhouse is free, thanks to NOPA.</div>
+  <div class="rule" id="s6rule"></div>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (x,a=0,b=1) => Math.min(b, Math.max(a, x));
+const prog = (t,a,d) => clamp((t-a)/d);
+const outCubic = x => 1 - Math.pow(1-x, 3);
+const outQuint = x => 1 - Math.pow(1-x, 5);
+const inCubic = x => x*x*x;
+const outBack = x => { const c1=1.4, c3=c1+1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); };
+const lerp = (a,b,x) => a + (b-a)*x;
+function enter(el, t, at, {dy=40, dx=0, dur=.45, ease=outCubic}={}){
+  const p = ease(prog(t, at, dur));
+  el.style.opacity = p; el.style.transform = `translate(${(1-p)*dx}px,${(1-p)*dy}px)`;
+  return p;
+}
+function exitMul(t, at, dur=.25){ return 1 - inCubic(prog(t, at, dur)); }
+
+const SCENES = [["s1",0,4],["s2",4,7],["s3",7,10.5],["s4",10.5,15],["s5",15,18],["s6",18,21.01]];
+
+// S3 code letters
+const CODE = "WNBWYX";
+const codeEl = $("code");
+CODE.split("").forEach(c => { const s = document.createElement("span"); s.textContent = c; codeEl.appendChild(s); });
+const caret = document.createElement("div"); caret.className = "caret"; codeEl.appendChild(caret);
+
+// S4 leaderboard
+const AV = {Bram:["#E9E4F5","#5B4A8B"],Daan:["#F7E6DE","#9A4A2E"],"Inès":["#E3F0E8","#1C4F35"],Jules:["#E4ECF5","#34557A"],Lotte:["#F8E3E3","#8A3B3B"],Mateo:["#F5EAD7","#8A6420"],Noor:["#E6E6F7","#47478F"],Sofia:["#F6E1DA","#8B3A22"]};
+const STATES = [
+  [["Bram",0],["Daan",0],["Inès",0],["Jules",0],["Lotte",0],["Mateo",0],["Noor",0],["Sofia",0]],
+  [["Jules",14],["Noor",14],["Lotte",10],["Sofia",10],["Bram",0],["Daan",0],["Inès",0],["Mateo",0]],
+  [["Inès",15],["Bram",15],["Jules",14],["Noor",14],["Lotte",10],["Sofia",10],["Daan",9],["Mateo",9]],
+];
+const rowEls = {};
+Object.keys(AV).forEach(n => {
+  const r = document.createElement("div"); r.className = "row";
+  r.innerHTML = `<span class="rk"></span><span class="av" style="background:${AV[n][0]};color:${AV[n][1]}">${n.slice(0,2).toUpperCase()}</span><span class="nm">${n}</span><span class="pt"></span>`;
+  $("rows").appendChild(r); rowEls[n] = r;
+});
+
+// S5 podium
+const PODS = [
+  {n:"Inès", s:93, rank:2, x:65, h:270, at:16.0, av:AV["Inès"]},
+  {n:"Sofia", s:93, rank:1, x:335, h:320, at:16.5, av:AV.Sofia, first:true},
+  {n:"Bram", s:92, rank:3, x:605, h:236, at:15.5, av:AV.Bram},
+];
+const podEls = PODS.map(p => {
+  const wrap = document.createElement("div"); wrap.style.cssText = `position:absolute;left:${p.x}px;bottom:0;width:250px;height:520px`;
+  wrap.innerHTML = `<div class="pava" style="left:73px;background:${p.av[0]};color:${p.av[1]};${p.first?'border-color:#C5A55A':''}">${p.n.slice(0,2).toUpperCase()}</div>
+    <div class="pnum" style="left:94px">${p.rank}</div>
+    <div class="pod ${p.first?'first':''}" style="height:${p.h}px;left:0"><div class="n">${p.n}</div><div class="s" style="color:${p.first?'#D8BC72':p.rank===3?'#C98A3E':'#B9B9B9'}">0</div><div class="u">PTS</div></div>`;
+  $("podwrap").appendChild(wrap); return wrap;
+});
+
+// deterministic confetti
+const CONF = Array.from({length:140}, (_,i) => {
+  const r = k => { const x = Math.sin(i*12.9898 + k*78.233) * 43758.5453; return x - Math.floor(x); };
+  return { x0: 1340 + (r(1)-.5)*500, vx: (r(2)-.5)*900, vy: -500 - r(3)*700, rot: r(4)*6, vr:(r(5)-.5)*14, w: 10+r(6)*12, h: 6+r(7)*8,
+           c: ["#E3CF9E","#C5A55A","#F5F0E8","#2A6B49","#D8BC72"][Math.floor(r(8)*5)], delay: r(9)*.25 };
+});
+
+function render(t){
+  for (const [id,a,b] of SCENES) $(id).style.display = (t>=a && t<b) ? "block" : "none";
+
+  if (t < 4){ // S1 hook
+    const ex = exitMul(t, 3.72, .28);
+    [["l1",0,180],["l2",.5,350],["l3",1.0,520],["l4",1.5,700]].forEach(([id,at,top]) => {
+      const el = $(id); el.style.top = top+"px"; enter(el, t, at, {dy:50, dur:.4});
+      el.style.opacity = +el.style.opacity * ex;
+    });
+    // ball bounces, impact on every beat from 0 to 1.5 then rests rolling
+    const floor = 766, x0 = 1480;
+    let y, sq = 1;
+    if (t < 2.0){ const ph = (t % .5) / .5; y = floor - Math.sin(Math.PI*ph) * (330 - t*60); sq = ph < .06 || ph > .94 ? .86 : 1; }
+    else { const ph = clamp((t-2)/.5); const amp = 90 * Math.max(0, 1-(t-2)/1.2); y = floor - Math.abs(Math.sin(Math.PI*2*ph*1.0))*amp; }
+    const ball = $("ball"), sh = $("shadow");
+    ball.style.left = (x0 + (t>2 ? (t-2)*40 : 0)) + "px"; ball.style.top = y + "px";
+    ball.style.transform = `scale(${1/sq*0.98+0.02},${sq})`;
+    const hgt = (floor - y)/330;
+    sh.style.left = (x0 - 7 + (t>2 ? (t-2)*40 : 0)) + "px"; sh.style.top = (floor + 88) + "px";
+    sh.style.opacity = (0.55 - hgt*0.35) * ex; sh.style.transform = `scale(${1 - hgt*0.4})`;
+    ball.style.opacity = ex; $("court-line").style.opacity = ex;
+  }
+  else if (t < 7){ // S2 reveal
+    const lt = t - 4, ex = exitMul(t, 6.72, .28);
+    $("s2photo").style.transform = `scale(${1.08 - .06*outCubic(prog(lt,0,3))})`;
+    $("s2photo").style.opacity = outCubic(prog(lt,0,.35));
+    enter($("s2wm"), t, 4.05, {dy:-20});
+    enter($("s2eb"), t, 4.1, {dx:-40, dy:0});
+    enter($("s2h"), t, 4.2, {dy:60, dur:.55});
+    enter($("s2lede"), t, 4.5, {dy:30});
+    enter($("s2phone"), t, 4.35, {dy:520, dur:.75, ease:outQuint});
+    $("s2phone").style.transform += ` rotate(${lerp(6,2,outCubic(prog(t,4.35,.75)))}deg)`;
+    ["s2wm","s2eb","s2h","s2lede","s2phone"].forEach(id => $(id).style.opacity = +$(id).style.opacity * ex);
+  }
+  else if (t < 10.5){ // S3 join code
+    const ex = exitMul(t, 10.22, .28);
+    enter($("s3eb"), t, 7.05, {dx:-40, dy:0});
+    enter($("s3cap"), t, 7.1, {dy:50, dur:.5});
+    enter($("s3card"), t, 7.3, {dy:60, dur:.5});
+    enter($("s3phone"), t, 7.25, {dy:480, dur:.7, ease:outQuint});
+    $("s3phone").style.transform += " rotate(-2deg)";
+    const spans = $("code").querySelectorAll("span");
+    let typed = 0;
+    spans.forEach((s,i) => { const at = 7.75 + i*.25; const p = outBack(prog(t, at, .22)); s.style.opacity = t>=at ? 1 : 0; s.style.transform = `translateY(${(1-p)*30}px) scale(${.7+.3*p})`; if (t>=at) typed++; });
+    spans.forEach((s,i) => s.style.display = (i < typed || typed === 0 && i===0) ? "block" : "none");
+    if (typed === 0) spans[0].style.display = "none";
+    const caretEl = $("code").querySelector(".caret");
+    caretEl.style.display = typed < 6 ? "block" : "none";
+    caretEl.style.opacity = (Math.floor(t*4) % 2 === 0) ? 1 : .2;
+    ["s3eb","s3cap","s3card","s3phone"].forEach(id => $(id).style.opacity = +$(id).style.opacity * ex);
+  }
+  else if (t < 15){ // S4 score + leaderboard
+    const ex = exitMul(t, 14.72, .28);
+    enter($("s4eb"), t, 10.55, {dx:-40, dy:0});
+    enter($("s4cap"), t, 10.6, {dy:40, dur:.5});
+    enter($("court"), t, 10.75, {dy:70, dur:.55});
+    enter($("lb"), t, 10.95, {dy:70, dur:.55});
+    const sa = $("sa"), sb = $("sb");
+    sa.textContent = t >= 11.5 ? "14" : t >= 11.25 ? "1" : "0";
+    sb.textContent = t >= 12.0 ? "10" : t >= 11.75 ? "1" : "0";
+    sa.classList.toggle("on", t >= 11.25); sb.classList.toggle("on", t >= 11.75);
+    const btn = $("cbtn");
+    btn.classList.toggle("ready", t >= 12.0);
+    const press = t >= 12.25 && t < 12.45 ? .965 : 1;
+    btn.style.transform = `scale(${press})`;
+    btn.textContent = t >= 12.4 ? "SAVED ✓" : "SUBMIT SCORE";
+    $("cstate").textContent = t >= 12.4 ? "DONE" : "ROUND 1";
+    // leaderboard re-ranks at 12.5 and 13.5
+    const stage = t >= 13.5 ? 2 : t >= 12.5 ? 1 : 0;
+    const from = STATES[Math.max(0, stage-1)], to = STATES[stage];
+    const mp = stage === 0 ? 1 : outCubic(prog(t, stage === 1 ? 12.5 : 13.5, .55));
+    $("lbprog").textContent = `${stage} / 14 matches`;
+    to.forEach(([n,pts], i) => {
+      const j = from.findIndex(x => x[0] === n);
+      const y = lerp(j*72, i*72, mp);
+      const prev = from[j][1];
+      const r = rowEls[n];
+      r.style.transform = `translateY(${y}px)`;
+      r.querySelector(".rk").textContent = i+1;
+      r.querySelector(".pt").textContent = Math.round(lerp(prev, pts, stage === 0 ? 1 : mp));
+      const hl = (stage>0 && pts !== prev && mp < 1) ? .22*(1-mp) : 0;
+      r.style.background = hl ? `linear-gradient(rgba(197,165,90,${hl}),rgba(197,165,90,${hl})),#fff` : "#fff";
+      r.style.zIndex = i < j ? 3 : (i === j ? 2 : 1);
+    });
+    const tp = enter($("toast"), t, 13.25, {dy:30, dur:.35});
+    $("toast").style.opacity = tp * exitMul(t, 14.3, .3);
+    ["s4eb","s4cap","court","lb"].forEach(id => $(id).style.opacity = +$(id).style.opacity * ex);
+  }
+  else if (t < 18){ // S5 podium
+    const ex = exitMul(t, 17.72, .28);
+    enter($("s5eb"), t, 15.05, {dx:-40, dy:0});
+    enter($("s5cap"), t, 15.1, {dy:50, dur:.5});
+    enter($("final"), t, 15.15, {dy:60, dur:.5});
+    PODS.forEach((p,i) => {
+      const w = podEls[i], pp = outBack(prog(t, p.at, .45));
+      const pod = w.querySelector(".pod"), ava = w.querySelector(".pava"), num = w.querySelector(".pnum");
+      pod.style.height = (p.h * clamp(pp,0,1.06)) + "px"; pod.style.opacity = prog(t, p.at, .1);
+      const top = 520 - p.h*clamp(pp,0,1.06);
+      num.style.top = (top - 80) + "px"; ava.style.top = (top - 190) + "px";
+      num.style.opacity = ava.style.opacity = prog(t, p.at+.1, .2);
+      ava.style.transform = `scale(${.6 + .4*outBack(prog(t,p.at+.1,.35))})`;
+      w.querySelector(".s").textContent = Math.round(p.s * outCubic(prog(t, p.at+.05, .6)));
+    });
+    const cv = $("confetti"), ctx = cv.getContext("2d");
+    ctx.clearRect(0,0,1920,1080);
+    const ct = t - 16.5;
+    if (ct > 0){
+      CONF.forEach(c => {
+        const tt = ct - c.delay; if (tt <= 0) return;
+        const x = c.x0 + c.vx*tt, y = 640 + c.vy*.75*tt + 900*tt*tt;
+        if (y > 1100) return;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(c.rot + c.vr*tt);
+        ctx.globalAlpha = ex * clamp(1.6 - tt*.6); ctx.fillStyle = c.c;
+        ctx.fillRect(-c.w/2, -c.h/2, c.w, c.h); ctx.restore();
+      });
+    }
+    ["s5eb","s5cap","final"].forEach(id => $(id).style.opacity = +$(id).style.opacity * ex);
+  }
+  else { // S6 outro
+    enter($("s6wm"), t, 18.05, {dy:-24});
+    $("s6wm").style.transform += " translateX(-50%)";
+    $("s6wm").style.left = "50%";
+    enter($("s6eb"), t, 18.2, {dy:20});
+    $("s6eb").style.transform += " translateX(-50%)";
+    enter($("w1"), t, 18.5, {dy:60}); enter($("w2"), t, 19.0, {dy:60}); enter($("w3"), t, 19.5, {dy:60});
+    enter($("s6free"), t, 19.5, {dy:24, dur:.5});
+    $("s6rule").style.transform = `scaleX(${outCubic(prog(t,19.6,.6))})`;
+  }
+}
+window.render = render;
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))]);
+render(0);
+</script>
+</body></html>
