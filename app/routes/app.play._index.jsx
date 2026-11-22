@@ -9,6 +9,7 @@ import { NopaBanner } from "../components/NopaBanner";
 import { InstallHint } from "../components/InstallHint";
 import { ResumeCard } from "../components/Resume";
 import { Avatar } from "../components/Avatar";
+import { ExplainerTiles } from "../components/ExplainerVideo";
 import { ClubHero } from "../components/ClubHero";
 
 export const meta = () => [
@@ -213,6 +214,8 @@ export default function PlayHome() {
                     <Link to="/app/play/clubs">Clubs &amp; leaderboards</Link>
                     <Link to="/app/play/scoring">How scoring works</Link>
                 </div>
+
+                <ExplainerTiles />
 
                 <div className="nopa-segmented" role="tablist">
                     {tabs.map((tab) => (

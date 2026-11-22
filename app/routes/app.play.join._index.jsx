@@ -1,5 +1,6 @@
 import { json, redirect } from "@remix-run/node";
 import { ClubHero } from "../components/ClubHero";
+import { ExplainerCard } from "../components/ExplainerVideo";
 import { useActionData, Form, Link } from "@remix-run/react";
 import prisma from "../db.server";
 
@@ -74,6 +75,9 @@ export default function JoinPage() {
                             Find Tournament
                         </button>
                     </Form>
+                </div>
+                <div style={{ marginTop: 20 }}>
+                    <ExplainerCard kind="player" lead="First time joining? Watch how it works" />
                 </div>
             </div>
         </>

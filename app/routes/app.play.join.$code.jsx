@@ -1,5 +1,6 @@
 import { json, redirect } from "@remix-run/node";
 import { ClubHero } from "../components/ClubHero";
+import { ExplainerCard } from "../components/ExplainerVideo";
 import { useLoaderData, useActionData, Form, Link } from "@remix-run/react";
 import { useState } from "react";
 import prisma from "../db.server";
@@ -471,6 +472,10 @@ export default function JoinCode() {
                     Wrong event?{" "}
                     <a href="/app/play/join" style={{ color: "var(--green)" }}>Enter a different code</a>
                 </p>
+
+                <div style={{ marginTop: 20 }}>
+                    <ExplainerCard kind="player" lead="First time? See how joining works" />
+                </div>
 
                 {playerIdFromCookie && (
                     <div style={{ marginTop: 16 }}>
