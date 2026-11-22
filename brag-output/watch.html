@@ -1,0 +1,39 @@
+<title>NOPA Clubhouse Video</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&family=Libre+Franklin:wght@400;600&display=swap">
+<style>
+/* One column: the film, then the caption to post. NOPA green ground, cream type. */
+:root { --ground: #143A28; --cream: #F5F0E8; --cream-2: #D3D1C6; --gold: #E3CF9E; --rule: rgba(245,240,232,.18);
+  --display: 'Bodoni Moda', Georgia, serif; --body: 'Libre Franklin', Helvetica, Arial, sans-serif; color-scheme: dark; }
+body { background: var(--ground); color: var(--cream); font-family: var(--body); }
+main { max-width: 1040px; margin: 0 auto; padding-block: 40px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { display: flex; align-items: center; gap: 12px; font-size: .72rem; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; color: var(--gold); }
+.eyebrow::before { content: ""; width: 32px; height: 1px; background: currentColor; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.05; margin: 14px 0 24px; text-wrap: balance; }
+video { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #0B1610; box-shadow: 0 0 0 1px var(--rule); }
+.meta { margin-top: 12px; font-size: .82rem; color: var(--cream-2); font-variant-numeric: tabular-nums; }
+.copy { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 22px; display: grid; gap: 14px; }
+.copy p { font-size: 1.05rem; line-height: 1.6; max-width: 64ch; margin: 0; }
+button { justify-self: start; font: 600 .74rem var(--body); letter-spacing: .18em; text-transform: uppercase; padding: 12px 18px; border: 0; background: var(--gold); color: #143A28; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+</style>
+<main>
+  <div class="eyebrow">Launch video</div>
+  <h1>NOPA Clubhouse, <i>run from one phone</i></h1>
+  <video id="v" src="brag.mp4" poster="brag.jpg" controls playsinline preload="metadata"></video>
+  <div class="meta">21 seconds · 1920×1080 · with music. Press play with sound on.</div>
+  <section class="copy" aria-label="Caption to post">
+    <div class="eyebrow">Caption to post</div>
+    <p id="cap">Eight friends, two courts, seven rounds and no whiteboard: the NOPA Clubhouse runs a whole padel Americano from one phone. Players join with a six-letter code, scores go in courtside, and the podium stays sealed until the host releases it.</p>
+    <button id="copy" type="button">Copy caption</button>
+  </section>
+</main>
+<script>
+document.getElementById("copy").addEventListener("click", function () {
+  var b = this, t = document.getElementById("cap").textContent;
+  navigator.clipboard.writeText(t).then(function () { b.textContent = "Copied"; }, function () {
+    var r = document.createRange(); r.selectNodeContents(document.getElementById("cap"));
+    var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected, press copy";
+  });
+});
+</script>
