@@ -1032,14 +1032,10 @@ input:not([type])::placeholder,
 .club-hero-sub { font-size: 13px; line-height: 20px; color: rgba(245,240,232,0.78); margin-top: 6px; }
 .club-hero-frame { flex: none; width: 88px; background: var(--cream); padding: 4px; border: 1px solid var(--green-dark); box-shadow: 0 10px 26px rgba(0,0,0,0.28); }
 .club-hero-frame img { display: block; width: 100%; aspect-ratio: 6 / 7; object-fit: cover; border: 1px solid rgba(29,79,53,0.35); }
-/* Graphic cover: deep strip on the right with three hairline rules */
-.club-hero--graphic::before { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 26%; max-width: 180px; background: var(--green-dark); }
-.club-hero--graphic::after {
-  content: ""; position: absolute; top: 16px; right: calc(min(26%, 180px) - 44px); width: 32px; height: 17px;
-  background: linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) top / 100% 1px no-repeat,
-              linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) center / 100% 1px no-repeat,
-              linear-gradient(rgba(245,240,232,0.5), rgba(245,240,232,0.5)) bottom / 100% 1px no-repeat;
-}
+/* Graphic cover: a deep strip behind the framed photo. It belongs to the
+   content column, so on wide screens it stays with the photo instead of
+   drifting to the window edge. (No hairline rules: they read as a menu button.) */
+.club-hero--graphic .club-hero-body::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; right: 0; width: 26%; max-width: 180px; background: var(--green-dark); }
 .club-hero--graphic .club-hero-body { min-height: 132px; }
 .club-hero--card { margin-bottom: 20px; border: 1px solid var(--green-dark); }
 .club-hero-chip { display: inline-block; margin-top: 10px; background: var(--cream); color: var(--green); font-family: var(--font-display); font-size: 13px; letter-spacing: 0.14em; padding: 5px 12px; }
