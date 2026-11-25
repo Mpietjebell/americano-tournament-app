@@ -1,5 +1,6 @@
 import { json, redirect } from "@remix-run/node";
 import { ClubHero } from "../components/ClubHero";
+import { ExplainerCard } from "../components/ExplainerVideo";
 import { LEVEL_BANDS, describeLevel, parseWallClock } from "../utils/tournament-helpers";
 import { useActionData, useLoaderData, useNavigation, Form, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
@@ -815,6 +816,7 @@ export default function NewTournamentPublic() {
             <ClubHero frame="table" eyebrow="Host" title="New Tournament" sub="Set the format, courts and players." as="h1" />
 
             <div className="ios-page">
+                <ExplainerCard kind="host" lead="New to hosting? Watch first" />
                 <Form method="post" encType="multipart/form-data" noValidate onSubmit={handleSubmit}>
                     {actionData?.error && (
                         <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "var(--r-cell)", padding: "12px 16px", marginBottom: 20, color: "#991b1b", fontSize: "0.88rem" }}>

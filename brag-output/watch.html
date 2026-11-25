@@ -1,0 +1,57 @@
+<title>NOPA Clubhouse Video</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;700&display=swap">
+<style>
+/* Two phone-shaped films side by side (stacked on a phone), each with its caption to post. NOPA green ground. */
+:root { --ground: #143A28; --panel: #1C4F35; --cream: #F5F0E8; --cream-2: #D3D1C6; --gold: #E3CF9E; --rule: rgba(245,240,232,.18);
+  --sans: 'Libre Franklin', Helvetica, Arial, sans-serif; color-scheme: dark; }
+body { background: var(--ground); color: var(--cream); font-family: var(--sans); }
+main { max-width: 980px; margin: 0 auto; padding-block: 36px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-weight: 700; font-size: clamp(1.9rem, 5vw, 2.8rem); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 8px; text-wrap: balance; }
+h1 span { color: var(--gold); }
+.lede { color: var(--cream-2); font-size: 1.05rem; margin: 0 0 28px; max-width: 60ch; }
+.films { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.film { min-width: 0; display: grid; gap: 14px; align-content: start; }
+.film h2 { margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.film h2 small { font-size: .82rem; font-weight: 500; color: var(--cream-2); font-variant-numeric: tabular-nums; }
+video { display: block; width: 100%; max-width: 100%; aspect-ratio: 9 / 16; background: #0B1610; box-shadow: 0 0 0 1px var(--rule); }
+.cap { background: var(--panel); padding: 16px 18px; display: grid; gap: 12px; }
+.cap p { margin: 0; font-size: .98rem; line-height: 1.55; }
+button { justify-self: start; font: 700 .74rem var(--sans); letter-spacing: .16em; text-transform: uppercase; padding: 11px 16px; border: 0; background: var(--gold); color: #143A28; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+.note { margin-top: 28px; font-size: .88rem; color: var(--cream-2); }
+@media (max-width: 640px) { .films { grid-template-columns: minmax(0, 1fr); } }
+</style>
+<main>
+  <h1>Every player can host, <span>from their own phone.</span></h1>
+  <p class="lede">Two vertical launch videos for the NOPA Clubhouse, sized for Reels, TikTok and Shorts. One is for whoever hosts, one is for whoever gets invited. Press play with sound on.</p>
+  <div class="films">
+    <section class="film" aria-label="Host video">
+      <h2>For the host <small>23 s · 1080×1920</small></h2>
+      <video src="brag-host.mp4" poster="brag-host.jpg" controls playsinline preload="metadata"></video>
+      <div class="cap">
+        <p id="cap-host">Got a court and some friends? You're the host. Set up a padel Americano on your own phone, share one code, enter scores courtside and release the results when you're ready. Free in the NOPA Clubhouse.</p>
+        <button type="button" data-for="cap-host">Copy caption</button>
+      </div>
+    </section>
+    <section class="film" aria-label="Player video">
+      <h2>For the player <small>22 s · 1080×1920</small></h2>
+      <video src="brag-player.mp4" poster="brag-player.jpg" controls playsinline preload="metadata"></video>
+      <div class="cap">
+        <p id="cap-player">Invited to padel? Type the code, add your email and name, and you're in. No account needed. Follow the live table all evening, and next time, host one yourself. Free in the NOPA Clubhouse.</p>
+        <button type="button" data-for="cap-player">Copy caption</button>
+      </div>
+    </section>
+  </div>
+  <p class="note">The earlier landscape video is still in the repo at brag-output/brag.mp4.</p>
+</main>
+<script>
+document.querySelectorAll("button[data-for]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var p = document.getElementById(b.dataset.for);
+    navigator.clipboard.writeText(p.textContent).then(function () { b.textContent = "Copied"; }, function () {
+      var r = document.createRange(); r.selectNodeContents(p); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected, press copy";
+    });
+  });
+});
+</script>

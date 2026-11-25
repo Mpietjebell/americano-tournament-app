@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "brag-output/watch.html"
+        ],
+        "createdAt": "2026-11-22T10:12:35.581Z",
+        "reason": "Claude measured: all text pairs are 8.2:1 or higher (#D3D1C6, #E3CF9E, #F5F0E8 on #143A28)"
+      },
+      {
+        "rule": "hero-eyebrow-chip",
+        "value": "*",
+        "files": [
+          "brag-output/watch.html"
+        ],
+        "createdAt": "2026-11-22T10:12:35.586Z",
+        "reason": "Project design system: app ClubHero renders eyebrow 'The Clubhouse' above the 'Americano' title (app.play._index.jsx:192)"
+      },
+      {
+        "rule": "italic-serif-display",
+        "value": "*",
+        "files": [
+          "brag-output/watch.html"
+        ],
+        "createdAt": "2026-11-22T10:12:35.591Z",
+        "reason": "Project design system: NOPA theme uses italic Bodoni Moda display (nopa-theme.css:166)"
+      }
+    ]
+  }
+}
